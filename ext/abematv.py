@@ -378,7 +378,12 @@ class AbemaTV:
                     elif re.search(r'#\d+', epnumber_tmp):
                         eptle = re.match(r'#\d+\s*(.+)', epnumber_tmp).group(1)
                     else:
-                        eptle = None
+                        before_space = epnumber_tmp.split(" ")[0]
+                        after_space = " ".join(epnumber_tmp.split(" ")[1:])
+                        if any(char.isdigit() for char in before_space):
+                            eptle = after_space
+                        else:
+                            eptle = None
                     hls = ep_json['playback']['hls']
                     output_name = title + "_" + epnumber
 
@@ -450,7 +455,12 @@ class AbemaTV:
             elif re.search(r'#\d+', epnumber_tmp):
                 eptle = re.match(r'#\d+\s*(.+)', epnumber_tmp).group(1)
             else:
-                eptle = None
+                before_space = epnumber_tmp.split(" ")[0]
+                after_space = " ".join(epnumber_tmp.split(" ")[1:])
+                if any(char.isdigit() for char in before_space):
+                    eptle = after_space
+                else:
+                    eptle = None
             hls = jsdata['playback']['hls']
             output_name = title + "_" + epnumber
 
