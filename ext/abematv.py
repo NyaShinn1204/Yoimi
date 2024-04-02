@@ -142,6 +142,25 @@ class AbemaTV:
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36'})
 
 
+    def convert_kanji_to_int(string):
+        """
+        Return "漢数字" to "算用数字"
+        """
+        result = string.translate(str.maketrans("零〇一壱二弐三参四五六七八九拾", "00112233456789十", ""))
+        convert_table = {"十": "0", "百": "00", "千": "000"}
+        unit_list = "|".join(convert_table.keys())
+        while re.search(unit_list, result):
+            for unit in convert_table.keys():
+                zeros = convert_table[unit]
+                for numbers in re.findall(f"(\d+){unit}(\d+)", result):
+                    result = result.replace(numbers[0] + unit + numbers[1], numbers[0] + zeros[len(numbers[1]):len(zeros)] + numbers[1])
+                for number in re.findall(f"(\d+){unit}", result):
+                    result = result.replace(number + unit, number + zeros)
+                for number in re.findall(f"{unit}(\d+)", result):
+                    result = result.replace(unit + number, "1" + zeros[len(number):len(zeros)] + number)
+                result = result.replace(unit, "1" + zeros)
+        return result
+
     def __repr__(self):
         return '<yuu.AbemaTV: URL={}, Resolution={}, Device ID={}, m3u8 URL={}>'.format(self.url, self.resolution, self.device_id, self.m3u8_url)
 
@@ -353,7 +372,8 @@ class AbemaTV:
                     title = ep_json['series']['title']
                     epnumber = jsdata['episode']['title']
                     epnum = jsdata['episode']['number']
-                    eptle = re.match(r'第\d+話\s*(.+)', epnumber).group(1)
+                    epnumber_tmp = AbemaTV.convert_kanji_to_int(epnumber)
+                    eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)
                     hls = ep_json['playback']['hls']
                     output_name = title + "_" + epnumber
 
@@ -419,7 +439,8 @@ class AbemaTV:
             title = jsdata['series']['title']
             epnumber = jsdata['episode']['title']
             epnum = jsdata['episode']['number']
-            eptle = re.match(r'第\d+話\s*(.+)', epnumber).group(1)
+            epnumber_tmp = AbemaTV.convert_kanji_to_int(epnumber)
+            eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)
             hls = jsdata['playback']['hls']
             output_name = title + "_" + epnumber
 
