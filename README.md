@@ -1,5 +1,5 @@
 <p align="center">
-    <h3 align="center">joysound-lib</h3>
+    <h3 align="center">Yoimi</h3>
     <p align="center">
         Abemaでの動画ダウンロードツール<br />
     </p>
