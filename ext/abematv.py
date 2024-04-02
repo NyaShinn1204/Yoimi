@@ -373,7 +373,12 @@ class AbemaTV:
                     epnumber = jsdata['episode']['title']
                     epnum = jsdata['episode']['number']
                     epnumber_tmp = AbemaTV.convert_kanji_to_int(epnumber)
-                    eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)
+                    if re.match(r'第\d+話\s*(.+)', epnumber_tmp):
+                        eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)
+                    elif re.search(r'#\d+', epnumber_tmp):
+                        eptle = re.match(r'#\d+\s*(.+)', epnumber_tmp).group(1)
+                    else:
+                        eptle = None
                     hls = ep_json['playback']['hls']
                     output_name = title + "_" + epnumber
 
@@ -440,7 +445,12 @@ class AbemaTV:
             epnumber = jsdata['episode']['title']
             epnum = jsdata['episode']['number']
             epnumber_tmp = AbemaTV.convert_kanji_to_int(epnumber)
-            eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)
+            if re.match(r'第\d+話\s*(.+)', epnumber_tmp):
+                eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)
+            elif re.search(r'#\d+', epnumber_tmp):
+                eptle = re.match(r'#\d+\s*(.+)', epnumber_tmp).group(1)
+            else:
+                eptle = None
             hls = jsdata['playback']['hls']
             output_name = title + "_" + epnumber
 
