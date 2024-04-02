@@ -37,4 +37,4 @@ python3 yoimi.py download "https://abema.tv/video/episode/248-17_s1_p1" --mux
 
 ## 免責事項
 
-Yoimiは、[Yuu]("https://github.com/noaione/yuu")というパッケージから、9割程度コピーし圧縮するための機構を修正したものです
+Yoimiは、[Yuu](https://github.com/noaione/yuu)というパッケージから、9割程度コピーし圧縮するための機構を修正したものです
