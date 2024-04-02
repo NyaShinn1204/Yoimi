@@ -448,6 +448,10 @@ class AbemaTV:
                         return None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
             title = jsdata['series']['title']
             epnumber = jsdata['episode']['title']
+            if "ライブ" in epnumber.lower() or "live" in epnumber.lower():
+                self.yuu_logger.debug('Live Content: True')
+            else:
+                self.yuu_logger.debug('Live Content: False')
             epnum = jsdata['episode']['number']
             epnumber_tmp = AbemaTV.convert_kanji_to_int(epnumber)
             if re.match(r'第\d+話\s*(.+)', epnumber_tmp):
