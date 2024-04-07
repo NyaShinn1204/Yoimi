@@ -7,6 +7,8 @@ from tqdm import tqdm
 
 from ext import *
 
+# LOL
+
 def get_parser(url):
     """
     Function that are called first time to check if it's a valid supported link
