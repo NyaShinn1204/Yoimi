@@ -152,11 +152,11 @@ class AbemaTV:
         while re.search(unit_list, result):
             for unit in convert_table.keys():
                 zeros = convert_table[unit]
-                for numbers in re.findall(f"(\d+){unit}(\d+)", result):
+                for numbers in re.findall(rf"(\d+){unit}(\d+)", result):
                     result = result.replace(numbers[0] + unit + numbers[1], numbers[0] + zeros[len(numbers[1]):len(zeros)] + numbers[1])
-                for number in re.findall(f"(\d+){unit}", result):
+                for number in re.findall(rf"(\d+){unit}", result):
                     result = result.replace(number + unit, number + zeros)
-                for number in re.findall(f"{unit}(\d+)", result):
+                for number in re.findall(rf"{unit}(\d+)", result):
                     result = result.replace(unit + number, "1" + zeros[len(number):len(zeros)] + number)
                 result = result.replace(unit, "1" + zeros)
         return result
@@ -184,7 +184,7 @@ class AbemaTV:
                 return res, reas
         _ENDPOINT_MAIL = 'https://api.abema.io/v1/auth/user/email'
         _ENDPOINT_OTP = 'https://api.abema.io/v1/auth/oneTimePassword'
-        mail_regex = r'^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+        mail_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if re.search(mail_regex, username):
             _ENDPOINT_USE = _ENDPOINT_MAIL
             _USERNAME_METHOD = 'email'
@@ -370,8 +370,8 @@ class AbemaTV:
 
                     ep_json = req_ep.json()
                     title = ep_json['series']['title']
-                    epnumber = jsdata['episode']['title']
-                    epnum = jsdata['episode']['number']
+                    epnumber = episode["episode"]["title"]
+                    epnum = episode["episode"]["number"]
                     epnumber_tmp = AbemaTV.convert_kanji_to_int(epnumber)
                     if re.match(r'第\d+話\s*(.+)', epnumber_tmp):
                         eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)

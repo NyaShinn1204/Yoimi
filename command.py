@@ -55,6 +55,7 @@ def streams_list():
 @click.option("--output", "-o", required=False, default=None, help="Output filename")
 @click.option('--verbose', '-v', is_flag=True, help="Enable verbosity")
 def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose):
+    #print(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose)
     """
     Main command to access downloader
     
