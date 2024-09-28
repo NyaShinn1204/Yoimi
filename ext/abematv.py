@@ -317,7 +317,7 @@ class AbemaTV:
             output_list = []
 
             jsdata = req.json()
-            to_be_requested = "{api}{vid}/programs?seriesVersion={sv}&seasonId={si}&offset=0&order={od}"
+            to_be_requested = "{api}{vid}/programs?seriesVersion={sv}&seasonId={si}&offset=0&order={od}&limit=100"
 
             season_data = jsdata['seasons']
             if not season_data:
