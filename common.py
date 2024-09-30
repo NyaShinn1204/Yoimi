@@ -62,7 +62,7 @@ def mux_video(old_file, muxfile):
     
     fn_, _ = os.path.splitext(old_file)
     if use_mkvmerge:
-        subprocess.run(['mkvmerge', '-o', '{f}.mkv'.format(f=fn_), old_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['mkvmerge', '-o', '{f}.{e}'.format(f=fn_, e=muxfile), old_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if use_ffmpeg:
         subprocess.run(['ffmpeg', '-i', old_file, '-c', 'copy', '{f}.{e}'.format(f=fn_, e=muxfile)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return '{f}.{e}'.format(f=fn_,e=muxfile)
