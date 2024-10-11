@@ -415,7 +415,18 @@ class UNext:
             #title_parse = re.search(r'SID(\d+)/ED(\d+)', ep_link)
             #
             #series_id = title_parse.group(1)
-            episode_id = re.sub(r'\?.*', '', ep_link)
+
+            match = re.search(r'SID(\d+)/ED(\d+)', self.url)
+            
+            if match:
+                se_id = "SID"+match.group(1)
+                ep_id = "ED"+match.group(2)
+                #print(f"SID: {se_id}, ED: {ep_id}")
+            #else:
+            #    print("SID or ED not found.")
+            
+            #episode_id = re.sub(r'\?.*', '', ep_link)
+            episode_id = ep_id
             
             playtoken, url_code = self.get_playlist_url(episode_id)
             
@@ -425,9 +436,15 @@ class UNext:
             if mpd_content == "":
                 return None, 'Error Video is playing (Response: 500)'
             parse_json = self.parse_mpd(mpd_content, playtoken, url_code)
-            print(parse_json)
+            #print(parse_json)
             
             self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/1/?play_token={playtoken}&last_viewing_flg=0")
+            
+            #print(episode_id)
+            
+            jsdata = self.get_video_episode_meta(episode_id)
+            sedata = self.get_video_episodes(se_id)
+            print(sedata)
             
             #if ep_link.__contains__("?ps"):
             #    ep_link = ep_link.replace("?ps=2", "")
@@ -440,38 +457,38 @@ class UNext:
             #    found_json = next((item for item in meta_response["seasons"] if item['id'] == abema_get_series_id_extract_episode), None)
             #    if found_json is not None:
             
-            req = self.session.get(self._PROGRAMAPI + ep_link)
-            if req.status_code != 200:
-                self.yuu_logger.log(40, 'Abema Response: ' + req.text)
-                return None, 'Error occured when communicating with Abema (Response: {})'.format(req.status_code)
+#            req = self.session.get(self._PROGRAMAPI + ep_link)
+#            if req.status_code != 200:
+#                self.yuu_logger.log(40, 'Abema Response: ' + req.text)
+#                return None, 'Error occured when communicating with Abema (Response: {})'.format(req.status_code)
             self.yuu_logger.debug('Data requested')
             self.yuu_logger.debug('Parsing json API')
-            jsdata = req.json()
-            if jsdata['mediaStatus']:
-                if 'drm' in jsdata['mediaStatus']:
-                    if jsdata['mediaStatus']['drm']:
-                        return None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
-            title = jsdata['series']['title']
-            epnumber = jsdata['episode']['title']
-            if "ライブ" in epnumber.lower() or "live" in epnumber.lower():
-                self.yuu_logger.debug('Live Content: True')
-            else:
-                self.yuu_logger.debug('Live Content: False')
-            epnum = jsdata['episode']['number']
-            epnumber_tmp = AbemaTV.convert_kanji_to_int(epnumber)
-            if re.match(r'第\d+話\s*(.+)', epnumber_tmp):
-                eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)
-            elif re.search(r'#\d+', epnumber_tmp):
-                eptle = re.match(r'#\d+\s*(.+)', epnumber_tmp).group(1)
-            else:
-                before_space = epnumber_tmp.split(" ")[0]
-                after_space = " ".join(epnumber_tmp.split(" ")[1:])
-                if any(char.isdigit() for char in before_space):
-                    eptle = after_space
-                else:
-                    eptle = None
-            hls = jsdata['playback']['hls']
-            output_name = title + "_" + epnumber
+#            jsdata = req.json()
+#            if jsdata['mediaStatus']:
+#                if 'drm' in jsdata['mediaStatus']:
+#                    if jsdata['mediaStatus']['drm']:
+#                        return None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
+#            title = jsdata['series']['title']
+#            epnumber = jsdata['episode']['title']
+#            if "ライブ" in epnumber.lower() or "live" in epnumber.lower():
+#                self.yuu_logger.debug('Live Content: True')
+#            else:
+#                self.yuu_logger.debug('Live Content: False')
+#            epnum = jsdata['episode']['number']
+#            epnumber_tmp = AbemaTV.convert_kanji_to_int(epnumber)
+#            if re.match(r'第\d+話\s*(.+)', epnumber_tmp):
+#                eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)
+#            elif re.search(r'#\d+', epnumber_tmp):
+#                eptle = re.match(r'#\d+\s*(.+)', epnumber_tmp).group(1)
+#            else:
+#                before_space = epnumber_tmp.split(" ")[0]
+#                after_space = " ".join(epnumber_tmp.split(" ")[1:])
+#                if any(char.isdigit() for char in before_space):
+#                    eptle = after_space
+#                else:
+#                    eptle = None
+#            hls = jsdata['playback']['hls']
+            output_name = sedata["episodeName"] + "_" + jsdata["subTitle"]
 
             m3u8_url = '{x}/{r}/playlist.m3u8'.format(x=hls[:hls.rfind('/')], r=resolution[:-1])
             if self.is_m3u8:
@@ -546,6 +563,17 @@ class UNext:
 
         return parsed_files, iv[2:], ticket, 'Success'
 
+    def get_video_episodes(self, title_name):
+        meta_json = {
+            "operationName": "cosmo_getVideoTitleEpisodes",
+            "variables": {"code": title_name},
+            "query": "query cosmo_getVideoTitleEpisodes($code: ID!, $page: Int, $pageSize: Int) {\n  webfront_title_titleEpisodes(id: $code, page: $page, pageSize: $pageSize) {\n    episodes {\n      id\n      episodeName\n      purchaseEpisodeLimitday\n      thumbnail {\n        standard\n        __typename\n      }\n      duration\n      displayNo\n      interruption\n      completeFlag\n      saleTypeCode\n      introduction\n      saleText\n      episodeNotices\n      isNew\n      hasPackRights\n      minimumPrice\n      hasMultiplePrices\n      productLineupCodeList\n      isPurchased\n      purchaseEpisodeLimitday\n      __typename\n    }\n    pageInfo {\n      results\n      __typename\n    }\n    __typename\n  }\n}\n",
+        }
+        response = self.session.post(self._COMMANDCENTER_API, json=meta_json)
+        return (
+            response.json()["data"]["webfront_title_titleEpisodes"]["episodes"][0]
+        )
+
 
     def get_playlist_url(self, episode_id):
         meta_json = {
@@ -560,6 +588,7 @@ class UNext:
             "query": "query cosmo_getPlaylistUrl($code: String, $playMode: String, $bitrateLow: Int, $bitrateHigh: Int, $validationOnly: Boolean) {\n  webfront_playlistUrl(\n    code: $code\n    playMode: $playMode\n    bitrateLow: $bitrateLow\n    bitrateHigh: $bitrateHigh\n    validationOnly: $validationOnly\n  ) {\n    subTitle\n    playToken\n    playTokenHash\n    beaconSpan\n    result {\n      errorCode\n      errorMessage\n      __typename\n    }\n    resultStatus\n    licenseExpireDate\n    urlInfo {\n      code\n      startPoint\n      resumePoint\n      endPoint\n      endrollStartPosition\n      holderId\n      saleTypeCode\n      sceneSearchList {\n        IMS_AD1\n        IMS_L\n        IMS_M\n        IMS_S\n        __typename\n      }\n      movieProfile {\n        cdnId\n        type\n        playlistUrl\n        movieAudioList {\n          audioType\n          __typename\n        }\n        licenseUrlList {\n          type\n          licenseUrl\n          __typename\n        }\n        __typename\n      }\n      umcContentId\n      movieSecurityLevelCode\n      captionFlg\n      dubFlg\n      commodityCode\n      movieAudioList {\n        audioType\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
         }
         response = self.session.post(self._COMMANDCENTER_API, json=meta_json)
+        print(response.json()["data"])
         return (
             response.json()["data"]["webfront_playlistUrl"]["playToken"],
             response.json()["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"],
@@ -571,6 +600,15 @@ class UNext:
         
         #print(response.status_code)
         return response.text
+
+    def get_video_episode_meta(self, episode_id):
+        meta_json = {
+            "operationName": "cosmo_getPlaylistUrl",
+            "variables": {"code": episode_id, "playMode": "dub", "bitrateLow": 1500},
+            "query": "query cosmo_getPlaylistUrl($code: String, $playMode: String, $bitrateLow: Int, $bitrateHigh: Int, $validationOnly: Boolean) {\n  webfront_playlistUrl(\n    code: $code\n    playMode: $playMode\n    bitrateLow: $bitrateLow\n    bitrateHigh: $bitrateHigh\n    validationOnly: $validationOnly\n  ) {\n    subTitle\n    playToken\n    playTokenHash\n    beaconSpan\n    result {\n      errorCode\n      errorMessage\n      __typename\n    }\n    resultStatus\n    licenseExpireDate\n    urlInfo {\n      code\n      startPoint\n      resumePoint\n      endPoint\n      endrollStartPosition\n      holderId\n      saleTypeCode\n      sceneSearchList {\n        IMS_AD1\n        IMS_L\n        IMS_M\n        IMS_S\n        __typename\n      }\n      movieProfile {\n        cdnId\n        type\n        playlistUrl\n        movieAudioList {\n          audioType\n          __typename\n        }\n        licenseUrlList {\n          type\n          licenseUrl\n          __typename\n        }\n        __typename\n      }\n      umcContentId\n      movieSecurityLevelCode\n      captionFlg\n      dubFlg\n      commodityCode\n      movieAudioList {\n        audioType\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
+        }
+        response = self.session.post(self._COMMANDCENTER_API, json=meta_json)
+        return response.json()["data"]["webfront_playlistUrl"]
 
     def parse_mpd(self, content, playtoken, url_code):
         from xml.etree import ElementTree as ET
