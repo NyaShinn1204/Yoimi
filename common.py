@@ -7,8 +7,6 @@ from tqdm import tqdm
 
 from ext import *
 
-# LOL
-
 def get_parser(url):
     """
     Function that are called first time to check if it's a valid supported link
@@ -18,12 +16,15 @@ def get_parser(url):
     valid_abema = r'http(?:|s)://(?:abema\.tv)/(?:channels|video)/(?:\w*)(?:/|-\w*/)((?P<slot>slots/)|)(?P<video_id>.*[^-_])'
     valid_gyao = r'(?isx)http(?:|s)://gyao.yahoo.co.jp/(?:player|p|title[\w])/(?P<p1>[\w]*.*)'
     valid_aniplus = r'http(?:|s)://(?:www\.|)aniplus-asia\.com/episode/(?P<video_id>[\w]*.*)'
+    valid_unext = r'http(?:|s)://video\.unext\.jp/(?:play|title|freeword).*(?:SID(?P<sid>[0-9]+)|ED(?P<ed>[0-9]+))'
     if re.match(valid_abema, url):
         return AbemaTV
     elif re.match(valid_gyao, url):
         return GYAO
     elif re.match(valid_aniplus, url):
         return Aniplus
+    elif re.match(valid_unext, url):
+        return UNext
     return None
 
 
