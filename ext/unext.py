@@ -421,6 +421,14 @@ class UNext:
             
             print(playtoken, url_code)
             
+            mpd_content = self.get_mpd_content(url_code, playtoken)
+            if mpd_content == "":
+                return None, 'Error Video is playing (Response: 500)'
+            parse_json = self.parse_mpd(mpd_content, playtoken, url_code)
+            print(parse_json)
+            
+            self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/1/?play_token={playtoken}&last_viewing_flg=0")
+            
             #if ep_link.__contains__("?ps"):
             #    ep_link = ep_link.replace("?ps=2", "")
             #print(ep_link)
@@ -556,6 +564,68 @@ class UNext:
             response.json()["data"]["webfront_playlistUrl"]["playToken"],
             response.json()["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"],
         ) 
+        
+    def get_mpd_content(self, url_code, playtoken):
+        # 18c529a7-04df-41ee-b230-07f95ecd2561 MEZ0000593320
+        response = self.session.get(f"https://playlist.unext.jp/playlist/v00001/dash/get/{url_code}.mpd/?file_code={url_code}&play_token={playtoken}", headers={"Referer": f"https://unext.jp/{url_code}?playtoken={playtoken}"})
+        
+        #print(response.status_code)
+        return response.text
+
+    def parse_mpd(self, content, playtoken, url_code):
+        from xml.etree import ElementTree as ET
+        from lxml import etree    
+        
+        if isinstance(content, str):
+            content = content.encode('utf-8')
+        root = etree.fromstring(content)
+    
+        namespaces = {'mpd': 'urn:mpeg:dash:schema:mpd:2011'}
+        
+        videos = []
+        for adaptation_set in root.findall('.//mpd:AdaptationSet[@contentType="video"]', namespaces):
+            for representation in adaptation_set.findall('mpd:Representation', namespaces):
+                resolution = f"{representation.get('width')}x{representation.get('height')}"
+                codec = representation.get('codecs')
+                mimetype = representation.get('mimeType')
+                videos.append({
+                    'resolution': resolution,
+                    'codec': codec,
+                    'mimetype': mimetype
+                })
+        
+        audios = []
+        for adaptation_set in root.findall('.//mpd:AdaptationSet[@contentType="audio"]', namespaces):
+            for representation in adaptation_set.findall('mpd:Representation', namespaces):
+                audio_sampling_rate = representation.get('audioSamplingRate')
+                codec = representation.get('codecs')
+                mimetype = representation.get('mimeType')
+                audios.append({
+                    'audioSamplingRate': audio_sampling_rate,
+                    'codec': codec,
+                    'mimetype': mimetype
+                })
+        
+        namespace = {'': 'urn:mpeg:dash:schema:mpd:2011', 'cenc': 'urn:mpeg:cenc:2013'}
+        root = ET.fromstring(content)
+        
+        audio_pssh_list = root.findall('.//AdaptationSet[@contentType="audio"]/ContentProtection/cenc:pssh', namespace)
+        video_pssh_list = root.findall('.//AdaptationSet[@contentType="video"]/ContentProtection/cenc:pssh', namespace)
+        
+        audio_pssh = audio_pssh_list[-1] if audio_pssh_list else None
+        video_pssh = video_pssh_list[-1] if video_pssh_list else None
+        
+        result = {
+            "main_content": content,
+            "playtoken": playtoken,
+            "video_pssh": video_pssh.text,
+            "audio_pssh": audio_pssh.text,
+            "url_code": url_code,
+            "video": videos,
+            "audio": audios[0] if audios else {}
+        }
+        
+        return result
 
     def get_video_key(self, ticket):
         self.yuu_logger.debug('Sending parameter to API')
