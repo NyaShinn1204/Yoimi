@@ -438,7 +438,6 @@ class UNext:
             parse_json = self.parse_mpd(mpd_content, playtoken, url_code)
             #print(parse_json)
             
-            self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/1/?play_token={playtoken}&last_viewing_flg=0")
             
             #print(episode_id)
             
@@ -490,18 +489,20 @@ class UNext:
 #            hls = jsdata['playback']['hls']
             output_name = sedata["episodeName"] + "_" + jsdata["subTitle"]
 
-            m3u8_url = '{x}/{r}/playlist.m3u8'.format(x=hls[:hls.rfind('/')], r=resolution[:-1])
-            if self.is_m3u8:
-                m3u8_url = self.url
+            #m3u8_url = '{x}/{r}/playlist.m3u8'.format(x=hls[:hls.rfind('/')], r=resolution[:-1])
+            #if self.is_m3u8:
+            #    m3u8_url = self.url
 
-            self.yuu_logger.debug('M3U8 Link: {}'.format(m3u8_url))
-            self.yuu_logger.debug('Video title: {}'.format(title))
-            self.yuu_logger.debug('Episode number: {}'.format(epnumber))
-            self.yuu_logger.debug('Episode num: {}'.format(epnum))
-            self.yuu_logger.debug('Episode title: {}'.format(eptle))
+            #self.yuu_logger.debug('M3U8 Link: {}'.format(m3u8_url))
+            self.yuu_logger.debug('Video title: {}'.format(sedata["episodeName"]))
+            self.yuu_logger.debug('Episode number: {}'.format(jsdata["subTitle"]))
+            #self.yuu_logger.debug('Episode num: {}'.format(epnum))
+            #self.yuu_logger.debug('Episode title: {}'.format(eptle))
 
         self.resolution = resolution
         self.m3u8_url = m3u8_url
+        
+        self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/1/?play_token={playtoken}&last_viewing_flg=0")
 
         return output_name, 'Success'
 
