@@ -7,9 +7,9 @@
 
 ## インストール
 
-**※ Pythonのバージョン3.10以上が必要。**
+**※ Pythonのバージョン3.10以上が必要です**
 
-「Yoimi」を使うには、以下のコマンドを実行する： .
+「Yoimi」を使うには、以下のコマンドを実行します
 
 > [!TIP]
 > これは開發バージョンです！
@@ -42,4 +42,4 @@ python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --
 
 ## 免責事項
 
-Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパケットの約90％をコピーして圧縮するための改良されたメカニズムである。
+Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパッケージの約95％をコピーして圧縮するコードを改良されたものである。
