@@ -9,12 +9,15 @@ import string
 import tempfile
 import time
 import uuid
+import subprocess
 import random
 import requests
 from base64 import urlsafe_b64encode
 from binascii import unhexlify
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs
+
+from xml.etree import ElementTree as ET
 
 import m3u8
 from Crypto.Cipher import AES
@@ -55,7 +58,89 @@ class UNextDownloader:
     def setup_decryptor(self):
         self.iv = unhexlify(self.iv)
         self._aes = AES.new(self.key, AES.MODE_CBC, IV=self.iv)
-
+        
+    
+    def mp4decrypt(self, keys):
+        mp4decrypt_command = [os.path.join("binaries", "mp4decrypt.exe")]
+        for key in keys:
+            if key["type"] == "CONTENT":
+                mp4decrypt_command.extend(
+                    [
+                        "--show-progress",
+                        "--key",
+                        "{}:{}".format(key["kid_hex"], key["key_hex"]),
+                    ]
+                )
+        return mp4decrypt_command
+    
+    
+    def decrypt_content(self, keys, input_file, output_file):
+        #print(input_file)
+        if not os.path.exists(input_file):
+            raise FileNotFoundError(f"{input_file} not found.")
+        mp4decrypt_command = self.mp4decrypt(keys)
+        mp4decrypt_command.extend([input_file, output_file])
+        subprocess.run(mp4decrypt_command)
+        
+    def mux_episode(self, video_name, audio_name, output_name):
+        compile_command = [
+            "ffmpeg",
+            "-i",
+            os.path.join(self.temporary_folder, video_name),
+            "-i",
+            os.path.join(self.temporary_folder, audio_name),
+            "-c:v",
+            "copy",
+            "-c:a",
+            "copy",
+            "-strict",
+            "experimental",
+            output_name,
+        ]
+        subprocess.run(compile_command)
+        
+    def download_episode(self, video_url,audio_url,_out_, episode_license):
+        #video_info = mpd_parse.extract_video_info(self.mpd_file, value)
+        #audio_info = mpd_parse.extract_audio_info(self.mpd_file, value)
+        #print(video_url,audio_url,_out_)
+        #outputtemp = self.temporary_folder + os.path.basename(_out_.replace(".mp4","_decrypt_video.mp4"))
+        #with open(outputtemp, 'wb') as outf:
+        try:
+            with tqdm(total=1, desc='Downloading', ascii=True, unit='file') as pbar:
+                outputtemp = self.temporary_folder + os.path.basename(_out_.replace(".mp4","_encrypt_video.mp4").replace(" ", "_"))
+                #print(outputtemp)
+                with open(outputtemp, 'wb') as outf:
+                    try:
+                        vid = self.session.get(video_url)
+                        #vid = self._aes.decrypt(vid.content)
+                        outf.write(vid.content)
+                    except Exception as err:
+                        yuu_log.error('Problem occured\nreason: {}'.format(err))
+                        return None
+                pbar.update()
+                self.decrypt_content(episode_license["video_key"], outputtemp, outputtemp.replace("_encrypt_video.mp4","_decrypt_video.mp4"))
+                #self.downloaded_files.append(outputtemp)
+        except KeyboardInterrupt:
+            yuu_log.warn('User pressed CTRL+C, cleaning up...')
+            return None
+        try:
+            with tqdm(total=1, desc='Downloading', ascii=True, unit='file') as pbar:
+                outputtemp = self.temporary_folder + os.path.basename(_out_.replace(".mp4","_encrypt_audio.mp4").replace(" ", "_"))
+                with open(outputtemp, 'wb') as outf:
+                    try:
+                        vid = self.session.get(audio_url)
+                        #vid = self._aes.decrypt(vid.content)
+                        outf.write(vid.content)
+                    except Exception as err:
+                        yuu_log.error('Problem occured\nreason: {}'.format(err))
+                        return None
+                pbar.update()
+                self.decrypt_content(episode_license["audio_key"], outputtemp, outputtemp.replace("_encrypt_audio.mp4","_decrypt_audio.mp4"))
+                #self.downloaded_files.append(outputtemp)
+        except KeyboardInterrupt:
+            yuu_log.warn('User pressed CTRL+C, cleaning up...')
+            return None
+        
     def download_chunk(self, files, key, iv):
         if iv.startswith('0x'):
             self.iv = iv[2:]
@@ -87,6 +172,48 @@ class UNextDownloader:
 
 
 class UNext:
+    
+    class mpd_parse:
+        @staticmethod
+        def extract_video_info(mpd_content, value, resolution_data):
+            namespaces = {'': 'urn:mpeg:dash:schema:mpd:2011', 'cenc': 'urn:mpeg:cenc:2013'}
+            root = ET.fromstring(mpd_content)
+        
+            for adaptation_set in root.findall('.//AdaptationSet', namespaces):
+                content_type = adaptation_set.get('contentType', '')
+                
+                if content_type == 'video':
+                    for representation in adaptation_set.findall('Representation', namespaces):
+                        width = representation.get('width')
+                        height = representation.get('height')
+                        resolution = f"{width}x{height} mp4"
+                        
+                        if resolution == resolution_data[value][0]:
+                            base_url_element = representation.find('BaseURL', namespaces)
+                            base_url = base_url_element.text if base_url_element is not None else None
+                            return {"base_url": base_url}
+            return None
+    
+        @staticmethod
+        def extract_audio_info(mpd_content, bandwidth_calculation_audio):
+            namespaces = {'': 'urn:mpeg:dash:schema:mpd:2011', 'cenc': 'urn:mpeg:cenc:2013'}
+            root = ET.fromstring(mpd_content)
+        
+            audio_bandwidth = bandwidth_calculation_audio
+            print(audio_bandwidth)
+        
+            audio_adaptation_set = root.find(".//AdaptationSet[@contentType='audio']", namespaces)
+        
+            if audio_adaptation_set is not None:
+                for representation in audio_adaptation_set.findall('Representation', namespaces):
+                    if (representation.get('bandwidth') == audio_bandwidth):
+                        
+                        base_url_element = representation.find('BaseURL', namespaces)
+                        base_url = base_url_element.text if base_url_element is not None else None
+                        return {"base_url": base_url}
+        
+            return None
+    
     def __init__(self, url, session):
         self.session = session
         self.type = 'U-Next'
@@ -94,19 +221,29 @@ class UNext:
 
         self.url = url
         self.m3u8_url = None
+        self.episode_license = None
+        self.play_token = None
+        self.mpd_file = None
         self.resolution = None
         self.resolution_o = None
         self.device_id = None
         self.is_m3u8 = False
         self.est_filesize = None # In MiB
 
+        #self.resolution_data = {
+        #    "1080p": ["4000kb/s", "AAC 192kb/s 2ch"],
+        #    "720p": ["2000kb/s", "AAC 160kb/s 2ch"],
+        #    "480p": ["900kb/s", "AAC 128kb/s 2ch"],
+        #    "360p": ["550kb/s", "AAC 128kb/s 2ch"],
+        #    "240p": ["240kb/s", "AAC 64kb/s 1ch"],
+        #    "180p": ["120kb/s", "AAC 64kb/s 1ch"]
+        #}
+        
+
         self.resolution_data = {
-            "1080p": ["4000kb/s", "AAC 192kb/s 2ch"],
-            "720p": ["2000kb/s", "AAC 160kb/s 2ch"],
-            "480p": ["900kb/s", "AAC 128kb/s 2ch"],
-            "360p": ["550kb/s", "AAC 128kb/s 2ch"],
-            "240p": ["240kb/s", "AAC 64kb/s 1ch"],
-            "180p": ["120kb/s", "AAC 64kb/s 1ch"]
+            "1080p": ["1920x1080 mp4"],
+            "720p": ["1280x720 mp4"],
+            "396p": ["704x396 mp4"],
         }
 
         self.bitrate_calculation = {
@@ -117,6 +254,17 @@ class UNext:
             "240p": 292,
             "180p": 179
         }
+        self.bandwidth_calculation = {
+            "1080p": 4017744,
+            "720p": 2442656,
+            "396p": 1431904
+        }
+        self.bandwidth_calculation_audio = "125448"
+        #self.height_calculation = {
+        #    "1080p": 1920*1080,
+        #    "720p": 1280*720,
+        #    "396p": 704*396,
+        #}
 
         self.authorization_required = True
         self.authorized = False # Ignore for now
@@ -141,6 +289,7 @@ class UNext:
         self._PROGRAMAPI = 'https://api.abema.io/v1/video/programs/'
         self._CHANNELAPI = 'https://api.abema.io/v1/media/slots/'
         self._SERIESAPI = "https://api.abema.io/v1/video/series/"
+        self._WVPROXY = "https://wvproxy.unext.jp/proxy"
         
         self._COMMANDCENTER_API = "https://cc.unext.jp"
 
@@ -428,14 +577,14 @@ class UNext:
             #episode_id = re.sub(r'\?.*', '', ep_link)
             episode_id = ep_id
             
-            playtoken, url_code = self.get_playlist_url(episode_id)
+            playtoken, url_code, episode_url = self.get_playlist_url(episode_id)
             
-            print(playtoken, url_code)
+            #print(playtoken, url_code)
             
-            mpd_content = self.get_mpd_content(url_code, playtoken)
-            if mpd_content == "":
-                return None, 'Error Video is playing (Response: 500)'
-            parse_json = self.parse_mpd(mpd_content, playtoken, url_code)
+            #mpd_content = self.get_mpd_content(url_code, playtoken)
+            #if mpd_content == "":
+            #    return None, 'Error Video is playing (Response: 500)'
+            #parse_json = self.parse_mpd(mpd_content, playtoken, url_code)
             #print(parse_json)
             
             
@@ -443,7 +592,7 @@ class UNext:
             
             jsdata = self.get_video_episode_meta(episode_id)
             sedata = self.get_video_episodes(se_id)
-            print(sedata)
+            #print(sedata)
             
             #if ep_link.__contains__("?ps"):
             #    ep_link = ep_link.replace("?ps=2", "")
@@ -487,40 +636,67 @@ class UNext:
 #                else:
 #                    eptle = None
 #            hls = jsdata['playback']['hls']
+            self.mpd_file = self.get_mpd_content(episode_url, playtoken)
+            mpd_lic = self.parse_mpd_logic(self.mpd_file)
+            
+            self.episode_license = self.get_episode_license(mpd_lic["video_pssh"],  mpd_lic["audio_pssh"], playtoken)
+            #self.video_license = mpd_lic["video_pssh"]
+            #self.audio_license = mpd_lic["audio_pssh"]
+            
             output_name = sedata["episodeName"] + "_" + jsdata["subTitle"]
 
             #m3u8_url = '{x}/{r}/playlist.m3u8'.format(x=hls[:hls.rfind('/')], r=resolution[:-1])
             #if self.is_m3u8:
             #    m3u8_url = self.url
-
-            #self.yuu_logger.debug('M3U8 Link: {}'.format(m3u8_url))
+            
+            def calculate_video_size(bandwidth_bps, duration_sec):
+                # ビットからバイトに変換 (1バイト = 8ビット)
+                size_bytes = (bandwidth_bps * duration_sec) / 8
+                # メガバイトに変換
+                size_megabytes = size_bytes / (1024 * 1024)
+                return str(int(size_megabytes))
+                        
+            self.est_filesize = calculate_video_size(self.bandwidth_calculation[resolution], 2997)
+            
+            
+            self.yuu_logger.debug('Episode Link: {}'.format(episode_url))
             self.yuu_logger.debug('Video title: {}'.format(sedata["episodeName"]))
             self.yuu_logger.debug('Episode number: {}'.format(jsdata["subTitle"]))
+            self.yuu_logger.debug('Video License: {}'.format(self.episode_license["video_key"]))
+            self.yuu_logger.debug('Audio License: {}'.format(self.episode_license["audio_key"]))
             #self.yuu_logger.debug('Episode num: {}'.format(epnum))
             #self.yuu_logger.debug('Episode title: {}'.format(eptle))
 
         self.resolution = resolution
-        #self.m3u8_url = m3u8_url
+        self.m3u8_url = episode_url
+        #self.mpd_file = self.get_mpd_content(episode_url, playtoken)
+        self.play_token = playtoken
         
-        res = self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/2/?play_token={playtoken}&last_viewing_flg=0")
+        stop_res = self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/2/?play_token={playtoken}&last_viewing_flg=0")
         
-        print(res.json())
+        #print(res.json())
 
         return output_name, 'Success'
 
 
-    def parse_m3u8(self, m3u8_url):
-        self.yuu_logger.debug('Requesting m3u8')
-        r = self.session.get(m3u8_url)
-        self.yuu_logger.debug('Data requested')
+    def parse_mpd(self, m3u8_url, mpd_file, playtoken):
+                    #mpd_content = self.get_mpd_content(url_code, playtoken)
+            #if mpd_content == "":
+            #    return None, 'Error Video is playing (Response: 500)'
+            #parse_json = self.parse_mpd(mpd_content, playtoken, url_code)
+        #r = self.get_mpd_content(m3u8_url, playtoken)
+        #print(r)
+        #print(mpd_file)
+        self.yuu_logger.debug('Parsing mpd')
+        parsed_mpd = self.parse_mpd_logic(mpd_file)
+        print(parsed_mpd)
 
-        if 'timeshift forbidden' in r.text:
-            return None, None, None, 'This video can\'t be downloaded for now.'
+        #if 'timeshift forbidden' in r.text:
+        #    return None, None, None, 'This video can\'t be downloaded for now.'
+        #
+        #if r.status_code == 403:
+        #    return None, None, None, 'This video is geo-locked for Japan only.'
 
-        if r.status_code == 403:
-            return None, None, None, 'This video is geo-locked for Japan only.'
-
-        self.yuu_logger.debug('Parsing m3u8')
 
         x = m3u8.loads(r.text)
         files = x.files[1:]
@@ -577,7 +753,6 @@ class UNext:
             response.json()["data"]["webfront_title_titleEpisodes"]["episodes"][0]
         )
 
-
     def get_playlist_url(self, episode_id):
         meta_json = {
             "operationName": "cosmo_getPlaylistUrl",
@@ -591,17 +766,14 @@ class UNext:
             "query": "query cosmo_getPlaylistUrl($code: String, $playMode: String, $bitrateLow: Int, $bitrateHigh: Int, $validationOnly: Boolean) {\n  webfront_playlistUrl(\n    code: $code\n    playMode: $playMode\n    bitrateLow: $bitrateLow\n    bitrateHigh: $bitrateHigh\n    validationOnly: $validationOnly\n  ) {\n    subTitle\n    playToken\n    playTokenHash\n    beaconSpan\n    result {\n      errorCode\n      errorMessage\n      __typename\n    }\n    resultStatus\n    licenseExpireDate\n    urlInfo {\n      code\n      startPoint\n      resumePoint\n      endPoint\n      endrollStartPosition\n      holderId\n      saleTypeCode\n      sceneSearchList {\n        IMS_AD1\n        IMS_L\n        IMS_M\n        IMS_S\n        __typename\n      }\n      movieProfile {\n        cdnId\n        type\n        playlistUrl\n        movieAudioList {\n          audioType\n          __typename\n        }\n        licenseUrlList {\n          type\n          licenseUrl\n          __typename\n        }\n        __typename\n      }\n      umcContentId\n      movieSecurityLevelCode\n      captionFlg\n      dubFlg\n      commodityCode\n      movieAudioList {\n        audioType\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
         }
         response = self.session.post(self._COMMANDCENTER_API, json=meta_json)
-        print(response.json()["data"])
         return (
             response.json()["data"]["webfront_playlistUrl"]["playToken"],
             response.json()["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"],
+            response.json()["data"]["webfront_playlistUrl"]["urlInfo"][0]["movieProfile"][0]["playlistUrl"]
         ) 
         
-    def get_mpd_content(self, url_code, playtoken):
-        # 18c529a7-04df-41ee-b230-07f95ecd2561 MEZ0000593320
-        response = self.session.get(f"https://playlist.unext.jp/playlist/v00001/dash/get/{url_code}.mpd/?file_code={url_code}&play_token={playtoken}", headers={"Referer": f"https://unext.jp/{url_code}?playtoken={playtoken}"})
-        
-        #print(response.status_code)
+    def get_mpd_content(self, episode_url, playtoken):
+        response = self.session.get(f"{episode_url}&play_token={playtoken}")
         return response.text
 
     def get_video_episode_meta(self, episode_id):
@@ -613,7 +785,7 @@ class UNext:
         response = self.session.post(self._COMMANDCENTER_API, json=meta_json)
         return response.json()["data"]["webfront_playlistUrl"]
 
-    def parse_mpd(self, content, playtoken, url_code):
+    def parse_mpd_logic(self, content):
         from xml.etree import ElementTree as ET
         from lxml import etree    
         
@@ -658,15 +830,52 @@ class UNext:
         
         result = {
             "main_content": content,
-            "playtoken": playtoken,
             "video_pssh": video_pssh.text,
             "audio_pssh": audio_pssh.text,
-            "url_code": url_code,
             "video": videos,
             "audio": audios[0] if audios else {}
         }
         
         return result
+
+    def get_episode_license(self, video_pssh, audio_pssh, playtoken):
+        from pywidevine.cdm import Cdm
+        from pywidevine.device import Device
+        from pywidevine.pssh import PSSH
+        device = Device.load(
+            "./l3.wvd"
+        )
+        cdm = Cdm.from_device(device)
+        session_id_video = cdm.open()
+        session_id_audio = cdm.open()
+    
+        challenge_video = cdm.get_license_challenge(session_id_video, PSSH(video_pssh))
+        challenge_audio = cdm.get_license_challenge(session_id_audio, PSSH(audio_pssh))
+        response_video = self.session.post(f"{self._WVPROXY}?play_token={playtoken}", data=challenge_video)    
+        response_video.raise_for_status()
+        response_audio = self.session.post(f"{self._WVPROXY}?play_token={playtoken}", data=challenge_audio)    
+        response_audio.raise_for_status()
+    
+        cdm.parse_license(session_id_video, response_video.content)
+        cdm.parse_license(session_id_audio, response_audio.content)
+        video_keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id_video)
+        ]
+        audio_keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id_audio)
+        ]
+    
+        cdm.close(session_id_video)
+        cdm.close(session_id_audio)
+        
+        keys = {
+            "video_key": video_keys,
+            "audio_key": audio_keys
+        }
+        
+        return keys
 
     def get_video_key(self, ticket):
         self.yuu_logger.debug('Sending parameter to API')
@@ -773,9 +982,9 @@ class UNext:
     def check_output(self, output=None, output_name=None):
         if output:
             fn_, ext_ = os.path.splitext(output)
-            if ext_ != 'ts':
-                output = fn_ + '.ts'
+            if ext_ != 'mp4':
+                output = fn_ + '.mp4'
         else:
-            output = '{}.ts'.format(output_name)
+            output = '{}.mp4'.format(output_name)
 
         return output

@@ -32,7 +32,8 @@ def streams_list():
     supported = {
         "AbemaTV": ["No", "No", "Yes (JP)"],
         "Aniplus Asia": ["Yes", "No", "Yes (SEA)"],
-        "GYAO!": ["No", "No", "Yes (JP)"]
+        "GYAO!": ["No", "No", "Yes (JP)"],
+        "U-Next": ["Yes", "Yes", "Unknown"]
     }
 
     print('[INFO] Supported website')
@@ -84,7 +85,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
     yuu_logger.debug('Using proxy: {}'.format(proxy))
 
     _prepare_yuu_data() # Prepare yuu_download.json
-    yuuParser = get_parser(input)
+    yuuParser, site_text = get_parser(input)
 
     if not yuuParser:
         yuu_logger.error('Unknown url format')
@@ -128,6 +129,11 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         m3u8_list = yuuParser.m3u8_url
     else:
         m3u8_list = [yuuParser.m3u8_url]
+    if site_text == "unext":
+        if isinstance(yuuParser.mpd_file, list):
+            mpd_list = yuuParser.mpd_file
+        else:
+            mpd_list = [yuuParser.mpd_file]
     if resR:
         for m3u8 in m3u8_list:
             yuu_logger.info('Checking available resolution...')
@@ -165,61 +171,96 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
     yuuDownloader = yuuParser.get_downloader()
     temp_dir = yuuDownloader.temporary_folder
     illegalchar = ['/', '<', '>', ':', '"', '\\', '|', '?', '*'] # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file
-    for pos, _out_ in enumerate(outputs):
-        yuu_logger.info('Parsing m3u8 and fetching video key for files no {}'.format(pos+1))
-        files, iv, ticket, reason = yuuParser.parse_m3u8(m3u8_list[pos])
-        _out_ = yuuParser.check_output(output, _out_)
-        
-        if muxfile not in ["mp4", "mkv", "ts"]:
-            yuu_logger.error('Failed Check file extension: {}'.format(muxfile))
-            exit(0)
-
-        for char in illegalchar:
-            _out_ = _out_.replace(char, '_')
-
-        if not files:
-            yuu_logger.error('{}'.format(reason))
-            continue
-        key, reason = yuuParser.get_video_key(ticket)
-        if not key:
-            yuu_logger.error('{}'.format(reason))
-            continue
-
-        yuu_logger.info('Output: {}'.format(_out_))
-        yuu_logger.info('Resolution: {}'.format(yuuParser.resolution))
-        yuu_logger.info('Estimated file size: {} MiB'.format(yuuParser.est_filesize))
-        
-        if mux:
-            yuu_logger.info('Mux file extension: {}'.format(muxfile))
-
-        if yuuDownloader.merge: # Workaround for stream that don't use .m3u8
-            dl_list = yuuDownloader.download_chunk(files, key, iv)
-            if not dl_list:
-                delete_folder_contents(temp_dir)
+    if site_text == "unext":
+        for pos, _out_ in enumerate(outputs):
+            yuu_logger.info('Parsing mpd and fetching video key for files no {}'.format(pos+1))
+            
+            _out_ = yuuParser.check_output(output, _out_)
+            
+            if muxfile not in ["mp4", "mkv", "ts"]:
+                yuu_logger.error('Failed Check file extension: {}'.format(muxfile))
+                exit(0)
+    
+            for char in illegalchar:
+                _out_ = _out_.replace(char, '_')
+            
+            #print(yuuParser.episode_license)
+            yuu_logger.info('Output: {}'.format(_out_))
+            yuu_logger.info('Resolution: {}'.format(yuuParser.resolution))
+            yuu_logger.info('Estimated file size: {} MiB'.format(yuuParser.est_filesize))
+            
+            video_url = (yuuParser.mpd_parse.extract_video_info(yuuParser.mpd_file, yuuParser.resolution, yuuParser.resolution_data)["base_url"])
+            audio_url = (yuuParser.mpd_parse.extract_audio_info(yuuParser.mpd_file, yuuParser.bandwidth_calculation_audio)["base_url"])
+                        
+            yuuDownloader.download_episode(video_url,audio_url,_out_, yuuParser.episode_license)
+            yuu_logger.info('Finished downloading and decrypting')
+            yuu_logger.info('Muxing episode')
+            result = yuuDownloader.mux_episode(_out_.replace(".mp4","_decrypt_video.mp4").replace(" ", "_"), _out_.replace(".mp4","_decrypt_audio.mp4").replace(" ", "_"), _out_)
+            if not result:
+                yuu_logger.warn('There\'s no available muxers that can be used, skipping...')
+                mux = False # Automatically set to False so it doesn't spam the user
+            elif result and os.path.isfile(result):
+                if not keep_:
+                    os.remove(_out_)
+                _out_ = result
+            yuu_logger.info('Finished downloading: {}'.format(_out_))
+    else:
+        for pos, _out_ in enumerate(outputs):
+            yuu_logger.info('Parsing m3u8 and fetching video key for files no {}'.format(pos+1))
+            files, iv, ticket, reason = yuuParser.parse_m3u8(m3u8_list[pos])
+            print(files, iv, ticket, reason)
+            _out_ = yuuParser.check_output(output, _out_)
+            
+            if muxfile not in ["mp4", "mkv", "ts"]:
+                yuu_logger.error('Failed Check file extension: {}'.format(muxfile))
+                exit(0)
+    
+            for char in illegalchar:
+                _out_ = _out_.replace(char, '_')
+    
+            if not files:
+                yuu_logger.error('{}'.format(reason))
                 continue
-        else:
-            yuuDownloader.download_chunk(files, _out_)
+            key, reason = yuuParser.get_video_key(ticket)
+            if not key:
+                yuu_logger.error('{}'.format(reason))
+                continue
+    
+            yuu_logger.info('Output: {}'.format(_out_))
+            yuu_logger.info('Resolution: {}'.format(yuuParser.resolution))
+            yuu_logger.info('Estimated file size: {} MiB'.format(yuuParser.est_filesize))
+            
             if mux:
-                yuu_logger.info('Muxing video')
-                mux_video(_out_, muxfile)
-        if yuuDownloader.merge:
-            yuu_logger.info('Finished downloading')
-            yuu_logger.info('Merging video')
-            merge_video(dl_list, _out_)
-            if not keep_:
-                delete_folder_contents(temp_dir)
-        if mux:
-            if os.path.isfile(_out_):
-                yuu_logger.info('Muxing video')
-                result = mux_video(_out_, muxfile)
-                if not result:
-                    yuu_logger.warn('There\'s no available muxers that can be used, skipping...')
-                    mux = False # Automatically set to False so it doesn't spam the user
-                elif result and os.path.isfile(result):
-                    if not keep_:
-                        os.remove(_out_)
-                    _out_ = result
-        yuu_logger.info('Finished downloading: {}'.format(_out_))
+                yuu_logger.info('Mux file extension: {}'.format(muxfile))
+    
+            if yuuDownloader.merge: # Workaround for stream that don't use .m3u8
+                dl_list = yuuDownloader.download_chunk(files, key, iv)
+                if not dl_list:
+                    delete_folder_contents(temp_dir)
+                    continue
+            else:
+                yuuDownloader.download_chunk(files, _out_)
+                if mux:
+                    yuu_logger.info('Muxing video')
+                    mux_video(_out_, muxfile)
+            if yuuDownloader.merge:
+                yuu_logger.info('Finished downloading')
+                yuu_logger.info('Merging video')
+                merge_video(dl_list, _out_)
+                if not keep_:
+                    delete_folder_contents(temp_dir)
+            if mux:
+                if os.path.isfile(_out_):
+                    yuu_logger.info('Muxing video')
+                    result = mux_video(_out_, muxfile)
+                    if not result:
+                        yuu_logger.warn('There\'s no available muxers that can be used, skipping...')
+                        mux = False # Automatically set to False so it doesn't spam the user
+                    elif result and os.path.isfile(result):
+                        if not keep_:
+                            os.remove(_out_)
+                        _out_ = result
+            yuu_logger.info('Finished downloading: {}'.format(_out_))
     if not keep_:
         shutil.rmtree(temp_dir)
     exit(0)

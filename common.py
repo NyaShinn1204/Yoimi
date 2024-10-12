@@ -18,13 +18,13 @@ def get_parser(url):
     valid_aniplus = r'http(?:|s)://(?:www\.|)aniplus-asia\.com/episode/(?P<video_id>[\w]*.*)'
     valid_unext = r'http(?:|s)://video\.unext\.jp/(?:play|title|freeword).*(?:SID(?P<sid>[0-9]+)|ED(?P<ed>[0-9]+))'
     if re.match(valid_abema, url):
-        return AbemaTV
+        return AbemaTV, "abema"
     elif re.match(valid_gyao, url):
-        return GYAO
+        return GYAO, "gyao"
     elif re.match(valid_aniplus, url):
-        return Aniplus
+        return Aniplus, "aniplus"
     elif re.match(valid_unext, url):
-        return UNext
+        return UNext, "unext"
     return None
 
 
