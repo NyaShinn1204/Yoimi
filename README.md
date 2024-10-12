@@ -1,7 +1,7 @@
 <p align="center">
     <h3 align="center">Yoimi</h3>
     <p align="center">
-        Abemaの動画ダウンロードツール。<br />
+        AbemaやU-Nextの動画ダウンロードツール。<br />
     </p>
 </p>
 
@@ -34,6 +34,11 @@ python3 yoimi.py download "https://abema.tv/video/episode/248-17_s1_p1"
 python3 yoimi.py download "https://abema.tv/video/episode/248-17_s1_p1" --mux
 ```
 
+#### ✨ 「ロシア語で出れる隣のアーリャさん」from U-Next から一話をダウンロードする
+
+```python
+python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --username ここにemail --password ここにパスワード
+```
 
 ## 免責事項
 
