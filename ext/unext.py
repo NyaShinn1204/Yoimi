@@ -256,7 +256,7 @@ class UNext:
         """
 
         res_list = [
-            '180p', '240p', '360p', '480p', '720p', '1080p', 'best', 'worst'
+            '396p', '720p', '1080p', 'best', 'worst'
         ]
 
         if resolution not in res_list:
@@ -267,7 +267,7 @@ class UNext:
             resolution = '1080p'
             self.resolution_o = 'best'
         if resolution == 'worst':
-            resolution = '180p'
+            resolution = '396p'
         
         # https://video.unext.jp/play/SID0104158/ED00547149?ps=2
         # https://video.unext.jp/title/SID0104147
@@ -500,9 +500,11 @@ class UNext:
             #self.yuu_logger.debug('Episode title: {}'.format(eptle))
 
         self.resolution = resolution
-        self.m3u8_url = m3u8_url
+        #self.m3u8_url = m3u8_url
         
-        self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/1/?play_token={playtoken}&last_viewing_flg=0")
+        res = self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/2/?play_token={playtoken}&last_viewing_flg=0")
+        
+        print(res.json())
 
         return output_name, 'Success'
 
