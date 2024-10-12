@@ -61,7 +61,10 @@ class UNextDownloader:
         
     
     def mp4decrypt(self, keys):
-        mp4decrypt_command = [os.path.join("binaries", "mp4decrypt.exe")]
+        if os.name == "nt":
+            mp4decrypt_command = [os.path.join("binaries", "mp4decrypt.exe")]
+        else:
+            mp4decrypt_command = [os.path.join("binaries", "mp4decrypt")]
         for key in keys:
             if key["type"] == "CONTENT":
                 mp4decrypt_command.extend(

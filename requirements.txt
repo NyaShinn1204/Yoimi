@@ -1,0 +1,7 @@
+tqdm
+m3u8
+pycryptodome 
+beautifulsoup4
+click
+lxml
+pywidevine
