@@ -9,10 +9,10 @@
 
 **※ Pythonのバージョン3.10以上が必要。**
 
-Yoimi」を使うには、以下のコマンドを実行する： .
+「Yoimi」を使うには、以下のコマンドを実行する： .
 
 > [!TIP]
-> こちらは開發バージョン！注目
+> これは開發バージョンです！
 
 ```bash
 git clone https://github.com/NyaShinn1204/Yoimi
@@ -42,4 +42,4 @@ python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --
 
 ## 免責事項
 
-Yoimiは、[Yuu]（https://github.com/noaione/yuu）と呼ばれるパケットの約90％をコピーして圧縮するための改良されたメカニズムである。
+Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパケットの約90％をコピーして圧縮するための改良されたメカニズムである。
