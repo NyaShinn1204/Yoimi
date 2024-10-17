@@ -338,11 +338,6 @@ class UNext:
         return "".join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
 
     def authorize(self, username, password):
-        #if not self.device_id:
-        #    self.yuu_logger.info('{}: Fetching temporary token'.format(self.type))
-        #    res, reas = self.get_token() # Abema needs authorization header before authenticating
-        #    if not res:
-        #        return res, reas
         _ENDPOINT_CHALLENG_ID = 'https://oauth.unext.jp/oauth2/auth?state={state}&scope=offline%20unext&nonce={nonce}&response_type=code&client_id=unextAndroidApp&redirect_uri=jp.unext%3A%2F%2Fpage%3Doauth_callback'
         _ENDPOINT_RES = 'https://oauth.unext.jp/oauth2/login'
         _ENDPOINT_OAUTH = 'https://oauth.unext.jp{pse}'
@@ -428,100 +423,58 @@ class UNext:
         series = re.search(r"(title|freeword).*(?:td=|/)(SID\d+)", self.url)
         
         if series:   # Go to series
-            video_id = series.group(2)
-            self.yuu_logger.info('Series url format detected, fetching all links...')
-            self.yuu_logger.debug('Requesting data to Abema API.')
-            req = self.session.get(self._SERIESAPI + video_id)
-            if req.status_code != 200:
-                self.yuu_logger.log(40, 'Abema Response: ' + req.text)
-                return None, 'Error occured when communicating with Abema (Response: {})'.format(req.status_code)
-            self.yuu_logger.debug('Data requested')
-            self.yuu_logger.debug('Parsing json results...')
-
+            title_id = series.group(2)
+            episode_list = self.get_video_all_episodes(title_id)
+            #video_id = series.group(2)
+            #self.yuu_logger.info('Series url format detected, fetching all links...')
+            #self.yuu_logger.debug('Requesting data to Abema API.')
+            #req = self.session.get(self._SERIESAPI + video_id)
+            #if req.status_code != 200:
+            #    self.yuu_logger.log(40, 'Abema Response: ' + req.text)
+            #    return None, 'Error occured when communicating with Abema (Response: {})'.format(req.status_code)
+            #self.yuu_logger.debug('Data requested')
+            #self.yuu_logger.debug('Parsing json results...')
+#
             m3u8_url_list = []
             output_list = []
-
-            jsdata = req.json()
-            to_be_requested = "{api}{vid}/programs?seriesVersion={sv}&seasonId={si}&offset=0&order={od}&limit=100"
-
-            season_data = jsdata['seasons']
-            if not season_data:
-                season_data = [{'id': ''}] # Assume film or some shit
-            version = jsdata['version']
-            prog_order = jsdata['programOrder']
-            for ns, season in enumerate(season_data, 1):
-                self.yuu_logger.info('Processing season ' + str(ns))
-                self.yuu_logger.debug('Requesting data to Abema API.')
-                req_season = self.session.get(to_be_requested.format(api=self._SERIESAPI, vid=video_id, sv=version, si=season['id'], od=prog_order))
-                if req_season.status_code != 200:
-                    self.yuu_logger.log(40, 'Abema Response: ' + req_season.text)
-                    return None, 'Error occured when communicating with Abema (Response: {})'.format(req_season.status_code)
+#
+            #jsdata = req.json()
+            #to_be_requested = "{api}{vid}/programs?seriesVersion={sv}&seasonId={si}&offset=0&order={od}&limit=100"
+#
+            #season_data = jsdata['seasons']
+            #if not season_data:
+            #    season_data = [{'id': ''}] # Assume film or some shit
+            #version = jsdata['version']
+            #prog_order = jsdata['programOrder']
+            for episode_meta in episode_list:
+                playtoken, url_code, episode_url = self.get_playlist_url(episode_meta["id"])
+                
+                jsdata = self.get_video_episode_meta(episode_meta["id"])
+                sedata = self.get_video_episodes(title_id)
+                
                 self.yuu_logger.debug('Data requested')
-                self.yuu_logger.debug('Parsing json results...')
-
-                season_jsdata = req_season.json()
-                self.yuu_logger.debug('Processing total of {ep} episode for season {se}'.format(ep=len(season_jsdata['programs']), se=ns))
-
-                for nep, episode in enumerate(season_jsdata['programs'], 1):
-                    free_episode = False
-                    if 'label' in episode:
-                        if 'free' in episode['label']:
-                            free_episode = True
-                    elif 'freeEndAt' in episode:
-                        free_episode = True
-
-                    if 'episode' in episode:
-                        try:
-                            episode_name = episode['episode']['title']
-                            if not episode_name:
-                                episode_name = episode_name['title']['number']
-                        except KeyError:
-                            episode_name = episode_name['title']['number']
-                    else:
-                        episode_name = nep
-
-                    if not free_episode and not self.authorized:
-                        self.yuu_logger.warn('Skipping episode {} (Not authorized and premium video)'.format(episode_name))
-                        continue
-
-                    self.yuu_logger.info('Processing episode {}'.format(episode_name))
-
-                    req_ep = self.session.get(self._PROGRAMAPI + episode['id'])
-                    if req_ep.status_code != 200:
-                        self.yuu_logger.log(40, 'Abema Response: ' + req_ep.text)
-                        return None, 'Error occured when communicating with Abema (Response: {})'.format(req_ep.status_code)
-                    self.yuu_logger.debug('Data requested')
-                    self.yuu_logger.debug('Parsing json API')
-
-                    ep_json = req_ep.json()
-                    title = ep_json['series']['title']
-                    epnumber = episode["episode"]["title"]
-                    epnum = episode["episode"]["number"]
-                    epnumber_tmp = AbemaTV.convert_kanji_to_int(epnumber)
-                    if re.match(r'第\d+話\s*(.+)', epnumber_tmp):
-                        eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)
-                    elif re.search(r'#\d+', epnumber_tmp):
-                        eptle = re.match(r'#\d+\s*(.+)', epnumber_tmp).group(1)
-                    else:
-                        before_space = epnumber_tmp.split(" ")[0]
-                        after_space = " ".join(epnumber_tmp.split(" ")[1:])
-                        if any(char.isdigit() for char in before_space):
-                            eptle = after_space
-                        else:
-                            eptle = None
-                    hls = ep_json['playback']['hls']
-                    output_name = title + "_" + epnumber
-
-                    m3u8_url = '{x}/{r}/playlist.m3u8'.format(x=hls[:hls.rfind('/')], r=resolution[:-1])
-
-                    self.yuu_logger.debug('M3U8 Link: {}'.format(m3u8_url))
-                    self.yuu_logger.debug('Video title: {}'.format(title))
-
-                    m3u8_url_list.append(m3u8_url)
-                    output_list.append(output_name)
-
+                self.yuu_logger.debug('Parsing json API')
+                self.mpd_file = self.get_mpd_content(episode_url, playtoken)
+                mpd_lic = self.parse_mpd_logic(self.mpd_file)
+                            
+                            
+                self.episode_license = self.get_episode_license(mpd_lic["video_pssh"],  mpd_lic["audio_pssh"], playtoken)
+                output_name = sedata["episodeName"] + "_" + jsdata["subTitle"]
+                self.est_filesize = self.calculate_video_size(self.bandwidth_calculation[resolution], 2997)
+                self.yuu_logger.debug('Episode Link: {}'.format(episode_url))
+                self.yuu_logger.debug('Video title: {}'.format(sedata["episodeName"]))
+                self.yuu_logger.debug('Episode number: {}'.format(jsdata["subTitle"]))
+                self.yuu_logger.debug('Video License: {}'.format(self.episode_license["video_key"]))
+                self.yuu_logger.debug('Audio License: {}'.format(self.episode_license["audio_key"]))
+                
+                self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/2/?play_token={playtoken}&last_viewing_flg=0")
+                
+                m3u8_url_list.append(episode_url)
+                output_list.append(output_name)
+                    
             self.resolution = resolution
             self.m3u8_url = m3u8_url_list
+            self.play_token = playtoken
 
             if not output_list:
                 err_msg = "All video are for premium only, please provide login details."
@@ -542,208 +495,44 @@ class UNext:
         
         if is_channel(self.url):
             self.yuu_logger.info(40, "haha unext is not found is_channel")
-            #req = self.session.get(self._CHANNELAPI + ep_link)
-            #if req.status_code != 200:
-            #    self.yuu_logger.log(40, 'Abema Response: ' + req.text)
-            #    return None, 'Error occured when communicating with Abema (Response: {})'.format(req.status_code)
-            #self.yuu_logger.debug('Data requested')
-            #self.yuu_logger.debug('Parsing json API')
-            #
-            #jsdata = req.json()
-            #output_name = jsdata['slot']['title']
-            #if 'playback' in jsdata['slot']:
-            #    hls = jsdata['slot']['playback']['hls']
-            #else:
-            #    hls = jsdata['slot']['chasePlayback']['hls']  # Compat
-            #
-            #m3u8_url = '{x}/{r}/playlist.m3u8'.format(x=hls[:hls.rfind('/')], r=resolution[:-1])
-            #if self.is_m3u8:
-            #    m3u8_url = self.url
-            #
-            #self.yuu_logger.debug('M3U8 Link: {}'.format(m3u8_url))
-            #self.yuu_logger.debug('Title: {}'.format(output_name))
         else:
-            #print(ep_link)
-            #title_parse = re.search(r'SID(\d+)/ED(\d+)', ep_link)
-            #
-            #series_id = title_parse.group(1)
-
             match = re.search(r'SID(\d+)/ED(\d+)', self.url)
             
             if match:
                 se_id = "SID"+match.group(1)
                 ep_id = "ED"+match.group(2)
-                #print(f"SID: {se_id}, ED: {ep_id}")
-            #else:
-            #    print("SID or ED not found.")
             
-            #episode_id = re.sub(r'\?.*', '', ep_link)
             episode_id = ep_id
             
             playtoken, url_code, episode_url = self.get_playlist_url(episode_id)
             
-            #print(playtoken, url_code)
-            
-            #mpd_content = self.get_mpd_content(url_code, playtoken)
-            #if mpd_content == "":
-            #    return None, 'Error Video is playing (Response: 500)'
-            #parse_json = self.parse_mpd(mpd_content, playtoken, url_code)
-            #print(parse_json)
-            
-            
-            #print(episode_id)
-            
             jsdata = self.get_video_episode_meta(episode_id)
             sedata = self.get_video_episodes(se_id)
-            #print(sedata)
             
-            #if ep_link.__contains__("?ps"):
-            #    ep_link = ep_link.replace("?ps=2", "")
-            #print(ep_link)
-            
-            
-            #status, meta_response, error = get_title_metadata(cleaned_id)
-            #if status == True:
-            #    abema_get_series_id_extract_episode = re.match(r"(\d+-\d+_s\d+)", abema_get_series_id).group(1)
-            #    found_json = next((item for item in meta_response["seasons"] if item['id'] == abema_get_series_id_extract_episode), None)
-            #    if found_json is not None:
-            
-#            req = self.session.get(self._PROGRAMAPI + ep_link)
-#            if req.status_code != 200:
-#                self.yuu_logger.log(40, 'Abema Response: ' + req.text)
-#                return None, 'Error occured when communicating with Abema (Response: {})'.format(req.status_code)
             self.yuu_logger.debug('Data requested')
             self.yuu_logger.debug('Parsing json API')
-#            jsdata = req.json()
-#            if jsdata['mediaStatus']:
-#                if 'drm' in jsdata['mediaStatus']:
-#                    if jsdata['mediaStatus']['drm']:
-#                        return None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
-#            title = jsdata['series']['title']
-#            epnumber = jsdata['episode']['title']
-#            if "ライブ" in epnumber.lower() or "live" in epnumber.lower():
-#                self.yuu_logger.debug('Live Content: True')
-#            else:
-#                self.yuu_logger.debug('Live Content: False')
-#            epnum = jsdata['episode']['number']
-#            epnumber_tmp = AbemaTV.convert_kanji_to_int(epnumber)
-#            if re.match(r'第\d+話\s*(.+)', epnumber_tmp):
-#                eptle = re.match(r'第\d+話\s*(.+)', epnumber_tmp).group(1)
-#            elif re.search(r'#\d+', epnumber_tmp):
-#                eptle = re.match(r'#\d+\s*(.+)', epnumber_tmp).group(1)
-#            else:
-#                before_space = epnumber_tmp.split(" ")[0]
-#                after_space = " ".join(epnumber_tmp.split(" ")[1:])
-#                if any(char.isdigit() for char in before_space):
-#                    eptle = after_space
-#                else:
-#                    eptle = None
-#            hls = jsdata['playback']['hls']
             self.mpd_file = self.get_mpd_content(episode_url, playtoken)
             mpd_lic = self.parse_mpd_logic(self.mpd_file)
             
             self.episode_license = self.get_episode_license(mpd_lic["video_pssh"],  mpd_lic["audio_pssh"], playtoken)
-            #self.video_license = mpd_lic["video_pssh"]
-            #self.audio_license = mpd_lic["audio_pssh"]
             
             output_name = sedata["episodeName"] + "_" + jsdata["subTitle"]
-
-            #m3u8_url = '{x}/{r}/playlist.m3u8'.format(x=hls[:hls.rfind('/')], r=resolution[:-1])
-            #if self.is_m3u8:
-            #    m3u8_url = self.url
-            
-            def calculate_video_size(bandwidth_bps, duration_sec):
-                # ビットからバイトに変換 (1バイト = 8ビット)
-                size_bytes = (bandwidth_bps * duration_sec) / 8
-                # メガバイトに変換
-                size_megabytes = size_bytes / (1024 * 1024)
-                return str(int(size_megabytes))
                         
-            self.est_filesize = calculate_video_size(self.bandwidth_calculation[resolution], 2997)
-            
+            self.est_filesize = self.calculate_video_size(self.bandwidth_calculation[resolution], 2997)
             
             self.yuu_logger.debug('Episode Link: {}'.format(episode_url))
             self.yuu_logger.debug('Video title: {}'.format(sedata["episodeName"]))
             self.yuu_logger.debug('Episode number: {}'.format(jsdata["subTitle"]))
             self.yuu_logger.debug('Video License: {}'.format(self.episode_license["video_key"]))
             self.yuu_logger.debug('Audio License: {}'.format(self.episode_license["audio_key"]))
-            #self.yuu_logger.debug('Episode num: {}'.format(epnum))
-            #self.yuu_logger.debug('Episode title: {}'.format(eptle))
 
         self.resolution = resolution
         self.m3u8_url = episode_url
-        #self.mpd_file = self.get_mpd_content(episode_url, playtoken)
         self.play_token = playtoken
         
         stop_res = self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/2/?play_token={playtoken}&last_viewing_flg=0")
         
-        #print(res.json())
-
         return output_name, 'Success'
-
-
-    def parse_mpd(self, m3u8_url, mpd_file, playtoken):
-                    #mpd_content = self.get_mpd_content(url_code, playtoken)
-            #if mpd_content == "":
-            #    return None, 'Error Video is playing (Response: 500)'
-            #parse_json = self.parse_mpd(mpd_content, playtoken, url_code)
-        #r = self.get_mpd_content(m3u8_url, playtoken)
-        #print(r)
-        #print(mpd_file)
-        self.yuu_logger.debug('Parsing mpd')
-        parsed_mpd = self.parse_mpd_logic(mpd_file)
-        print(parsed_mpd)
-
-        #if 'timeshift forbidden' in r.text:
-        #    return None, None, None, 'This video can\'t be downloaded for now.'
-        #
-        #if r.status_code == 403:
-        #    return None, None, None, 'This video is geo-locked for Japan only.'
-
-
-        x = m3u8.loads(r.text)
-        files = x.files[1:]
-        if not files[0]:
-            files = files[1:]
-        try:
-            if 'tsda' in files[5]:
-                # Assume DRMed
-                return None, None, None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
-        except Exception:
-            try:
-                if 'tsda' in files[-1]:
-                    # Assume DRMed
-                    return None, None, None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
-            except Exception:
-                if 'tsda' in files[0]:
-                    # Assume DRMed
-                    return None, None, None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
-        resgex = re.findall(r'(\d*)(?:\/\w+.ts)', files[0])[0]
-        keys_data = x.keys[0]
-        iv = x.keys[0].iv
-        ticket = x.keys[0].uri[18:]
-
-        parsed_files = []
-        for f in files:
-            if f.startswith('/tsvpg') or f.startswith('/tspg'):
-                f = 'https://ds-vod-abematv.akamaized.net' + f
-            parsed_files.append(f)
-
-        if self.resolution[:-1] != resgex:
-            if not self.resolution_o:
-                self.yuu_logger.warn('Changing resolution, from {} to {}p'.format(self.resolution, resgex))
-            self.resolution = resgex + 'p'
-        self.yuu_logger.debug('Total files: {}'.format(len(files)))
-        self.yuu_logger.debug('IV: {}'.format(iv))
-        self.yuu_logger.debug('Ticket key: {}'.format(ticket))
-
-        n = 0.0
-        for seg in x.segments:
-            n += seg.duration
-
-        self.est_filesize = round((round(n) * self.bitrate_calculation[self.resolution]) / 1024 / 6, 2)
-
-        return parsed_files, iv[2:], ticket, 'Success'
 
     def get_video_episodes(self, title_name):
         meta_json = {
@@ -754,6 +543,17 @@ class UNext:
         response = self.session.post(self._COMMANDCENTER_API, json=meta_json)
         return (
             response.json()["data"]["webfront_title_titleEpisodes"]["episodes"][0]
+        )
+        
+    def get_video_all_episodes(self, title_name):
+        meta_json = {
+            "operationName": "cosmo_getVideoTitleEpisodes",
+            "variables": {"code": title_name},
+            "query": "query cosmo_getVideoTitleEpisodes($code: ID!, $page: Int, $pageSize: Int) {\n  webfront_title_titleEpisodes(id: $code, page: $page, pageSize: $pageSize) {\n    episodes {\n      id\n      episodeName\n      purchaseEpisodeLimitday\n      thumbnail {\n        standard\n        __typename\n      }\n      duration\n      displayNo\n      interruption\n      completeFlag\n      saleTypeCode\n      introduction\n      saleText\n      episodeNotices\n      isNew\n      hasPackRights\n      minimumPrice\n      hasMultiplePrices\n      productLineupCodeList\n      isPurchased\n      purchaseEpisodeLimitday\n      __typename\n    }\n    pageInfo {\n      results\n      __typename\n    }\n    __typename\n  }\n}\n",
+        }
+        response = self.session.post(self._COMMANDCENTER_API, json=meta_json)
+        return (
+            response.json()["data"]["webfront_title_titleEpisodes"]["episodes"]
         )
 
     def get_playlist_url(self, episode_id):
@@ -880,48 +680,10 @@ class UNext:
         
         return keys
 
-    def get_video_key(self, ticket):
-        self.yuu_logger.debug('Sending parameter to API')
-        restoken = self.session.get(self._MEDIATOKEN_API, params=self._KEYPARAMS).json()
-        mediatoken = restoken['token']
-        self.yuu_logger.debug('Media token: {}'.format(mediatoken))
-
-        self.yuu_logger.debug('Sending ticket and media token to License API')
-        rgl = self.session.post(self._LICENSE_API, params={"t": mediatoken}, json={"kv": "a", "lt": ticket})
-        if rgl.status_code == 403:
-            return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
-
-        gl = rgl.json()
-
-        cid = gl['cid']
-        k = gl['k']
-
-        self.yuu_logger.debug('CID: {}'.format(cid))
-        self.yuu_logger.debug('K: {}'.format(k))
-
-        self.yuu_logger.debug('Summing up data with STRTABLE')
-        res = sum([self._STRTABLE.find(k[i]) * (58 ** (len(k) - 1 - i)) for i in range(len(k))])
-
-        self.yuu_logger.debug('Result: {}'.format(res))
-        self.yuu_logger.debug('Intepreting data')
-
-        encvk = struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff)
-
-        self.yuu_logger.debug('Encoded video key: {}'.format(encvk))
-        self.yuu_logger.debug('Hashing data')
-
-        h = hmac.new(unhexlify(self._HKEY), (cid + self.device_id).encode("utf-8"), digestmod=hashlib.sha256)
-        enckey = h.digest()
-
-        self.yuu_logger.debug('Second Encoded video key: {}'.format(enckey))
-        self.yuu_logger.debug('Decrypting result')
-
-        aes = AES.new(enckey, AES.MODE_ECB)
-        vkey = aes.decrypt(encvk)
-
-        self.yuu_logger.debug('Decrypted, Result: {}'.format(vkey))
-
-        return vkey, 'Success getting video key'
+    def calculate_video_size(self, bandwidth_bps, duration_sec):
+        size_bytes = (bandwidth_bps * duration_sec) / 8
+        size_megabytes = size_bytes / (1024 * 1024)
+        return str(int(size_megabytes))
 
 
     def resolutions(self, m3u8_uri):

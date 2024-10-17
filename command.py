@@ -189,8 +189,8 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
             yuu_logger.info('Resolution: {}'.format(yuuParser.resolution))
             yuu_logger.info('Estimated file size: {} MiB'.format(yuuParser.est_filesize))
             
-            video_url = (yuuParser.mpd_parse.extract_video_info(yuuParser.mpd_file, yuuParser.resolution, yuuParser.resolution_data)["base_url"])
-            audio_url = (yuuParser.mpd_parse.extract_audio_info(yuuParser.mpd_file, yuuParser.bandwidth_calculation_audio)["base_url"])
+            video_url = yuuParser.mpd_parse.extract_video_info(yuuParser.mpd_file, yuuParser.resolution, yuuParser.resolution_data)["base_url"]
+            audio_url = yuuParser.mpd_parse.extract_audio_info(yuuParser.mpd_file, yuuParser.bandwidth_calculation_audio)["base_url"]
                         
             yuuDownloader.download_episode(video_url,audio_url,_out_, yuuParser.episode_license)
             yuu_logger.info('Finished downloading and decrypting')
@@ -208,7 +208,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         for pos, _out_ in enumerate(outputs):
             yuu_logger.info('Parsing m3u8 and fetching video key for files no {}'.format(pos+1))
             files, iv, ticket, reason = yuuParser.parse_m3u8(m3u8_list[pos])
-            print(files, iv, ticket, reason)
+            #print(files, iv, ticket, reason)
             _out_ = yuuParser.check_output(output, _out_)
             
             if muxfile not in ["mp4", "mkv", "ts"]:
