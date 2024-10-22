@@ -1,3 +1,8 @@
+### はい、クソみたいな462エラーが発生します。 Hotaru-WVで治すかもね
+![image](https://github.com/user-attachments/assets/47143427-5f6f-4232-948c-a8dd0bcb62ee)
+
+
+
 <p align="center">
     <h3 align="center">Yoimi</h3>
     <p align="center">
