@@ -1,4 +1,6 @@
-### はい、クソみたいな462エラーが発生します。 Hotaru-WVで治すかもね
+### ~~はい、クソみたいな462エラーが発生します。 Hotaru-WVで治すかもね~~
+### はい、原因は構造上の問題です。
+### はい、これを直すのはクソめんどくさいです。
 ![image](https://github.com/user-attachments/assets/47143427-5f6f-4232-948c-a8dd0bcb62ee)
 
 
@@ -45,6 +47,8 @@ python3 yoimi.py download "https://abema.tv/video/episode/248-17_s1_p1" --mux
 python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --username ここにemail --password ここにパスワード
 ```
 
+### ⚠️  シリーズダウンロードは作成途中です。
+
 ## 免責事項
 
-Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパッケージの約95％をコピーして圧縮するコードを改良されたものである。
+Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパッケージの約95％をコピーして圧縮するコードを改良されたものです。
