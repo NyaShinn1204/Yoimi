@@ -78,12 +78,27 @@ class UNextDownloader:
     
     
     def decrypt_content(self, keys, input_file, output_file):
-        #print(input_file)
         if not os.path.exists(input_file):
             raise FileNotFoundError(f"{input_file} not found.")
+        
         mp4decrypt_command = self.mp4decrypt(keys)
         mp4decrypt_command.extend([input_file, output_file])
-        subprocess.run(mp4decrypt_command)
+        
+        # 「ｲ」の数を最大100として進捗バーを作成
+        with tqdm(total=100, desc="Decrypting Content", unit="%") as pbar:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as process:
+                for line in process.stdout:
+                    #print(line.strip())  # 標準出力の内容を表示
+                    
+                    # 「ｲ」の数をカウントして進捗バーを更新
+                    match = re.search(r"(ｲ+)", line)
+                    if match:
+                        progress_count = len(match.group(1))
+                        pbar.n = progress_count  # 現在の進捗に設定
+                        pbar.refresh()
+            
+            process.wait()  # 完了まで待機
+            pbar.close()
         
     def mux_episode(self, video_name, audio_name, output_name):
         compile_command = [
