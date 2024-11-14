@@ -101,47 +101,44 @@ class UNextDownloader:
             output_name,
         ]
         subprocess.run(compile_command)
-        
-    def download_episode(self, video_url,audio_url,_out_, episode_license):
-        #video_info = mpd_parse.extract_video_info(self.mpd_file, value)
-        #audio_info = mpd_parse.extract_audio_info(self.mpd_file, value)
-        #print(video_url,audio_url,_out_)
-        #outputtemp = self.temporary_folder + os.path.basename(_out_.replace(".mp4","_decrypt_video.mp4"))
-        #with open(outputtemp, 'wb') as outf:
+            
+    def download_episode(self, video_url, audio_url, _out_, episode_license):
         try:
-            with tqdm(total=1, desc='Downloading', ascii=True, unit='file') as pbar:
-                outputtemp = self.temporary_folder + os.path.basename(_out_.replace(".mp4","_encrypt_video.mp4").replace(" ", "_"))
-                #print(outputtemp)
-                with open(outputtemp, 'wb') as outf:
-                    try:
-                        vid = self.session.get(video_url)
-                        #vid = self._aes.decrypt(vid.content)
-                        outf.write(vid.content)
-                    except Exception as err:
-                        yuu_log.error('Problem occured\nreason: {}'.format(err))
-                        return None
-                pbar.update()
-                self.decrypt_content(episode_license["video_key"], outputtemp, outputtemp.replace("_encrypt_video.mp4","_decrypt_video.mp4"))
-                #self.downloaded_files.append(outputtemp)
+            # 動画のダウンロード処理
+            vid_response = self.session.get(video_url, stream=True)
+            vid_response.raise_for_status()
+            vid_size = int(vid_response.headers.get('content-length', 0))
+            
+            outputtemp = self.temporary_folder + os.path.basename(_out_.replace(".mp4", "_encrypt_video.mp4").replace(" ", "_"))
+            
+            with open(outputtemp, 'wb') as outf, tqdm(total=vid_size, desc='Downloading Video', ascii=True, unit='B', unit_scale=True) as pbar:
+                for chunk in vid_response.iter_content(chunk_size=1024):
+                    if chunk:
+                        outf.write(chunk)
+                        pbar.update(len(chunk))
+            
+            self.decrypt_content(episode_license["video_key"], outputtemp, outputtemp.replace("_encrypt_video.mp4", "_decrypt_video.mp4"))
+            
+            # 音声のダウンロード処理
+            aud_response = self.session.get(audio_url, stream=True)
+            aud_response.raise_for_status()
+            aud_size = int(aud_response.headers.get('content-length', 0))
+            
+            outputtemp = self.temporary_folder + os.path.basename(_out_.replace(".mp4", "_encrypt_audio.mp4").replace(" ", "_"))
+            
+            with open(outputtemp, 'wb') as outf, tqdm(total=aud_size, desc='Downloading Audio', ascii=True, unit='B', unit_scale=True) as pbar:
+                for chunk in aud_response.iter_content(chunk_size=1024):
+                    if chunk:
+                        outf.write(chunk)
+                        pbar.update(len(chunk))
+            
+            self.decrypt_content(episode_license["audio_key"], outputtemp, outputtemp.replace("_encrypt_audio.mp4", "_decrypt_audio.mp4"))
+            
         except KeyboardInterrupt:
             yuu_log.warn('User pressed CTRL+C, cleaning up...')
             return None
-        try:
-            with tqdm(total=1, desc='Downloading', ascii=True, unit='file') as pbar:
-                outputtemp = self.temporary_folder + os.path.basename(_out_.replace(".mp4","_encrypt_audio.mp4").replace(" ", "_"))
-                with open(outputtemp, 'wb') as outf:
-                    try:
-                        vid = self.session.get(audio_url)
-                        #vid = self._aes.decrypt(vid.content)
-                        outf.write(vid.content)
-                    except Exception as err:
-                        yuu_log.error('Problem occured\nreason: {}'.format(err))
-                        return None
-                pbar.update()
-                self.decrypt_content(episode_license["audio_key"], outputtemp, outputtemp.replace("_encrypt_audio.mp4","_decrypt_audio.mp4"))
-                #self.downloaded_files.append(outputtemp)
-        except KeyboardInterrupt:
-            yuu_log.warn('User pressed CTRL+C, cleaning up...')
+        except Exception as err:
+            yuu_log.error(f'Problem occurred\nreason: {err}')
             return None
         
     def download_chunk(self, files, key, iv):
@@ -467,7 +464,8 @@ class UNext:
                 self.yuu_logger.debug('Video License: {}'.format(self.episode_license["video_key"]))
                 self.yuu_logger.debug('Audio License: {}'.format(self.episode_license["audio_key"]))
                 
-                self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/2/?play_token={playtoken}&last_viewing_flg=0")
+                self.session.get(f"https://beacon.unext.jp/beacon/interruption/{url_code}/1/?play_token={playtoken}")
+                self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/1/?play_token={playtoken}&last_viewing_flg=0")
                 
                 m3u8_url_list.append(episode_url)
                 output_list.append(output_name)
@@ -530,7 +528,8 @@ class UNext:
         self.m3u8_url = episode_url
         self.play_token = playtoken
         
-        stop_res = self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/2/?play_token={playtoken}&last_viewing_flg=0")
+        self.session.get(f"https://beacon.unext.jp/beacon/interruption/{url_code}/1/?play_token={playtoken}")
+        self.session.get(f"https://beacon.unext.jp/beacon/stop/{url_code}/1/?play_token={playtoken}&last_viewing_flg=0")
         
         return output_name, 'Success'
 
