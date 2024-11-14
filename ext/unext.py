@@ -88,16 +88,13 @@ class UNextDownloader:
         with tqdm(total=100, desc="Decrypting Content", unit="%") as pbar:
             with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as process:
                 for line in process.stdout:
-                    #print(line.strip())  # 標準出力の内容を表示
-                    
-                    # 「ｲ」の数をカウントして進捗バーを更新
                     match = re.search(r"(ｲ+)", line)
                     if match:
                         progress_count = len(match.group(1))
-                        pbar.n = progress_count  # 現在の進捗に設定
+                        pbar.n = progress_count
                         pbar.refresh()
             
-            process.wait()  # 完了まで待機
+            process.wait()
             pbar.close()
         
     def mux_episode(self, video_name, audio_name, output_name):
@@ -215,7 +212,6 @@ class UNext:
             root = ET.fromstring(mpd_content)
         
             audio_bandwidth = bandwidth_calculation_audio
-            print(audio_bandwidth)
         
             audio_adaptation_set = root.find(".//AdaptationSet[@contentType='audio']", namespaces)
         
