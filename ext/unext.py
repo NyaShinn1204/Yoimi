@@ -23,6 +23,11 @@ import m3u8
 from Crypto.Cipher import AES
 from tqdm import tqdm
 
+# 破損原因
+# playtokenを取得後にファイルをダウンロードしてる
+# 以上
+# :middle_finger:
+
 def is_channel(url):
     url = re.findall('(slot)', url)
     if url:
