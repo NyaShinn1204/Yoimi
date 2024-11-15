@@ -1,17 +1,4 @@
-### ~~はい、クソみたいな462エラーが発生します。 Hotaru-WVで治すかもね~~
-### はい、原因は構造上の問題です。
-### はい、これを直すのはクソめんどくさいです。
-### とりあえず、暇になったら作り直します。
-![image](https://github.com/user-attachments/assets/47143427-5f6f-4232-948c-a8dd0bcb62ee)
-
-
-
-<p align="center">
-    <h3 align="center">Yoimi</h3>
-    <p align="center">
-        AbemaやU-Nextの動画ダウンロードツール。<br />
-    </p>
-</p>
+![Yoimi](https://socialify.git.ci/NyaShinn1204/Yoimi/image?description=1&descriptionEditable=Abema%E3%82%84U-Next%E3%81%AE%E5%8B%95%E7%94%BB%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%89%E3%83%84%E3%83%BC%E3%83%AB%E3%80%82%0AA%20Simple%20Abema%20TV%2C%20U-Next%20Downloader&font=Raleway&forks=1&issues=1&language=1&logo=https%3A%2F%2Ffiles.catbox.moe%2Fue535j.png&name=1&stargazers=1&theme=Light)
 
 ## インストール
 
