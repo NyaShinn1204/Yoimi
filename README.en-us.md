@@ -44,5 +44,5 @@ python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --
 python3 yoimi.py download "https://video.unext.jp/play/SID0104147" --username EMAIL_HERE --password PASSWORD_HERE
 ```
 
-> [!CAUTION]
+> [!WARNING]
 > Yoimi is an improved version of a code that copies and compresses about 95% of a package called [Yuu](https://github.com/noaione/yuu)
