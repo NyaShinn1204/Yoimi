@@ -96,8 +96,47 @@ class Unext_downloader:
                 metadata_response_single = return_json['data']['webfront_title_titleEpisodes']['episodes']
                 for episode in metadata_response_single:
                     if episode['id'] == [match[1] for match in matches1 if match[1]][0]:
-                        return True, json.dumps(episode, ensure_ascii=False, indent=4)
+                        return True, episode
                 return False, None
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False, None
+        
+    def get_title_parse_all(self, url):
+        matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)
+        '''エピソードのタイトルについて取得するコード'''
+        meta_json = {
+            "operationName": "cosmo_getVideoTitleEpisodes",
+            "variables": {"code": [match[0] for match in matches1 if match[0]][0], "page": 1, "pageSize": 100},
+            "query": "query cosmo_getVideoTitleEpisodes($code: ID!, $page: Int, $pageSize: Int) {\n  webfront_title_titleEpisodes(id: $code, page: $page, pageSize: $pageSize) {\n    episodes {\n      id\n      episodeName\n      purchaseEpisodeLimitday\n      thumbnail {\n        standard\n        __typename\n      }\n      duration\n      displayNo\n      interruption\n      completeFlag\n      saleTypeCode\n      introduction\n      saleText\n      episodeNotices\n      isNew\n      hasPackRights\n      minimumPrice\n      hasMultiplePrices\n      productLineupCodeList\n      isPurchased\n      purchaseEpisodeLimitday\n      __typename\n    }\n    pageInfo {\n      results\n      __typename\n    }\n    __typename\n  }\n}\n",
+        }
+        try:
+            metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+            return_json = metadata_response.json()
+            if return_json["data"]["webfront_title_titleEpisodes"] != None:
+                metadata_response_single = return_json['data']['webfront_title_titleEpisodes']['episodes']
+                return True, metadata_response_single
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False, None
+    
+    def get_title_metadata(self, url):
+        matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)
+        '''メタデータを取得するコード'''
+        meta_json = {
+            "operationName": "cosmo_getVideoTitle",
+            "variables": {"code": [match[0] for match in matches1 if match[0]][0]},
+            "query": "query cosmo_getVideoTitle($code: ID!) {\n  webfront_title_stage(id: $code) {\n    id\n    titleName\n    rate\n    userRate\n    productionYear\n    country\n    catchphrase\n    attractions\n    story\n    check\n    seriesCode\n    seriesName\n    publicStartDate\n    displayPublicEndDate\n    restrictedCode\n    copyright\n    mainGenreId\n    bookmarkStatus\n    thumbnail {\n      standard\n      secondary\n      __typename\n    }\n    mainGenreName\n    isNew\n    exclusive {\n      typeCode\n      isOnlyOn\n      __typename\n    }\n    isOriginal\n    lastEpisode\n    updateOfWeek\n    nextUpdateDateTime\n    productLineupCodeList\n    hasMultiprice\n    minimumPrice\n    country\n    productionYear\n    paymentBadgeList {\n      name\n      code\n      __typename\n    }\n    nfreeBadge\n    hasDub\n    hasSubtitle\n    saleText\n    currentEpisode {\n      id\n      interruption\n      duration\n      completeFlag\n      displayDurationText\n      existsRelatedEpisode\n      playButtonName\n      purchaseEpisodeLimitday\n      __typename\n    }\n    publicMainEpisodeCount\n    comingSoonMainEpisodeCount\n    missingAlertText\n    sakuhinNotices\n    hasPackRights\n    __typename\n  }\n}\n",
+        }
+        try:   
+            metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+            return_json = metadata_response.json()
+            if return_json["data"]["webfront_title_stage"] != None:
+                return True, return_json["data"]["webfront_title_stage"]
             else:
                 return False, None
         except Exception as e:

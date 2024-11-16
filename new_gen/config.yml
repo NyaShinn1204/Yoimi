@@ -9,3 +9,6 @@ directorys:
 authorization:
   Email: 'unext@paicha.jp'
   Password: 'Nyaa1919'
+
+format:
+  anime: '{seriesname}_{titlename}_{episodename}'
