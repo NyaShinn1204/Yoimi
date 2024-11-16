@@ -7,9 +7,5 @@ directorys:
   Downloads: './downloads'
   Binaries: './binaries'
 
-authorization:
-  Email: 'unext@paicha.jp'
-  Password: 'Paicha1919'
-
 format:
   anime: '{seriesname}_{titlename}_{episodename}'
