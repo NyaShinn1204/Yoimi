@@ -7,6 +7,7 @@ import logging
 import requests
 import threading
 import subprocess
+from tqdm import tqdm
 from datetime import datetime
 from bs4 import BeautifulSoup
 from xml.etree import ElementTree as ET
@@ -16,29 +17,6 @@ COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
 COLOR_RESET = "\033[0m"
 COLOR_BLUE = "\033[94m"
-
-class CustomFormatter(logging.Formatter):
-    COLOR_GREEN = "\033[92m"
-    COLOR_GRAY = "\033[90m"
-    COLOR_RESET = "\033[0m"
-    COLOR_BLUE = "\033[94m"
-
-    def format(self, record):
-        log_message = super().format(record)
-    
-        if hasattr(record, "service_name"):
-            log_message = log_message.replace(
-                record.service_name, f"{self.COLOR_BLUE}{record.service_name}{self.COLOR_RESET}"
-            )
-        
-        log_message = log_message.replace(
-            record.asctime, f"{self.COLOR_GREEN}{record.asctime}{self.COLOR_RESET}"
-        )
-        log_message = log_message.replace(
-            record.levelname, f"{self.COLOR_GRAY}{record.levelname}{self.COLOR_RESET}"
-        )
-        
-        return log_message
 
 class mpd_parse:
     @staticmethod
@@ -206,6 +184,40 @@ class Unext_license:
         }
         
         return keys
+   
+class Unext_decrypt:
+    def mp4decrypt(keys, config):
+        if os.name == 'nt':
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
+        else:
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
+        for key in keys:
+            if key["type"] == "CONTENT":
+                mp4decrypt_command.extend(
+                    [
+                        "--show-progress",
+                        "--key",
+                        "{}:{}".format(key["kid_hex"], key["key_hex"]),
+                    ]
+                )
+        return mp4decrypt_command
+    
+    
+    def decrypt_content(keys, input_file, output_file, config, service_name="U-Next"):
+        mp4decrypt_command = Unext_decrypt.mp4decrypt(keys, config)
+        mp4decrypt_command.extend([input_file, output_file])
+        # 「ｲ」の数を最大100として進捗バーを作成
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as process:
+                for line in process.stdout:
+                    match = re.search(r"(ｲ+)", line)
+                    if match:
+                        progress_count = len(match.group(1))
+                        pbar.n = progress_count
+                        pbar.refresh()
+            
+            process.wait()
+            pbar.close()
     
 class Unext_downloader:
     def __init__(self, session):
@@ -359,12 +371,6 @@ class Unext_downloader:
             return False, None
         
     def update_progress(self, process, service_name="U-Next"):
-        global logger
-        handler = logging.StreamHandler()
-        handler.setFormatter(CustomFormatter("%(asctime)s - %(levelname)s - %(message)s"))
-        logging.basicConfig(level=logging.INFO, handlers=[handler])
-        logger = logging.getLogger("Downloader")
-        
         total_size = None
         downloaded_size = 0
 
@@ -377,7 +383,6 @@ class Unext_downloader:
                         downloaded_info = parts[1]
                         downloaded, total = downloaded_info.split('/')
 
-                        # 正規表現で数値部分を抽出
                         downloaded_value = float(re.search(r"[\d.]+", downloaded).group())
                         total_value = float(re.search(r"[\d.]+", total).group())
 
@@ -386,21 +391,18 @@ class Unext_downloader:
 
                         downloaded_size = downloaded_value
 
-                        # プログレスバーを1行に更新
                         percentage = (downloaded_size / total_size) * 100
                         bar = f"{percentage:.0f}%|{'#' * int(percentage // 10)}{'-' * (10 - int(percentage // 10))}|"
                         size_info = f" {downloaded_size:.1f}/{total_size:.1f} MiB"
                         log_message = f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : {bar}{size_info}"
                         
-                        # ログ出力を1行に上書き
                         print(f"\r{log_message}", end="", flush=True)
 
                     except (IndexError, ValueError, AttributeError) as e:
-                        logger.error(f"Error parsing line: {line} - {e}")
+                        print(f"Error parsing line: {line} - {e}")
                 else:
-                    logger.warning(f"Unexpected format in line: {line}")
+                    print(f"Unexpected format in line: {line}")
 
-        # 完了時に進捗を100%に設定し改行
         if total_size:
             print(f"\r{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : 100%|{'#' * 10}| {total_size:.1f}/{total_size:.1f} MiB", flush=True)
 
@@ -440,13 +442,27 @@ class Unext_downloader:
             encoding='utf-8'
         )
 
-        threading.Thread(target=self.log_errors, args=(process,), daemon=True).start()
         self.update_progress(process)
 
         process.wait()
 
         return os.path.join(config["directorys"]["Temp"], "content", unixtime, output_file_name)
-
-    def log_errors(self, process):
-        for error in iter(process.stderr.readline, ''):
-            logger.error(f"Error: {error.strip()}")
+    
+    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name):
+        os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)  # Added exist_ok=True
+    
+        compile_command = [
+            "ffmpeg",
+            "-i",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),
+            "-i",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),
+            "-c:v",
+            "copy",
+            "-c:a",
+            "copy",
+            "-strict",
+            "experimental",
+            output_name,
+        ]
+        subprocess.run(compile_command)

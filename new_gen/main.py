@@ -1,7 +1,9 @@
+import os
 import yaml
 import time
-import requests
+import shutil
 import logging
+import requests
 
 from utils import unext
 
@@ -53,8 +55,9 @@ def set_variable():
     session.headers.update({"User-Agent": config["headers"]["User-Agent"]})
 
 def main_command():
-    #url = "https://video.unext.jp/title/SID0104147"
-    url = "https://video.unext.jp/play/SID0104147/ED00570917"
+    global media_code, playtoken
+    url = "https://video.unext.jp/title/SID0104147"
+    #url = "https://video.unext.jp/play/SID0104147/ED00570918"
     set_variable()
     logger.info("Decrypt U-Next, Abema Content for Everyone", extra={"service_name": "Yoimi"})
     
@@ -85,6 +88,71 @@ def main_command():
             exit(1)
         for message in messages:
             logger.info(f" + {config["format"]["anime"].format(seriesname=title_name,titlename=message["displayNo"],episodename=message["episodeName"])}", extra={"service_name": "U-Next"})
+        for message in messages:
+            title_name_logger = config["format"]["anime"].format(seriesname=title_name,titlename=message["displayNo"],episodename=message["episodeName"])
+            status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
+            if status == False:
+                logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
+                exit(1)
+            else:
+                logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
+                status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
+                if status == False:
+                    logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "U-Next"})
+                    exit(1)
+                mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
+    
+                logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})
+                logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": "U-Next"})
+                
+                license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
+                
+                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "U-Next"})
+                
+                logger.info(f" + Decrypt Video License: {license_key["video_key"]}", extra={"service_name": "U-Next"})
+                logger.info(f" + Decrypt Audio License: {license_key["audio_key"]}", extra={"service_name": "U-Next"})
+                
+                logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
+                video_url = unext.mpd_parse.extract_video_info(mpd_content, "1920x1080 mp4 avc1.4d4028")["base_url"]
+                audio_url = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
+                logger.info(" + Video_URL: "+video_url, extra={"service_name": "U-Next"})
+                logger.info(" + Audio_URL: "+audio_url, extra={"service_name": "U-Next"})
+                
+                title_name_logger_video = title_name_logger+"_video_encrypted.mp4"
+                title_name_logger_audio = title_name_logger+"_audio_encrypted.mp4"
+                
+                logger.info("Downloading Encrypted Video, Audio Files..", extra={"service_name": "U-Next"})
+                
+                video_downloaded = unext_downloader.aria2c(video_url, title_name_logger_video.replace(":", ""), config, unixtime)
+                audio_downloaded = unext_downloader.aria2c(audio_url, title_name_logger_audio.replace(":", ""), config, unixtime)
+                
+                logger.info("Decrypting encrypted Video, Audio Files..", extra={"service_name": "U-Next"})
+                
+                unext.Unext_decrypt.decrypt_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), config)
+                unext.Unext_decrypt.decrypt_content(license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
+                
+                result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name)
+                    
+                dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                
+                if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                    for filename in os.listdir(dir_path):
+                        file_path = os.path.join(dir_path, filename)
+                        try:
+                            if os.path.isfile(file_path):
+                                os.remove(file_path)
+                            elif os.path.isdir(file_path):
+                                shutil.rmtree(file_path)
+                        except Exception as e:
+                            print(f"削除エラー: {e}")
+                else:
+                    print(f"指定されたディレクトリは存在しません: {dir_path}")
+                
+                logger.info('Finished downloading: {}'.format(title_name_logger), extra={"service_name": "U-Next"})
+                                       
+                
+                session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
+                session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
     else:
         logger.info("Get Title for 1 Episode", extra={"service_name": "U-Next"})
         status, message = unext_downloader.get_title_parse_single(url)
@@ -128,11 +196,40 @@ def main_command():
             
             video_downloaded = unext_downloader.aria2c(video_url, title_name_logger_video.replace(":", ""), config, unixtime)
             audio_downloaded = unext_downloader.aria2c(audio_url, title_name_logger_audio.replace(":", ""), config, unixtime)
-                       
+            
+            logger.info("Decrypting encrypted Video, Audio Files..", extra={"service_name": "U-Next"})
+            
+            unext.Unext_decrypt.decrypt_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), config)
+            unext.Unext_decrypt.decrypt_content(license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
+            
+            result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name)
+                
+            dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+            
+            if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                for filename in os.listdir(dir_path):
+                    file_path = os.path.join(dir_path, filename)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                    except Exception as e:
+                        print(f"削除エラー: {e}")
+            else:
+                print(f"指定されたディレクトリは存在しません: {dir_path}")
+            
+            logger.info('Finished downloading: {}'.format(title_name_logger), extra={"service_name": "U-Next"})
+                                   
             
             session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
             session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
-        
-    # get license, decryt license
-    #status, playtoken = unext_downloader.get_playtoken()
-main_command()
+try:
+    main_command()
+except Exception as error:
+    print(error)
+    if error == "Document is empty, line 1, column 1 (<string>, line 1)":
+        print("おめでとうございます。あなたは処理を中断するタイミングを間違えたため、同時デバイス制限がかかりました。\n5分くらい待ちましょうね")
+    
+    session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
+    session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
