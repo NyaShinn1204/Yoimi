@@ -50,6 +50,8 @@ def set_variable():
     session.headers.update({"User-Agent": config["headers"]["User-Agent"]})
 
 def main_command():
+    #url = "https://video.unext.jp/title/SID0104147"
+    url = "https://video.unext.jp/play/SID0104147/ED00570917"
     set_variable()
     logger.info("Decrypt U-Next, Abema Content for Everyone", extra={"service_name": "Yoimi"})
     
@@ -62,5 +64,16 @@ def main_command():
         logger.info("Loggined Account", extra={"service_name": "U-Next"})
         logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
         logger.info(" + Point: "+str(message["points"]), extra={"service_name": "U-Next"})
+        
+    status = unext.Unext_utils.check_single_episode(url)
+    if status == False:
+        logger.info("Get Title for Season", extra={"service_name": "U-Next"})
+    else:
+        logger.info("Get Title for 1 Episode", extra={"service_name": "U-Next"})
+        status, message = unext_downloader.get_title_parse_single(url)
+        if status == False:
+            logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
+            exit(1)
+        print(status, message)
 
 main_command()

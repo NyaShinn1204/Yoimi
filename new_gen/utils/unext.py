@@ -9,7 +9,16 @@ from urllib.parse import urlparse, parse_qs
 class Unext_utils:
     def random_name(length):
         return "".join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
-
+    def check_single_episode(url):
+        if url.__contains__("ED"):
+            #if re.match(r"^ED\d{8}$", url):
+            #    return True
+            #else:
+            #    return False
+            return True
+        else:
+            return False
+    
 class Unext_downloader:
     def __init__(self, session):
         self.session = session
@@ -71,3 +80,26 @@ class Unext_downloader:
                 
         res = self.session.post(_ENDPOINT_CC, json={"operationName":"cosmo_userInfo", "query":"query cosmo_userInfo {\n  userInfo {\n    id\n    multiAccountId\n    userPlatformId\n    userPlatformCode\n    superUser\n    age\n    otherFunctionId\n    points\n    hasRegisteredEmail\n    billingCaution {\n      title\n      description\n      suggestion\n      linkUrl\n      __typename\n    }\n    blockInfo {\n      isBlocked\n      score\n      __typename\n    }\n    siteCode\n    accountTypeCode\n    linkedAccountIssuer\n    isAdultPermitted\n    needsAdultViewingRights\n    __typename\n  }\n}\n"})
         return True, res.json()["data"]["userInfo"]
+    
+    def get_title_parse_single(self, url):
+        matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)
+        '''エピソードのタイトルについて取得するコード'''
+        meta_json = {
+            "operationName": "cosmo_getVideoTitleEpisodes",
+            "variables": {"code": [match[0] for match in matches1 if match[0]][0], "page": 1, "pageSize": 100},
+            "query": "query cosmo_getVideoTitleEpisodes($code: ID!, $page: Int, $pageSize: Int) {\n  webfront_title_titleEpisodes(id: $code, page: $page, pageSize: $pageSize) {\n    episodes {\n      id\n      episodeName\n      purchaseEpisodeLimitday\n      thumbnail {\n        standard\n        __typename\n      }\n      duration\n      displayNo\n      interruption\n      completeFlag\n      saleTypeCode\n      introduction\n      saleText\n      episodeNotices\n      isNew\n      hasPackRights\n      minimumPrice\n      hasMultiplePrices\n      productLineupCodeList\n      isPurchased\n      purchaseEpisodeLimitday\n      __typename\n    }\n    pageInfo {\n      results\n      __typename\n    }\n    __typename\n  }\n}\n",
+        }
+        try:
+            metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+            return_json = metadata_response.json()
+            if return_json["data"]["webfront_title_titleEpisodes"] != None:
+                metadata_response_single = return_json['data']['webfront_title_titleEpisodes']['episodes']
+                for episode in metadata_response_single:
+                    if episode['id'] == [match[1] for match in matches1 if match[1]][0]:
+                        return True, json.dumps(episode, ensure_ascii=False, indent=4)
+                return False, None
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False, None
