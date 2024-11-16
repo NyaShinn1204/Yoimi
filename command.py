@@ -62,148 +62,122 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
     
     Check supported streams from yuu with `yuu streams`
     """
-    fn_log_output = '{f}/yuu_log-{t}.log'.format(f=get_yuu_folder(), t=datetime.today().strftime("%Y-%m-%d_%HH%MM"))
-    logging.basicConfig(level=logging.DEBUG,
-                        handlers=[logging.FileHandler(fn_log_output, 'a', 'utf-8')],
-                        format='%(asctime)s %(name)-1s -- [%(levelname)s]: %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')
-    yuu_logger = logging.getLogger('yuu')
-
-    console = logging.StreamHandler(sys.stdout)
-    LOG_LEVEL = logging.INFO
-    if verbose:
-        LOG_LEVEL = logging.DEBUG
-    console.setLevel(LOG_LEVEL)
-    formatter1 = logging.Formatter('[%(levelname)s] %(message)s')
-    console.setFormatter(formatter1)
-    yuu_logger.addHandler(console)
-
-    sesi = requests.Session()
-
-    if proxy:
-        sesi.proxies = {'http': proxy, 'https': proxy}
-    yuu_logger.debug('Using proxy: {}'.format(proxy))
-
-    _prepare_yuu_data() # Prepare yuu_download.json
     yuuParser, site_text = get_parser(input)
 
     if not yuuParser:
         yuu_logger.error('Unknown url format')
         exit(1)
+        
+    sesi = requests.Session()
 
-    yuuParser = yuuParser(input, sesi)
-    formatter3 = logging.Formatter('[%(levelname)s] {}: %(message)s'.format(yuuParser.type))
-    yuu_logger.removeHandler(console)
-    console.setFormatter(formatter3)
-    yuu_logger.addHandler(console)
-
-    if yuuParser.authorization_required:
-        if username is None and password is None:
-            yuu_logger.warning('Account are required to download from this VOD')
-            exit(1)
-        yuu_logger.info('Authenticating')
-        result, reason = yuuParser.authorize(username, password)
-        if not result:
-            yuu_logger.error('{}'.format(reason))
-            exit(1)
-    if username and password and not yuuParser.authorized:
-        yuu_logger.info('Authenticating')
-        result, reason = yuuParser.authorize(username, password)
-        if not result:
-            yuu_logger.error('{}'.format(reason))
-            exit(1)
-
-    if not yuuParser.authorized:
-        yuu_logger.info('Fetching temporary user token')
-        result, reason = yuuParser.get_token()
-        if not result:
-            yuu_logger.error('{}'.format(reason))
-            exit(1)
-
-    yuu_logger.info('Parsing url')
-    outputs, reason = yuuParser.parse(res, resR)
-    if not outputs:
-        yuu_logger.error('{}'.format(reason))
-        exit(1)
-    if isinstance(yuuParser.m3u8_url, list):
-        m3u8_list = yuuParser.m3u8_url
+    if site_text == "unext":
+        try:
+            yuuParser.main_command(sesi, input, username, password)
+        except Exception as error:
+            print(error)
     else:
-        m3u8_list = [yuuParser.m3u8_url]
-    if site_text == "unext":
-        if isinstance(yuuParser.mpd_file, list):
-            mpd_list = yuuParser.mpd_file
-        else:
-            mpd_list = [yuuParser.mpd_file]
-    if resR:
-        for m3u8 in m3u8_list:
-            yuu_logger.info('Checking available resolution...')
-            avares, reason = yuuParser.resolutions(m3u8)
-            if not avares:
-                yuu_logger.error('{}'.format(reason))
-                continue
-            yuu_logger.info('Available resolution:')
-            yuu_logger.log(0, '{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16))
-            print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16))
-            for res in avares:
-                r_c, wxh = res
-                vidq, audq = yuuParser.resolution_data[r_c]
-                yuu_logger.log(0, '{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format('>> ' + r_c, wxh, vidq, audq, width=16))
-                print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format('>> ' + r_c, wxh, vidq, audq, width=16))
-        exit(0)
-
-    if yuuParser.resolution != res and res not in ['best', 'worst']:
-        yuu_logger.warn('Resolution {} are not available'.format(res))
-        yuu_logger.warn('Switching to {}'.format(yuuParser.resolution))
-        res = yuuParser.resolution
-
-    if isinstance(outputs, str):
-        outputs = [outputs]
-
-    formatter2 = logging.Formatter('[%(levelname)s][DOWN] {}: %(message)s'.format(yuuParser.type))
-    yuu_logger.removeHandler(console)
-    console.setFormatter(formatter2)
-    yuu_logger.addHandler(console)
-
-    yuu_logger.info('Starting downloader...')
-    yuu_logger.info('Total files that will be downloaded: {}'.format(len(outputs)))
-
-    # Initialize Download Process
-    yuuDownloader = yuuParser.get_downloader()
-    temp_dir = yuuDownloader.temporary_folder
-    illegalchar = ['/', '<', '>', ':', '"', '\\', '|', '?', '*'] # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file
-    if site_text == "unext":
-        for pos, _out_ in enumerate(outputs):
-            yuu_logger.info('Parsing mpd and fetching video key for files no {}'.format(pos+1))
-            
-            _out_ = yuuParser.check_output(output, _out_)
-            
-            if muxfile not in ["mp4", "mkv", "ts"]:
-                yuu_logger.error('Failed Check file extension: {}'.format(muxfile))
-                exit(0)
+        fn_log_output = '{f}/yuu_log-{t}.log'.format(f=get_yuu_folder(), t=datetime.today().strftime("%Y-%m-%d_%HH%MM"))
+        logging.basicConfig(level=logging.DEBUG,
+                            handlers=[logging.FileHandler(fn_log_output, 'a', 'utf-8')],
+                            format='%(asctime)s %(name)-1s -- [%(levelname)s]: %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S')
+        yuu_logger = logging.getLogger('yuu')
     
-            for char in illegalchar:
-                _out_ = _out_.replace(char, '_')
-            
-            #print(yuuParser.episode_license)
-            yuu_logger.info('Output: {}'.format(_out_))
-            yuu_logger.info('Resolution: {}'.format(yuuParser.resolution))
-            yuu_logger.info('Estimated file size: {} MiB'.format(yuuParser.est_filesize))
-            
-            video_url = yuuParser.mpd_parse.extract_video_info(yuuParser.mpd_file, yuuParser.resolution, yuuParser.resolution_data)["base_url"]
-            audio_url = yuuParser.mpd_parse.extract_audio_info(yuuParser.mpd_file, yuuParser.bandwidth_calculation_audio)["base_url"]
-                        
-            yuu_logger.info('Finished downloading and decrypting')
-            yuu_logger.info('Muxing episode')
-            result = yuuDownloader.mux_episode(_out_.replace(".mp4","_decrypt_video.mp4").replace(" ", "_"), _out_.replace(".mp4","_decrypt_audio.mp4").replace(" ", "_"), _out_)
+        console = logging.StreamHandler(sys.stdout)
+        LOG_LEVEL = logging.INFO
+        if verbose:
+            LOG_LEVEL = logging.DEBUG
+        console.setLevel(LOG_LEVEL)
+        formatter1 = logging.Formatter('[%(levelname)s] %(message)s')
+        console.setFormatter(formatter1)
+        yuu_logger.addHandler(console)
+        
+        if proxy:
+            sesi.proxies = {'http': proxy, 'https': proxy}
+        yuu_logger.debug('Using proxy: {}'.format(proxy))
+    
+        _prepare_yuu_data() # Prepare yuu_download.json
+        
+        yuuParser = yuuParser(input, sesi)
+        formatter3 = logging.Formatter('[%(levelname)s] {}: %(message)s'.format(yuuParser.type))
+        yuu_logger.removeHandler(console)
+        console.setFormatter(formatter3)
+        yuu_logger.addHandler(console)
+    
+        if yuuParser.authorization_required:
+            if username is None and password is None:
+                yuu_logger.warning('Account are required to download from this VOD')
+                exit(1)
+            yuu_logger.info('Authenticating')
+            result, reason = yuuParser.authorize(username, password)
             if not result:
-                yuu_logger.warn('There\'s no available muxers that can be used, skipping...')
-                mux = False # Automatically set to False so it doesn't spam the user
-            elif result and os.path.isfile(result):
-                if not keep_:
-                    os.remove(_out_)
-                _out_ = result
-            yuu_logger.info('Finished downloading: {}'.format(_out_))
-    else:
+                yuu_logger.error('{}'.format(reason))
+                exit(1)
+        if username and password and not yuuParser.authorized:
+            yuu_logger.info('Authenticating')
+            result, reason = yuuParser.authorize(username, password)
+            if not result:
+                yuu_logger.error('{}'.format(reason))
+                exit(1)
+    
+        if not yuuParser.authorized:
+            yuu_logger.info('Fetching temporary user token')
+            result, reason = yuuParser.get_token()
+            if not result:
+                yuu_logger.error('{}'.format(reason))
+                exit(1)
+    
+        yuu_logger.info('Parsing url')
+        outputs, reason = yuuParser.parse(res, resR)
+        if not outputs:
+            yuu_logger.error('{}'.format(reason))
+            exit(1)
+        if isinstance(yuuParser.m3u8_url, list):
+            m3u8_list = yuuParser.m3u8_url
+        else:
+            m3u8_list = [yuuParser.m3u8_url]
+        if site_text == "unext":
+            if isinstance(yuuParser.mpd_file, list):
+                mpd_list = yuuParser.mpd_file
+            else:
+                mpd_list = [yuuParser.mpd_file]
+        if resR:
+            for m3u8 in m3u8_list:
+                yuu_logger.info('Checking available resolution...')
+                avares, reason = yuuParser.resolutions(m3u8)
+                if not avares:
+                    yuu_logger.error('{}'.format(reason))
+                    continue
+                yuu_logger.info('Available resolution:')
+                yuu_logger.log(0, '{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16))
+                print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16))
+                for res in avares:
+                    r_c, wxh = res
+                    vidq, audq = yuuParser.resolution_data[r_c]
+                    yuu_logger.log(0, '{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format('>> ' + r_c, wxh, vidq, audq, width=16))
+                    print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format('>> ' + r_c, wxh, vidq, audq, width=16))
+            exit(0)
+    
+        if yuuParser.resolution != res and res not in ['best', 'worst']:
+            yuu_logger.warn('Resolution {} are not available'.format(res))
+            yuu_logger.warn('Switching to {}'.format(yuuParser.resolution))
+            res = yuuParser.resolution
+    
+        if isinstance(outputs, str):
+            outputs = [outputs]
+    
+        formatter2 = logging.Formatter('[%(levelname)s][DOWN] {}: %(message)s'.format(yuuParser.type))
+        yuu_logger.removeHandler(console)
+        console.setFormatter(formatter2)
+        yuu_logger.addHandler(console)
+    
+        yuu_logger.info('Starting downloader...')
+        yuu_logger.info('Total files that will be downloaded: {}'.format(len(outputs)))
+    
+        # Initialize Download Process
+        yuuDownloader = yuuParser.get_downloader()
+        temp_dir = yuuDownloader.temporary_folder
+        illegalchar = ['/', '<', '>', ':', '"', '\\', '|', '?', '*'] # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file
         for pos, _out_ in enumerate(outputs):
             yuu_logger.info('Parsing m3u8 and fetching video key for files no {}'.format(pos+1))
             files, iv, ticket, reason = yuuParser.parse_m3u8(m3u8_list[pos])
@@ -260,9 +234,9 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                             os.remove(_out_)
                         _out_ = result
             yuu_logger.info('Finished downloading: {}'.format(_out_))
-    if not keep_:
-        shutil.rmtree(temp_dir)
-    exit(0)
+        if not keep_:
+            shutil.rmtree(temp_dir)
+        exit(0)
 
 
 if __name__=='__main__':
