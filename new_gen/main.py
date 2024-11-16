@@ -50,8 +50,8 @@ def set_variable():
     session.headers.update({"User-Agent": config["headers"]["User-Agent"]})
 
 def main_command():
-    url = "https://video.unext.jp/title/SID0104147"
-    #url = "https://video.unext.jp/play/SID0104147/ED00570917"
+    #url = "https://video.unext.jp/title/SID0104147"
+    url = "https://video.unext.jp/play/SID0104147/ED00570917"
     set_variable()
     logger.info("Decrypt U-Next, Abema Content for Everyone", extra={"service_name": "Yoimi"})
     
@@ -60,6 +60,7 @@ def main_command():
     status, message = unext_downloader.authorize(config["authorization"]["Email"], config["authorization"]["Password"])
     if status == False:
         logger.error(message, extra={"service_name": "U-Next"})
+        exit(1)
     else:
         logger.info("Loggined Account", extra={"service_name": "U-Next"})
         logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
@@ -68,6 +69,7 @@ def main_command():
     status, meta_response = unext_downloader.get_title_metadata(url)
     if status == False:
         logger.error("Failed to Get Series Json", extra={"service_name": "U-Next"})
+        exit(1)
     else:
         title_name = meta_response["titleName"]
         #print(meta_response["titleName"])
@@ -88,4 +90,35 @@ def main_command():
             logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
             exit(1)
         logger.info(f" + {config["format"]["anime"].format(seriesname=title_name,titlename=message["displayNo"],episodename=message["episodeName"])}", extra={"service_name": "U-Next"})
+        status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
+        if status == False:
+            logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
+            exit(1)
+        else:
+            logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
+            #print(playtoken, media_code)
+            status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
+            if status == False:
+                logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "U-Next"})
+                exit(1)
+            #print(mpd_content)
+            mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
+            #video_info = unext.mpd_parse.extract_video_info(mpd_content, "1920x1080 mp4 avc1.4d4028")
+            ##print(video_info)
+            logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})
+            #audio_info = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")
+            logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": "U-Next"})
+            ##print(audio_info)
+            
+            license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
+            
+            logger.info(f" + Decrypt Video License: {license_key["video_key"]}", extra={"service_name": "U-Next"})
+            logger.info(f" + Decrypt Audio License: {license_key["audio_key"]}", extra={"service_name": "U-Next"})
+            #print(license_key)
+            
+            session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
+            session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
+        
+    # get license, decryt license
+    #status, playtoken = unext_downloader.get_playtoken()
 main_command()

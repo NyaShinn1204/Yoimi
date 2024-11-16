@@ -4,6 +4,7 @@ import string
 import random
 import requests
 from bs4 import BeautifulSoup
+from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, parse_qs
 
 class Unext_utils:
@@ -18,6 +19,100 @@ class Unext_utils:
             return True
         else:
             return False
+        
+    def parse_mpd_logic(content):
+        from xml.etree import ElementTree as ET
+        from lxml import etree    
+        
+        if isinstance(content, str):
+            content = content.encode('utf-8')
+        root = etree.fromstring(content)
+    
+        namespaces = {'mpd': 'urn:mpeg:dash:schema:mpd:2011'}
+        
+        videos = []
+        for adaptation_set in root.findall('.//mpd:AdaptationSet[@contentType="video"]', namespaces):
+            for representation in adaptation_set.findall('mpd:Representation', namespaces):
+                resolution = f"{representation.get('width')}x{representation.get('height')}"
+                codec = representation.get('codecs')
+                mimetype = representation.get('mimeType')
+                videos.append({
+                    'resolution': resolution,
+                    'codec': codec,
+                    'mimetype': mimetype
+                })
+        
+        audios = []
+        for adaptation_set in root.findall('.//mpd:AdaptationSet[@contentType="audio"]', namespaces):
+            for representation in adaptation_set.findall('mpd:Representation', namespaces):
+                audio_sampling_rate = representation.get('audioSamplingRate')
+                codec = representation.get('codecs')
+                mimetype = representation.get('mimeType')
+                audios.append({
+                    'audioSamplingRate': audio_sampling_rate,
+                    'codec': codec,
+                    'mimetype': mimetype
+                })
+        
+        namespace = {'': 'urn:mpeg:dash:schema:mpd:2011', 'cenc': 'urn:mpeg:cenc:2013'}
+        root = ET.fromstring(content)
+        
+        audio_pssh_list = root.findall('.//AdaptationSet[@contentType="audio"]/ContentProtection/cenc:pssh', namespace)
+        video_pssh_list = root.findall('.//AdaptationSet[@contentType="video"]/ContentProtection/cenc:pssh', namespace)
+        
+        audio_pssh = audio_pssh_list[-1] if audio_pssh_list else None
+        video_pssh = video_pssh_list[-1] if video_pssh_list else None
+        
+        result = {
+            "main_content": content,
+            "video_pssh": video_pssh.text,
+            "audio_pssh": audio_pssh.text,
+            "video": videos,
+            "audio": audios[0] if audios else {}
+        }
+        
+        return result
+    
+class Unext_license:
+    def license_vd_ad(video_pssh, audio_pssh, playtoken, session):
+        _WVPROXY = "https://wvproxy.unext.jp/proxy"
+        from pywidevine.cdm import Cdm
+        from pywidevine.device import Device
+        from pywidevine.pssh import PSSH
+        device = Device.load(
+            "./l3.wvd"
+        )
+        cdm = Cdm.from_device(device)
+        session_id_video = cdm.open()
+        session_id_audio = cdm.open()
+    
+        challenge_video = cdm.get_license_challenge(session_id_video, PSSH(video_pssh))
+        challenge_audio = cdm.get_license_challenge(session_id_audio, PSSH(audio_pssh))
+        response_video = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_video)    
+        response_video.raise_for_status()
+        response_audio = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_audio)    
+        response_audio.raise_for_status()
+    
+        cdm.parse_license(session_id_video, response_video.content)
+        cdm.parse_license(session_id_audio, response_audio.content)
+        video_keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id_video)
+        ]
+        audio_keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id_audio)
+        ]
+    
+        cdm.close(session_id_video)
+        cdm.close(session_id_audio)
+        
+        keys = {
+            "video_key": video_keys,
+            "audio_key": audio_keys
+        }
+        
+        return keys
     
 class Unext_downloader:
     def __init__(self, session):
@@ -139,6 +234,33 @@ class Unext_downloader:
                 return True, return_json["data"]["webfront_title_stage"]
             else:
                 return False, None
+        except Exception as e:
+            print(e)
+            return False, None
+        
+    def get_playtoken(self, episode_id):
+        '''メタデータを取得するコード'''
+        meta_json = {
+            "operationName": "cosmo_getPlaylistUrl",
+            "variables": {"code": episode_id, "playMode": "dub", "bitrateLow": 1500},
+            "query": "query cosmo_getPlaylistUrl($code: String, $playMode: String, $bitrateLow: Int, $bitrateHigh: Int, $validationOnly: Boolean) {\n  webfront_playlistUrl(\n    code: $code\n    playMode: $playMode\n    bitrateLow: $bitrateLow\n    bitrateHigh: $bitrateHigh\n    validationOnly: $validationOnly\n  ) {\n    subTitle\n    playToken\n    playTokenHash\n    beaconSpan\n    result {\n      errorCode\n      errorMessage\n      __typename\n    }\n    resultStatus\n    licenseExpireDate\n    urlInfo {\n      code\n      startPoint\n      resumePoint\n      endPoint\n      endrollStartPosition\n      holderId\n      saleTypeCode\n      sceneSearchList {\n        IMS_AD1\n        IMS_L\n        IMS_M\n        IMS_S\n        __typename\n      }\n      movieProfile {\n        cdnId\n        type\n        playlistUrl\n        movieAudioList {\n          audioType\n          __typename\n        }\n        licenseUrlList {\n          type\n          licenseUrl\n          __typename\n        }\n        __typename\n      }\n      umcContentId\n      movieSecurityLevelCode\n      captionFlg\n      dubFlg\n      commodityCode\n      movieAudioList {\n        audioType\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
+        }
+        try:   
+            metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+            return_json = metadata_response.json()
+            if return_json["data"]["webfront_playlistUrl"] != None:
+                return True, return_json["data"]["webfront_playlistUrl"]["playToken"], return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"] 
+            else:
+                return False, None, None
+        except Exception as e:
+            print(e)
+            return False, None, None
+            
+    def get_mpd_content(self, url_code, playtoken):
+        # 18c529a7-04df-41ee-b230-07f95ecd2561 MEZ0000593320
+        try:
+            metadata_response = self.session.get(f"https://playlist.unext.jp/playlist/v00001/dash/get/{url_code}.mpd/?file_code={url_code}&play_token={playtoken}", headers={"Referer": f"https://unext.jp/{url_code}?playtoken={playtoken}"})
+            return True, metadata_response.text
         except Exception as e:
             print(e)
             return False, None
