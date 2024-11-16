@@ -1,4 +1,5 @@
 import yaml
+import time
 import requests
 import logging
 
@@ -28,7 +29,9 @@ class CustomFormatter(logging.Formatter):
         return log_message
 
 def set_variable():
-    global logger, config, session
+    global logger, config, session, unixtime
+    
+    unixtime = str(int(time.time()))
     
     logger = logging.getLogger('YoimiLogger')
     logger.setLevel(logging.INFO)
@@ -72,7 +75,6 @@ def main_command():
         exit(1)
     else:
         title_name = meta_response["titleName"]
-        #print(meta_response["titleName"])
         
     status = unext.Unext_utils.check_single_episode(url)
     if status == False:
@@ -90,31 +92,43 @@ def main_command():
             logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
             exit(1)
         logger.info(f" + {config["format"]["anime"].format(seriesname=title_name,titlename=message["displayNo"],episodename=message["episodeName"])}", extra={"service_name": "U-Next"})
+        title_name_logger = config["format"]["anime"].format(seriesname=title_name,titlename=message["displayNo"],episodename=message["episodeName"])
         status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
         if status == False:
             logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
             exit(1)
         else:
             logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
-            #print(playtoken, media_code)
             status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
             if status == False:
                 logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "U-Next"})
                 exit(1)
-            #print(mpd_content)
             mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
-            #video_info = unext.mpd_parse.extract_video_info(mpd_content, "1920x1080 mp4 avc1.4d4028")
-            ##print(video_info)
+
             logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})
-            #audio_info = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")
             logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": "U-Next"})
-            ##print(audio_info)
             
             license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
             
+            logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "U-Next"})
+            
             logger.info(f" + Decrypt Video License: {license_key["video_key"]}", extra={"service_name": "U-Next"})
             logger.info(f" + Decrypt Audio License: {license_key["audio_key"]}", extra={"service_name": "U-Next"})
-            #print(license_key)
+            
+            logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
+            video_url = unext.mpd_parse.extract_video_info(mpd_content, "1920x1080 mp4 avc1.4d4028")["base_url"]
+            audio_url = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
+            logger.info(" + Video_URL: "+video_url, extra={"service_name": "U-Next"})
+            logger.info(" + Audio_URL: "+audio_url, extra={"service_name": "U-Next"})
+            
+            title_name_logger_video = title_name_logger+"_video_encrypted.mp4"
+            title_name_logger_audio = title_name_logger+"_audio_encrypted.mp4"
+            
+            logger.info("Downloading Encrypted Video, Audio Files..", extra={"service_name": "U-Next"})
+            
+            video_downloaded = unext_downloader.aria2c(video_url, title_name_logger_video.replace(":", ""), config, unixtime)
+            audio_downloaded = unext_downloader.aria2c(audio_url, title_name_logger_audio.replace(":", ""), config, unixtime)
+                       
             
             session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
             session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")

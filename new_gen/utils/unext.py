@@ -1,11 +1,105 @@
 import re
+import os
 import json
 import string
 import random
+import logging
 import requests
+import threading
+import subprocess
+from datetime import datetime
 from bs4 import BeautifulSoup
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, parse_qs
+
+COLOR_GREEN = "\033[92m"
+COLOR_GRAY = "\033[90m"
+COLOR_RESET = "\033[0m"
+COLOR_BLUE = "\033[94m"
+
+class CustomFormatter(logging.Formatter):
+    COLOR_GREEN = "\033[92m"
+    COLOR_GRAY = "\033[90m"
+    COLOR_RESET = "\033[0m"
+    COLOR_BLUE = "\033[94m"
+
+    def format(self, record):
+        log_message = super().format(record)
+    
+        if hasattr(record, "service_name"):
+            log_message = log_message.replace(
+                record.service_name, f"{self.COLOR_BLUE}{record.service_name}{self.COLOR_RESET}"
+            )
+        
+        log_message = log_message.replace(
+            record.asctime, f"{self.COLOR_GREEN}{record.asctime}{self.COLOR_RESET}"
+        )
+        log_message = log_message.replace(
+            record.levelname, f"{self.COLOR_GRAY}{record.levelname}{self.COLOR_RESET}"
+        )
+        
+        return log_message
+
+class mpd_parse:
+    @staticmethod
+    def extract_video_info(mpd_content, value):
+        namespaces = {'': 'urn:mpeg:dash:schema:mpd:2011', 'cenc': 'urn:mpeg:cenc:2013'}
+        root = ET.fromstring(mpd_content)
+    
+        for adaptation_set in root.findall('.//AdaptationSet', namespaces):
+            content_type = adaptation_set.get('contentType', '')
+            
+            if content_type == 'video':  # Ensure we're looking at the video AdaptationSet
+                for representation in adaptation_set.findall('Representation', namespaces):
+                    width = representation.get('width')
+                    height = representation.get('height')
+                    codecs = representation.get('codecs')
+                    resolution = f"{width}x{height} mp4 {codecs}"
+                    
+                    if resolution == value:  # Matching the resolution
+                        base_url_element = representation.find('BaseURL', namespaces)
+                        base_url = base_url_element.text if base_url_element is not None else None
+                        
+                        # Find the pssh for the current AdaptationSet
+                        pssh_elements = adaptation_set.findall('ContentProtection', namespaces)
+                        pssh_list = []
+                        for pssh_element in pssh_elements:
+                            pssh = pssh_element.find('cenc:pssh', namespaces)
+                            if pssh is not None:
+                                pssh_list.append(pssh.text)
+                        return {"pssh": pssh_list, "base_url": base_url}
+        return None
+
+    @staticmethod
+    def extract_audio_info(mpd_content, value):
+        namespaces = {'': 'urn:mpeg:dash:schema:mpd:2011', 'cenc': 'urn:mpeg:cenc:2013'}
+        root = ET.fromstring(mpd_content)
+    
+        # Split the value into separate components (audio_sampling_rate, mimeType, and codecs)
+        audio_sampling_rate, mime_type, codecs = value.split()
+    
+        # Find the audio AdaptationSet
+        audio_adaptation_set = root.find(".//AdaptationSet[@contentType='audio']", namespaces)
+    
+        if audio_adaptation_set is not None:
+            for representation in audio_adaptation_set.findall('Representation', namespaces):
+                # Check if the audioSamplingRate and codecs match
+                if (representation.get('audioSamplingRate') == audio_sampling_rate and 
+                    representation.get('codecs') == codecs):
+                    
+                    base_url_element = representation.find('BaseURL', namespaces)
+                    base_url = base_url_element.text if base_url_element is not None else None
+                    
+                    # Find the pssh for the current AdaptationSet
+                    pssh_elements = audio_adaptation_set.findall('ContentProtection', namespaces)
+                    pssh_list = []
+                    for pssh_element in pssh_elements:
+                        pssh = pssh_element.find('cenc:pssh', namespaces)
+                        if pssh is not None:
+                            pssh_list.append(pssh.text)
+                    return {"pssh": pssh_list, "base_url": base_url}
+    
+        return None
 
 class Unext_utils:
     def random_name(length):
@@ -19,7 +113,6 @@ class Unext_utils:
             return True
         else:
             return False
-        
     def parse_mpd_logic(content):
         from xml.etree import ElementTree as ET
         from lxml import etree    
@@ -264,3 +357,96 @@ class Unext_downloader:
         except Exception as e:
             print(e)
             return False, None
+        
+    def update_progress(self, process, service_name="U-Next"):
+        global logger
+        handler = logging.StreamHandler()
+        handler.setFormatter(CustomFormatter("%(asctime)s - %(levelname)s - %(message)s"))
+        logging.basicConfig(level=logging.INFO, handlers=[handler])
+        logger = logging.getLogger("Downloader")
+        
+        total_size = None
+        downloaded_size = 0
+
+        for line in iter(process.stdout.readline, ''):
+            line = line.strip()
+            if line.startswith("[#") and "ETA:" in line:
+                parts = line.split()
+                if len(parts) >= 5:
+                    try:
+                        downloaded_info = parts[1]
+                        downloaded, total = downloaded_info.split('/')
+
+                        # 正規表現で数値部分を抽出
+                        downloaded_value = float(re.search(r"[\d.]+", downloaded).group())
+                        total_value = float(re.search(r"[\d.]+", total).group())
+
+                        if total_size is None:
+                            total_size = total_value
+
+                        downloaded_size = downloaded_value
+
+                        # プログレスバーを1行に更新
+                        percentage = (downloaded_size / total_size) * 100
+                        bar = f"{percentage:.0f}%|{'#' * int(percentage // 10)}{'-' * (10 - int(percentage // 10))}|"
+                        size_info = f" {downloaded_size:.1f}/{total_size:.1f} MiB"
+                        log_message = f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : {bar}{size_info}"
+                        
+                        # ログ出力を1行に上書き
+                        print(f"\r{log_message}", end="", flush=True)
+
+                    except (IndexError, ValueError, AttributeError) as e:
+                        logger.error(f"Error parsing line: {line} - {e}")
+                else:
+                    logger.warning(f"Unexpected format in line: {line}")
+
+        # 完了時に進捗を100%に設定し改行
+        if total_size:
+            print(f"\r{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : 100%|{'#' * 10}| {total_size:.1f}/{total_size:.1f} MiB", flush=True)
+
+    def aria2c(self, url, output_file_name, config, unixtime):
+        output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+
+        if not os.path.exists(output_temp_directory):
+            os.makedirs(output_temp_directory, exist_ok=True)
+        if os.name == 'nt':
+            aria2c = os.path.join(config["directorys"]["Binaries"], "aria2c.exe")
+        else:
+            aria2c = os.path.join(config["directorys"]["Binaries"], "aria2c")
+        aria2c_command = [
+            aria2c,
+            url,
+            "-d",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime),
+            "-j16",
+            "-o", output_file_name,
+            "-s16",
+            "-x16",
+            "-U", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36",
+            "--allow-overwrite=false",
+            "--async-dns=false",
+            "--auto-file-renaming=false",
+            "--console-log-level=warn",
+            "--retry-wait=5",
+            "--summary-interval=1",
+        ]
+
+        process = subprocess.Popen(
+            aria2c_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=1,
+            text=True,
+            encoding='utf-8'
+        )
+
+        threading.Thread(target=self.log_errors, args=(process,), daemon=True).start()
+        self.update_progress(process)
+
+        process.wait()
+
+        return os.path.join(config["directorys"]["Temp"], "content", unixtime, output_file_name)
+
+    def log_errors(self, process):
+        for error in iter(process.stderr.readline, ''):
+            logger.error(f"Error: {error.strip()}")

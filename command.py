@@ -192,7 +192,6 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
             video_url = yuuParser.mpd_parse.extract_video_info(yuuParser.mpd_file, yuuParser.resolution, yuuParser.resolution_data)["base_url"]
             audio_url = yuuParser.mpd_parse.extract_audio_info(yuuParser.mpd_file, yuuParser.bandwidth_calculation_audio)["base_url"]
                         
-            yuuDownloader.download_episode(video_url,audio_url,_out_, yuuParser.episode_license)
             yuu_logger.info('Finished downloading and decrypting')
             yuu_logger.info('Muxing episode')
             result = yuuDownloader.mux_episode(_out_.replace(".mp4","_decrypt_video.mp4").replace(" ", "_"), _out_.replace(".mp4","_decrypt_audio.mp4").replace(" ", "_"), _out_)
