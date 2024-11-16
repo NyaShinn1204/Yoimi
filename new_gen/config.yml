@@ -1,0 +1,11 @@
+headers:
+  Login-Agent: 'U-NEXT Phone App Android7.1.2 5.29.0 SM-G955N'
+  User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0'
+
+directorys:
+  Temp: './temp'
+  Downloads: './downloads'
+
+authorization:
+  Email: 'unext@paicha.jp'
+  Password: 'Nyaa1919'
