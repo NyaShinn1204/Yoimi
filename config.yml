@@ -5,7 +5,11 @@ headers:
 directorys:
   Temp: './temp'
   Downloads: './downloads'
+  Binaries: './binaries'
 
 authorization:
   Email: 'unext@paicha.jp'
-  Password: 'Nyaa1919'
+  Password: 'Paicha1919'
+
+format:
+  anime: '{seriesname}_{titlename}_{episodename}'

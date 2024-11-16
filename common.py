@@ -6,6 +6,7 @@ import subprocess
 from tqdm import tqdm
 
 from ext import *
+from ext import unext_v2 as Unext_v2
 
 def get_parser(url):
     """
@@ -24,7 +25,7 @@ def get_parser(url):
     elif re.match(valid_aniplus, url):
         return Aniplus, "aniplus"
     elif re.match(valid_unext, url):
-        return UNext, "unext"
+        return Unext_v2, "unext"
     return None
 
 
