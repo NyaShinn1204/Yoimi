@@ -463,6 +463,7 @@ class Unext_downloader:
             "copy",
             "-strict",
             "experimental",
+            "-y",
             output_name,
         ]
         subprocess.run(compile_command)

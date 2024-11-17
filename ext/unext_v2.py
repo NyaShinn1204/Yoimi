@@ -108,9 +108,9 @@ def main_command(session, url, email, password):
                     
                     logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "U-Next"})
                     
-                    logger.info(f" + Decrypt Video License: {license_key["video_key"]}", extra={"service_name": "U-Next"})
-                    logger.info(f" + Decrypt Audio License: {license_key["audio_key"]}", extra={"service_name": "U-Next"})
-                    
+                    logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
+                    logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
+                                        
                     logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
                     video_url = unext.mpd_parse.extract_video_info(mpd_content, "1920x1080 mp4 avc1.4d4028")["base_url"]
                     audio_url = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
@@ -179,8 +179,8 @@ def main_command(session, url, email, password):
                 
                 logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "U-Next"})
                 
-                logger.info(f" + Decrypt Video License: {license_key["video_key"]}", extra={"service_name": "U-Next"})
-                logger.info(f" + Decrypt Audio License: {license_key["audio_key"]}", extra={"service_name": "U-Next"})
+                logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
+                logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
                 
                 logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
                 video_url = unext.mpd_parse.extract_video_info(mpd_content, "1920x1080 mp4 avc1.4d4028")["base_url"]
