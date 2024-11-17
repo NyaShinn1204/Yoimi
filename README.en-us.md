@@ -44,5 +44,13 @@ python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --
 python3 yoimi.py download "https://video.unext.jp/play/SID0104147" --username EMAIL_HERE --password PASSWORD_HERE
 ```
 
+#### ✨ Sample video to download an episode of “Arya next door who can answer in Russian” from Unext
+
+https://github.com/user-attachments/assets/c98fe42c-ab27-498d-b2e5-b0ba897e2d81
+
+#### ✨ Sample video to download the entire one season of “Arya-san next door who can answer in Russian” from Unext.
+
+[Click here](https://youtu.be/09vmBKzQMQE)
+
 > [!WARNING]
 > Yoimi is an improved version of a code that copies and compresses about 95% of a package called [Yuu](https://github.com/noaione/yuu)

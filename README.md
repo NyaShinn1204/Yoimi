@@ -44,5 +44,13 @@ python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --
 python3 yoimi.py download "https://video.unext.jp/play/SID0104147" --username ここにemail --password ここにパスワード
 ```
 
+#### ✨ 「ロシア語で出れる隣のアーリャさん」をUnextから一話をダウンロードするサンプルビデオ
+
+https://github.com/user-attachments/assets/c98fe42c-ab27-498d-b2e5-b0ba897e2d81
+
+#### ✨ 「ロシア語で出れる隣のアーリャさん」をUnextからワンシーズンすべてをダウンロードするサンプルビデオ
+
+[こちらからご覧ください](https://youtu.be/09vmBKzQMQE)
+
 > [!WARNING]
 > Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパッケージの約95％をコピーして圧縮するコードを改良されたものです。
