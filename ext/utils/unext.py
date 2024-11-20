@@ -467,3 +467,22 @@ class Unext_downloader:
             output_name,
         ]
         subprocess.run(compile_command)
+        
+    def get_id_type(self, url):
+        matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)
+        '''映像タイプを取得するコード'''
+        meta_json = {
+            "operationName": "cosmo_getVideoTitle",
+            "variables": {"code": [match[0] for match in matches1 if match[0]][0]},
+            "query": "query cosmo_getVideoTitle($code: ID!) {\\n  webfront_title_stage(id: $code) {\\n    id\\n    titleName\\n    rate\\n    userRate\\n    productionYear\\n    country\\n    catchphrase\\n    attractions\\n    story\\n    check\\n    seriesCode\\n    seriesName\\n    publicStartDate\\n    displayPublicEndDate\\n    restrictedCode\\n    copyright\\n    mainGenreId\\n    bookmarkStatus\\n    thumbnail {\\n      standard\\n      secondary\\n      __typename\\n    }\\n    mainGenreName\\n    isNew\\n    exclusive {\\n      typeCode\\n      isOnlyOn\\n      __typename\\n    }\\n    isOriginal\\n    lastEpisode\\n    updateOfWeek\\n    nextUpdateDateTime\\n    productLineupCodeList\\n    hasMultiprice\\n    minimumPrice\\n    country\\n    productionYear\\n    paymentBadgeList {\\n      id\\n      name\\n      code\\n      __typename\\n    }\\n    nfreeBadge\\n    hasDub\\n    hasSubtitle\\n    saleText\\n    currentEpisode {\\n      id\\n      interruption\\n      duration\\n      completeFlag\\n      displayDurationText\\n      existsRelatedEpisode\\n      playButtonName\\n      purchaseEpisodeLimitday\\n      __typename\\n    }\\n    publicMainEpisodeCount\\n    comingSoonMainEpisodeCount\\n    missingAlertText\\n    sakuhinNotices\\n    hasPackRights\\n    __typename\\n  }\\n}\\n"
+        }
+        try:   
+            metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+            return_json = metadata_response.json()
+            if return_json["data"]["webfront_title_stage"] != None:
+                return True, [return_json["data"]["webfront_title_stage"]["mainGenreId"], return_json["data"]["webfront_title_stage"]["mainGenreName"]]
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False, None
