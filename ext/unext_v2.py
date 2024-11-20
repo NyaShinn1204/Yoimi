@@ -69,6 +69,7 @@ def main_command(session, url, email, password):
                     logger.error(message, extra={"service_name": "U-Next"})
                     exit(1)
                 else:
+                    session.headers.update({"Authorization": config["authorization"]["token"]})
                     logger.info("Loggined Account", extra={"service_name": "U-Next"})
                     logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
                     logger.info(" + Point: "+str(message["points"]), extra={"service_name": "U-Next"})
@@ -106,9 +107,20 @@ def main_command(session, url, email, password):
                 logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
                 exit(1)
             for message in messages:
-                logger.info(f" + {config["format"]["anime"].format(seriesname=title_name,titlename=message["displayNo"],episodename=message["episodeName"])}", extra={"service_name": "U-Next"})
+                format_string = config["format"]["anime"]
+                values = {
+                    "seriesname": title_name,
+                    "titlename": message.get("displayNo", ""),
+                    "episodename": message.get("episodeName", "")
+                }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
+                logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
             for message in messages:
-                title_name_logger = config["format"]["anime"].format(seriesname=title_name,titlename=message["displayNo"],episodename=message["episodeName"])
                 status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
                 if status == False:
                     logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
@@ -178,8 +190,21 @@ def main_command(session, url, email, password):
             if status == False:
                 logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
                 exit(1)
-            logger.info(f" + {config["format"]["anime"].format(seriesname=title_name,titlename=message["displayNo"],episodename=message["episodeName"])}", extra={"service_name": "U-Next"})
-            title_name_logger = config["format"]["anime"].format(seriesname=title_name,titlename=message["displayNo"],episodename=message["episodeName"])
+            
+            format_string = config["format"]["anime"]
+            values = {
+                "seriesname": title_name,
+                "titlename": message.get("displayNo", ""),
+                "episodename": message.get("episodeName", "")
+            }
+            try:
+                title_name_logger = format_string.format(**values)
+            except KeyError as e:
+                missing_key = e.args[0]
+                values[missing_key] = ""
+                title_name_logger = format_string.format(**values)
+            logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
+            
             status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
             if status == False:
                 logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
