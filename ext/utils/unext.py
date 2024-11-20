@@ -471,7 +471,6 @@ class Unext_downloader:
     def get_id_type(self, url):
         matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)
         '''映像タイプを取得するコード'''
-        print([match[0] for match in matches1 if match[0]][0])
         meta_json = {
             "operationName": "cosmo_getVideoTitle",
             "variables": {"code": [match[0] for match in matches1 if match[0]][0]},
@@ -480,7 +479,6 @@ class Unext_downloader:
         try:   
             metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
             return_json = metadata_response.json()
-            print(return_json)
             if return_json["data"]["webfront_title_stage"] != None:
                 return True, [return_json["data"]["webfront_title_stage"]["mainGenreId"], return_json["data"]["webfront_title_stage"]["mainGenreName"]]
             else:
