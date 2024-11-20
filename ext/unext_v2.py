@@ -94,8 +94,8 @@ def main_command(session, url, email, password):
             
         status = unext.Unext_utils.check_single_episode(url)
         logger.info("Get Video Type for URL", extra={"service_name": "U-Next"})
-        status, id_type = unext_downloader.get_id_type(url)
-        if status == False:
+        status_id, id_type = unext_downloader.get_id_type(url)
+        if status_id == False:
             logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
             exit(1)
         logger.info(f" + Video Type: {id_type}", extra={"service_name": "U-Next"})
