@@ -62,14 +62,28 @@ def main_command(session, url, email, password):
         
         unext_downloader = unext.Unext_downloader(session)
         
-        status, message = unext_downloader.authorize(email, password)
-        if status == False:
-            logger.error(message, extra={"service_name": "U-Next"})
-            exit(1)
+        if config["authorization"]["use_token"]:
+            if config["authorization"]["token"] != "":
+                status, message = unext_downloader.check_token(config["authorization"]["token"])
+                if status == False:
+                    logger.error(message, extra={"service_name": "U-Next"})
+                    exit(1)
+                else:
+                    logger.info("Loggined Account", extra={"service_name": "U-Next"})
+                    logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
+                    logger.info(" + Point: "+str(message["points"]), extra={"service_name": "U-Next"})
+            else:
+                logger.error("Please input token", extra={"service_name": "U-Next"})
+                exit(1)
         else:
-            logger.info("Loggined Account", extra={"service_name": "U-Next"})
-            logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
-            logger.info(" + Point: "+str(message["points"]), extra={"service_name": "U-Next"})
+            status, message = unext_downloader.authorize(email, password)
+            if status == False:
+                logger.error(message, extra={"service_name": "U-Next"})
+                exit(1)
+            else:
+                logger.info("Loggined Account", extra={"service_name": "U-Next"})
+                logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
+                logger.info(" + Point: "+str(message["points"]), extra={"service_name": "U-Next"})
             
         status, meta_response = unext_downloader.get_title_metadata(url)
         if status == False:
@@ -229,6 +243,7 @@ def main_command(session, url, email, password):
                 
                 session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
                 session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
-    except:
+    except Exception as error:
+        print(error)
         session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
         session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")

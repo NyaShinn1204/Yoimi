@@ -7,5 +7,9 @@ directorys:
   Downloads: './downloads'
   Binaries: './binaries'
 
+authorization: # option
+  use_token: False
+  token: '' # 'Bearer eyJhbG.....'    token expire is 1~7days? not checked
+
 format:
   anime: '{seriesname}_{titlename}_{episodename}'
