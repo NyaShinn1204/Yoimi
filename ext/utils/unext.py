@@ -201,8 +201,6 @@ class Unext_decrypt:
                     ]
                 )
         return mp4decrypt_command
-    
-    
     def decrypt_content(keys, input_file, output_file, config, service_name="U-Next"):
         mp4decrypt_command = Unext_decrypt.mp4decrypt(keys, config)
         mp4decrypt_command.extend([input_file, output_file])
@@ -284,7 +282,10 @@ class Unext_downloader:
         _ENDPOINT_CC = 'https://cc.unext.jp'
         res = self.session.post(_ENDPOINT_CC, json={"operationName":"cosmo_userInfo", "query":"query cosmo_userInfo {\n  userInfo {\n    id\n    multiAccountId\n    userPlatformId\n    userPlatformCode\n    superUser\n    age\n    otherFunctionId\n    points\n    hasRegisteredEmail\n    billingCaution {\n      title\n      description\n      suggestion\n      linkUrl\n      __typename\n    }\n    blockInfo {\n      isBlocked\n      score\n      __typename\n    }\n    siteCode\n    accountTypeCode\n    linkedAccountIssuer\n    isAdultPermitted\n    needsAdultViewingRights\n    __typename\n  }\n}\n"}, headers={"Authorization": token})
         if res.status_code == 200:
-            return True, res.json()["data"]["userInfo"]
+            if res.json()["data"] != None:
+                return True, res.json()["data"]["userInfo"]
+            else:
+                return False, "Invalid Token"
         else:
             return False, "Invalid Token"
     
@@ -487,9 +488,16 @@ class Unext_downloader:
             metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
             return_json = metadata_response.json()
             if return_json["data"]["webfront_title_stage"] != None:
-                return True, [return_json["data"]["webfront_title_stage"]["mainGenreId"], return_json["data"]["webfront_title_stage"]["mainGenreName"]]
+                maybe_genre = None
+                
+                if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"] == "再生":
+                    maybe_genre = "劇場"
+                if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("#"):
+                    maybe_genre = "アニメ"
+                
+                return True, [return_json["data"]["webfront_title_stage"]["mainGenreId"], return_json["data"]["webfront_title_stage"]["mainGenreName"], maybe_genre]
             else:
                 return False, None
         except Exception as e:
-            print(e)
+            print("aiueo"+e)
             return False, None
