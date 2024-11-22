@@ -275,9 +275,7 @@ class Unext_downloader:
 
         res_j = res.json()
         self.session.headers.update({'Authorization': 'Bearer ' + res_j.get('access_token')})
-        
-        print('Bearer ' + res_j.get('access_token'))
-                
+                        
         res = self.session.post(_ENDPOINT_CC, json={"operationName":"cosmo_userInfo", "query":"query cosmo_userInfo {\n  userInfo {\n    id\n    multiAccountId\n    userPlatformId\n    userPlatformCode\n    superUser\n    age\n    otherFunctionId\n    points\n    hasRegisteredEmail\n    billingCaution {\n      title\n      description\n      suggestion\n      linkUrl\n      __typename\n    }\n    blockInfo {\n      isBlocked\n      score\n      __typename\n    }\n    siteCode\n    accountTypeCode\n    linkedAccountIssuer\n    isAdultPermitted\n    needsAdultViewingRights\n    __typename\n  }\n}\n"})
         return True, res.json()["data"]["userInfo"]
     def check_token(self, token):
@@ -393,20 +391,43 @@ class Unext_downloader:
                         downloaded_info = parts[1]
                         downloaded, total = downloaded_info.split('/')
 
-                        downloaded_value = float(re.search(r"[\d.]+", downloaded).group())
-                        total_value = float(re.search(r"[\d.]+", total).group())
+                        # 単位を正規表現で取得
+                        downloaded_match = re.search(r"([\d.]+)\s*(MiB|GiB)", downloaded)
+                        total_match = re.search(r"([\d.]+)\s*(MiB|GiB)", total)
 
-                        if total_size is None:
-                            total_size = total_value
+                        if downloaded_match and total_match:
+                            downloaded_value = float(downloaded_match.group(1))
+                            downloaded_unit = downloaded_match.group(2)
+                            total_value = float(total_match.group(1))
+                            total_unit = total_match.group(2)
 
-                        downloaded_size = downloaded_value
+                            # 単位をMiBに揃える
+                            if downloaded_unit == "GiB":
+                                downloaded_value *= 1024
+                            if total_unit == "GiB":
+                                total_value *= 1024
 
-                        percentage = (downloaded_size / total_size) * 100
-                        bar = f"{percentage:.0f}%|{'#' * int(percentage // 10)}{'-' * (10 - int(percentage // 10))}|"
-                        size_info = f" {downloaded_size:.1f}/{total_size:.1f} MiB"
-                        log_message = f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : {bar}{size_info}"
-                        
-                        print(f"\r{log_message}", end="", flush=True)
+                            if total_size is None:
+                                total_size = total_value
+
+                            downloaded_size = downloaded_value
+
+                            percentage = (downloaded_size / total_size) * 100
+                            bar = f"{percentage:.0f}%|{'#' * int(percentage // 10)}{'-' * (10 - int(percentage // 10))}|"
+
+                            # GBとMBの判定による表示
+                            if total_size >= 1024:  # GBの場合
+                                size_info = f" {downloaded_size / 1024:.1f}/{total_size / 1024:.1f} GiB"
+                            else:  # MBの場合
+                                size_info = f" {downloaded_size:.1f}/{total_size:.1f} MiB"
+
+                            log_message = (
+                                f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} "
+                                f"[{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : "
+                                f"{bar}{size_info}"
+                            )
+
+                            print(f"\r{log_message}", end="", flush=True)
 
                     except (IndexError, ValueError, AttributeError) as e:
                         print(f"Error parsing line: {line} - {e}")
@@ -414,7 +435,19 @@ class Unext_downloader:
                     print(f"Unexpected format in line: {line}")
 
         if total_size:
-            print(f"\r{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : 100%|{'#' * 10}| {total_size:.1f}/{total_size:.1f} MiB", flush=True)
+            if total_size >= 1024:  # GBの場合
+                final_size_info = f" {total_size / 1024:.1f}/{total_size / 1024:.1f} GiB"
+            else:  # MBの場合
+                final_size_info = f" {total_size:.1f}/{total_size:.1f} MiB"
+
+            print(
+                f"\r{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} "
+                f"[{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : "
+                f"100%|{'#' * 10}|{final_size_info}",
+                flush=True
+            )
+
+
 
     def aria2c(self, url, output_file_name, config, unixtime):
         output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -491,9 +524,7 @@ class Unext_downloader:
             return_json = metadata_response.json()
             if return_json["data"]["webfront_title_stage"] != None:
                 maybe_genre = None
-                
-                print(return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"])
-                
+                                
                 if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"] == "再生":
                     maybe_genre = "劇場"
                 if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("第"):
