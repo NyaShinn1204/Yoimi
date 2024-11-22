@@ -9,7 +9,8 @@ directorys:
 
 authorization: # option
   use_token: False
-  token: '' # 'Bearer eyJhbG.....'    token expire is 1~7days? not checked
+  token: '' # 'Bearer eyJhbG.....'    token expire is 1day
 
 format:
   anime: '{seriesname}_{titlename}_{episodename}'
+  movie: '{seriesname}_{titlename}_{episodename}' # もしepisode_nameがなかったら自動的に候補から外れます。
