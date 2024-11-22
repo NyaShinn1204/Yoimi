@@ -275,6 +275,8 @@ class Unext_downloader:
 
         res_j = res.json()
         self.session.headers.update({'Authorization': 'Bearer ' + res_j.get('access_token')})
+        
+        print('Bearer ' + res_j.get('access_token'))
                 
         res = self.session.post(_ENDPOINT_CC, json={"operationName":"cosmo_userInfo", "query":"query cosmo_userInfo {\n  userInfo {\n    id\n    multiAccountId\n    userPlatformId\n    userPlatformCode\n    superUser\n    age\n    otherFunctionId\n    points\n    hasRegisteredEmail\n    billingCaution {\n      title\n      description\n      suggestion\n      linkUrl\n      __typename\n    }\n    blockInfo {\n      isBlocked\n      score\n      __typename\n    }\n    siteCode\n    accountTypeCode\n    linkedAccountIssuer\n    isAdultPermitted\n    needsAdultViewingRights\n    __typename\n  }\n}\n"})
         return True, res.json()["data"]["userInfo"]
@@ -490,10 +492,14 @@ class Unext_downloader:
             if return_json["data"]["webfront_title_stage"] != None:
                 maybe_genre = None
                 
+                print(return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"])
+                
                 if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"] == "再生":
                     maybe_genre = "劇場"
-                if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("#"):
-                    maybe_genre = "アニメ"
+                if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("第"):
+                    maybe_genre = "ノーマルアニメ"
+                else:
+                    maybe_genre = "劇場"
                 
                 return True, [return_json["data"]["webfront_title_stage"]["mainGenreId"], return_json["data"]["webfront_title_stage"]["mainGenreName"], maybe_genre]
             else:
