@@ -447,8 +447,6 @@ class Unext_downloader:
                 flush=True
             )
 
-
-
     def aria2c(self, url, output_file_name, config, unixtime):
         output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
 
