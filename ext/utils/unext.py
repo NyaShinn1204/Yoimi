@@ -304,13 +304,13 @@ class Unext_downloader:
                 metadata_response_single = return_json['data']['webfront_title_titleEpisodes']['episodes']
                 for episode in metadata_response_single:
                     if episode['id'] == [match[1] for match in matches1 if match[1]][0]:
-                        return True, episode
-                return False, None
+                        return True, episode, episode["minimumPrice"]
+                return False, None, None
             else:
-                return False, None
+                return False, None, None
         except Exception as e:
             print(e)
-            return False, None
+            return False, None, None
         
     def get_title_parse_all(self, url):
         matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)

@@ -3,6 +3,7 @@ import yaml
 import time
 import shutil
 import logging
+from datetime import datetime
 
 from ext.utils import unext
 
@@ -69,10 +70,11 @@ def main_command(session, url, email, password):
                     logger.error(message, extra={"service_name": "U-Next"})
                     exit(1)
                 else:
+                    account_point = str(message["points"])
                     session.headers.update({"Authorization": config["authorization"]["token"]})
                     logger.info("Loggined Account", extra={"service_name": "U-Next"})
                     logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
-                    logger.info(" + Point: "+str(message["points"]), extra={"service_name": "U-Next"})
+                    logger.info(" + Point: "+account_point, extra={"service_name": "U-Next"})
             else:
                 logger.error("Please input token", extra={"service_name": "U-Next"})
                 exit(1)
@@ -82,9 +84,10 @@ def main_command(session, url, email, password):
                 logger.error(message, extra={"service_name": "U-Next"})
                 exit(1)
             else:
+                account_point = str(message["points"])
                 logger.info("Loggined Account", extra={"service_name": "U-Next"})
                 logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
-                logger.info(" + Point: "+str(message["points"]), extra={"service_name": "U-Next"})
+                logger.info(" + Point: "+account_point, extra={"service_name": "U-Next"})
             
         status, meta_response = unext_downloader.get_title_metadata(url)
         if status == False:
@@ -173,6 +176,22 @@ def main_command(session, url, email, password):
                         missing_key = e.args[0]
                         values[missing_key] = ""
                         title_name_logger = format_string.format(**values)
+                        
+                if message["minimumPrice"] != -1:
+                    logger.info(f" ! {title_name_logger} require {message["minimumPrice"]} point", extra={"service_name": "U-Next"})
+                    if int(message["minimumPrice"]) > int(account_point):
+                        logger.info(f" ! ポイントが足りません", extra={"service_name": "U-Next"})
+                        pass
+                    else:
+                        COLOR_GREEN = "\033[92m"
+                        COLOR_GRAY = "\033[90m"
+                        COLOR_RESET = "\033[0m"
+                        COLOR_BLUE = "\033[94m"
+                        #logger.info(f" ! Do you want to download this episode?", extra={"service_name": "U-Next"})
+                        check_downlaod = input(COLOR_GREEN+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+COLOR_RESET+" "+f"[{COLOR_GRAY}INFO{COLOR_RESET}]"+" "+f"{COLOR_BLUE}U-Next{COLOR_RESET}"+" : "+f" ! Do you want to buy {title_name_logger}?"+" | "+"y/n"+" ")
+                        logger.info(f"まぁ作ってないですけどｗ", extra={"service_name": "U-Next"})
+                        return
+                    
                 status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
                 if status == False:
                     logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
@@ -238,7 +257,7 @@ def main_command(session, url, email, password):
                     session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": "U-Next"})
-            status, message = unext_downloader.get_title_parse_single(url)
+            status, message, point = unext_downloader.get_title_parse_single(url)
             if status == False:
                 logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
                 exit(1)
@@ -276,6 +295,21 @@ def main_command(session, url, email, password):
                     values[missing_key] = ""
                     title_name_logger = format_string.format(**values)
             logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
+            
+            if point != "-1":
+                logger.info(f" ! {title_name_logger} require {point} point", extra={"service_name": "U-Next"})
+                if int(point) > int(account_point):
+                    logger.info(f" ! ポイントが足りません", extra={"service_name": "U-Next"})
+                    pass
+                else:
+                    COLOR_GREEN = "\033[92m"
+                    COLOR_GRAY = "\033[90m"
+                    COLOR_RESET = "\033[0m"
+                    COLOR_BLUE = "\033[94m"
+                    #logger.info(f" ! Do you want to download this episode?", extra={"service_name": "U-Next"})
+                    check_downlaod = input(COLOR_GREEN+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+COLOR_RESET+" "+f"[{COLOR_GRAY}INFO{COLOR_RESET}]"+" "+f"{COLOR_BLUE}U-Next{COLOR_RESET}"+" : "+f" ! Do you want to buy {title_name_logger}?"+" | "+"y/n"+" ")
+                    logger.info(f"まぁ作ってないですけどｗ", extra={"service_name": "U-Next"})
+                    return
             
             status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
             if status == False:

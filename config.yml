@@ -13,4 +13,4 @@ authorization: # option
 
 format:
   anime: '{seriesname}_{titlename}_{episodename}'
-  movie: '{seriesname}_{titlename}_{episodename}' # もしepisode_nameがなかったら自動的に候補から外れます。
+  movie: '{seriesname}_{titlename}_{episodename}' # if not found episode_name, auto to delete episode_name
