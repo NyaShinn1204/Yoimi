@@ -35,13 +35,16 @@ class CustomFormatter(logging.Formatter):
         
         return log_message
 
-def set_variable(session):
+def set_variable(session, LOG_LEVEL):
     global logger, config, unixtime
     
     unixtime = str(int(time.time()))
     
     logger = logging.getLogger('YoimiLogger')
-    logger.setLevel(logging.INFO)
+    if LOG_LEVEL == "DEBUG":
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
     
     formatter = CustomFormatter(
         '%(asctime)s [%(levelname)s] %(service_name)s : %(message)s',
@@ -58,12 +61,12 @@ def set_variable(session):
         
     session.headers.update({"User-Agent": config["headers"]["User-Agent"]})
 
-def main_command(session, url, email, password):
+def main_command(session, url, email, password, LOG_LEVEL):
     try:
         global media_code, playtoken
         #url = "https://video.unext.jp/title/SID0104147"
         #url = "https://video.unext.jp/play/SID0104147/ED00570918"
-        set_variable(session)
+        set_variable(session, LOG_LEVEL)
         logger.info("Decrypt U-Next, Abema Content for Everyone", extra={"service_name": "Yoimi"})
         
         unext_downloader = unext.Unext_downloader(session)
@@ -77,6 +80,7 @@ def main_command(session, url, email, password):
                 else:
                     account_point = str(message["points"])
                     session.headers.update({"Authorization": config["authorization"]["token"]})
+                    logger.debug("Get Token: "+config["authorization"]["token"], extra={"service_name": "U-Next"})
                     logger.info("Loggined Account", extra={"service_name": "U-Next"})
                     logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
                     logger.info(" + Point: "+account_point, extra={"service_name": "U-Next"})
@@ -85,6 +89,7 @@ def main_command(session, url, email, password):
                 exit(1)
         else:
             status, message = unext_downloader.authorize(email, password)
+            logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "U-Next"})
             if status == False:
                 logger.error(message, extra={"service_name": "U-Next"})
                 exit(1)

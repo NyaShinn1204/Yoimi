@@ -72,7 +72,9 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
 
     if site_text == "unext":
         try:
-            yuuParser.main_command(sesi, input, username, password)
+            if verbose:
+                LOG_LEVEL = "DEBUG"
+            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL)
         except Exception as error:
             print(error)
     else:
