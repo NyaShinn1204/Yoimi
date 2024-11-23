@@ -296,7 +296,7 @@ def main_command(session, url, email, password):
                     title_name_logger = format_string.format(**values)
             logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
             
-            if point != "-1":
+            if point != -1:
                 logger.info(f" ! {title_name_logger} require {point} point", extra={"service_name": "U-Next"})
                 if int(point) > int(account_point):
                     logger.info(f" ! ポイントが足りません", extra={"service_name": "U-Next"})
