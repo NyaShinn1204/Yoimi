@@ -7,6 +7,11 @@ from datetime import datetime
 
 from ext.utils import unext
 
+COLOR_GREEN = "\033[92m"
+COLOR_GRAY = "\033[90m"
+COLOR_RESET = "\033[0m"
+COLOR_BLUE = "\033[94m"
+
 class CustomFormatter(logging.Formatter):
     COLOR_GREEN = "\033[92m"
     COLOR_GRAY = "\033[90m"
@@ -183,11 +188,6 @@ def main_command(session, url, email, password):
                         logger.info(f" ! ポイントが足りません", extra={"service_name": "U-Next"})
                         pass
                     else:
-                        COLOR_GREEN = "\033[92m"
-                        COLOR_GRAY = "\033[90m"
-                        COLOR_RESET = "\033[0m"
-                        COLOR_BLUE = "\033[94m"
-                        #logger.info(f" ! Do you want to download this episode?", extra={"service_name": "U-Next"})
                         check_downlaod = input(COLOR_GREEN+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+COLOR_RESET+" "+f"[{COLOR_GRAY}INFO{COLOR_RESET}]"+" "+f"{COLOR_BLUE}U-Next{COLOR_RESET}"+" : "+f" ! Do you want to buy {title_name_logger}?"+" | "+"y/n"+" ")
                         logger.info(f"まぁ作ってないですけどｗ", extra={"service_name": "U-Next"})
                         return
@@ -302,11 +302,6 @@ def main_command(session, url, email, password):
                     logger.info(f" ! ポイントが足りません", extra={"service_name": "U-Next"})
                     pass
                 else:
-                    COLOR_GREEN = "\033[92m"
-                    COLOR_GRAY = "\033[90m"
-                    COLOR_RESET = "\033[0m"
-                    COLOR_BLUE = "\033[94m"
-                    #logger.info(f" ! Do you want to download this episode?", extra={"service_name": "U-Next"})
                     check_downlaod = input(COLOR_GREEN+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+COLOR_RESET+" "+f"[{COLOR_GRAY}INFO{COLOR_RESET}]"+" "+f"{COLOR_BLUE}U-Next{COLOR_RESET}"+" : "+f" ! Do you want to buy {title_name_logger}?"+" | "+"y/n"+" ")
                     logger.info(f"まぁ作ってないですけどｗ", extra={"service_name": "U-Next"})
                     return
