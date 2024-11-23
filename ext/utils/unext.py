@@ -3,9 +3,7 @@ import os
 import json
 import string
 import random
-import logging
 import requests
-import threading
 import subprocess
 from tqdm import tqdm
 from datetime import datetime
