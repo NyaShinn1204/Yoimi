@@ -227,38 +227,42 @@ class Unext_downloader:
         _ENDPOINT_OAUTH = 'https://oauth.unext.jp{pse}'
         _ENDPOINT_TOKEN = 'https://oauth.unext.jp/oauth2/token'
         mail_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if re.search(mail_regex, email):
-            response = self.session.get(_ENDPOINT_CHALLENG_ID.format(state=Unext_utils.random_name(43),nonce=Unext_utils.random_name(43)))
-                        
-            script_tag = BeautifulSoup(response.text, "html.parser").find("script", {"id": "__NEXT_DATA__"})
-            json_data = json.loads(script_tag.string)
-            challenge_id = json_data.get("props", {}).get("challengeId")
-            
-            payload_ = {
-                "id": email,
-                "password": password,
-                "challenge_id": challenge_id,
-                "device_code": "920",
-                "scope": ["offline", "unext"],
-            }
-            
-            _POST_AUTH_ENDPOINT = self.session.post(_ENDPOINT_RES, json=payload_).json().get("post_auth_endpoint")
-            _ENDPOINT_OAUTH = _ENDPOINT_OAUTH.format(pse=_POST_AUTH_ENDPOINT)
-        else:
+    
+        if not re.fullmatch(mail_regex, email):
             return False, "Unext require email and password"
-        
+    
+        # 初回リクエストとチャレンジID取得
+        response = self.session.get(
+            _ENDPOINT_CHALLENG_ID.format(
+                state=Unext_utils.random_name(43),
+                nonce=Unext_utils.random_name(43)
+            )
+        )
+        script_tag = BeautifulSoup(response.text, "lxml").find("script", {"id": "__NEXT_DATA__"})
+        json_data = json.loads(script_tag.string)
+        challenge_id = json_data.get("props", {}).get("challengeId")
+    
+        # 認証
+        payload_ = {
+            "id": email,
+            "password": password,
+            "challenge_id": challenge_id,
+            "device_code": "920",
+            "scope": ["offline", "unext"],
+        }
+        auth_response = self.session.post(_ENDPOINT_RES, json=payload_).json()
+        _ENDPOINT_OAUTH = _ENDPOINT_OAUTH.format(pse=auth_response.get("post_auth_endpoint"))
+    
         try:
+            # OAuth 認証コード取得
             code_res = self.session.post(_ENDPOINT_OAUTH, allow_redirects=False)
-            if code_res.status_code > 200:
-                redirect_oauth_url = code_res.headers.get("Location")
-                parsed_url = urlparse(redirect_oauth_url)
-                query_params = parse_qs(parsed_url.query)
-                res_code = query_params.get('code', [None])[0]
-        except requests.exceptions.ConnectionError:
-            return False, "Wrong Email or password combination"
-        except Exception as e:
-            return False, f"An unexpected error occurred: {str(e)}"
-        
+            code_res.raise_for_status()
+            redirect_oauth_url = code_res.headers.get("Location")
+            res_code = parse_qs(urlparse(redirect_oauth_url).query).get('code', [None])[0]
+        except requests.exceptions.RequestException as e:
+            return False, f"Authentication failed: {str(e)}"
+    
+        # トークン取得
         _auth = {
             "code": res_code,
             "grant_type": "authorization_code",
@@ -267,17 +271,50 @@ class Unext_downloader:
             "code_verifier": None,
             "redirect_uri": "jp.unext://page=oauth_callback"
         }
-        
-        res = self.session.post(_ENDPOINT_TOKEN, data=_auth)
-        if res.status_code != 200:
-            res_j = res.json()
+        token_response = self.session.post(_ENDPOINT_TOKEN, data=_auth)
+        if token_response.status_code != 200:
             return False, 'Wrong Email or password combination'
-
-        res_j = res.json()
-        self.session.headers.update({'Authorization': 'Bearer ' + res_j.get('access_token')})
-                        
-        res = self.session.post(_ENDPOINT_CC, json={"operationName":"cosmo_userInfo", "query":"query cosmo_userInfo {\n  userInfo {\n    id\n    multiAccountId\n    userPlatformId\n    userPlatformCode\n    superUser\n    age\n    otherFunctionId\n    points\n    hasRegisteredEmail\n    billingCaution {\n      title\n      description\n      suggestion\n      linkUrl\n      __typename\n    }\n    blockInfo {\n      isBlocked\n      score\n      __typename\n    }\n    siteCode\n    accountTypeCode\n    linkedAccountIssuer\n    isAdultPermitted\n    needsAdultViewingRights\n    __typename\n  }\n}\n"})
-        return True, res.json()["data"]["userInfo"]
+    
+        token_data = token_response.json()
+        self.session.headers.update({'Authorization': 'Bearer ' + token_data.get('access_token')})
+    
+        # ユーザー情報取得
+        user_info_query = {
+            "operationName": "cosmo_userInfo",
+            "query": """query cosmo_userInfo {
+                userInfo {
+                    id
+                    multiAccountId
+                    userPlatformId
+                    userPlatformCode
+                    superUser
+                    age
+                    otherFunctionId
+                    points
+                    hasRegisteredEmail
+                    billingCaution {
+                        title
+                        description
+                        suggestion
+                        linkUrl
+                        __typename
+                    }
+                    blockInfo {
+                        isBlocked
+                        score
+                        __typename
+                    }
+                    siteCode
+                    accountTypeCode
+                    linkedAccountIssuer
+                    isAdultPermitted
+                    needsAdultViewingRights
+                    __typename
+                }
+            }"""
+        }
+        user_info_res = self.session.post(_ENDPOINT_CC, json=user_info_query)
+        return True, user_info_res.json()["data"]["userInfo"]
     def check_token(self, token):
         _ENDPOINT_CC = 'https://cc.unext.jp'
         res = self.session.post(_ENDPOINT_CC, json={"operationName":"cosmo_userInfo", "query":"query cosmo_userInfo {\n  userInfo {\n    id\n    multiAccountId\n    userPlatformId\n    userPlatformCode\n    superUser\n    age\n    otherFunctionId\n    points\n    hasRegisteredEmail\n    billingCaution {\n      title\n      description\n      suggestion\n      linkUrl\n      __typename\n    }\n    blockInfo {\n      isBlocked\n      score\n      __typename\n    }\n    siteCode\n    accountTypeCode\n    linkedAccountIssuer\n    isAdultPermitted\n    needsAdultViewingRights\n    __typename\n  }\n}\n"}, headers={"Authorization": token})
