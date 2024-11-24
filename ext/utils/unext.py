@@ -213,6 +213,9 @@ class Unext_decrypt:
                         pbar.refresh()
             
             process.wait()
+            if process.returncode == 0:  # 正常終了の場合
+                pbar.n = 100
+                pbar.refresh()
             pbar.close()
     
 class Unext_downloader:
@@ -524,9 +527,11 @@ class Unext_downloader:
 
         return os.path.join(config["directorys"]["Temp"], "content", unixtime, output_file_name)
     
-    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name):
-        os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)  # Added exist_ok=True
+    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="U-Next"):
+        # 出力ディレクトリを作成
+        os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)
     
+        # ffmpegコマンド
         compile_command = [
             "ffmpeg",
             "-i",
@@ -540,9 +545,35 @@ class Unext_downloader:
             "-strict",
             "experimental",
             "-y",
+            "-progress", "pipe:1",  # 進捗を標準出力に出力
+            "-nostats",            # 標準出力を進捗情報のみにする
             output_name,
         ]
-        subprocess.run(compile_command)
+    
+        # tqdmを使用した進捗表示
+        #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
+            with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
+                for line in process.stdout:    
+                    # "time=" の進捗情報を解析
+                    match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
+                    if match:
+                        hours = int(match.group(1))
+                        minutes = int(match.group(2))
+                        seconds = float(match.group(3))
+                        current_time = hours * 3600 + minutes * 60 + seconds
+    
+                        # 進捗率を計算して更新
+                        progress = (current_time / duration) * 100
+                        pbar.n = int(progress)
+                        pbar.refresh()
+    
+            # プロセスが終了したら進捗率を100%にする
+            process.wait()
+            if process.returncode == 0:  # 正常終了の場合
+                pbar.n = 100
+                pbar.refresh()
+            pbar.close()
         
     def get_id_type(self, url):
         matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)

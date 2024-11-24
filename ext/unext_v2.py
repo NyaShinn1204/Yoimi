@@ -228,17 +228,19 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     title_name_logger_video = title_name_logger+"_video_encrypted.mp4"
                     title_name_logger_audio = title_name_logger+"_audio_encrypted.mp4"
                     
-                    logger.info("Downloading Encrypted Video, Audio Files..", extra={"service_name": "U-Next"})
+                    logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                     
                     video_downloaded = unext_downloader.aria2c(video_url, title_name_logger_video.replace(":", ""), config, unixtime)
                     audio_downloaded = unext_downloader.aria2c(audio_url, title_name_logger_audio.replace(":", ""), config, unixtime)
                     
-                    logger.info("Decrypting encrypted Video, Audio Files..", extra={"service_name": "U-Next"})
+                    logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                     
                     unext.Unext_decrypt.decrypt_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), config)
                     unext.Unext_decrypt.decrypt_content(license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
                     
-                    result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name)
+                    logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
+                    
+                    result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(message["duration"]))
                         
                     dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                     
@@ -342,17 +344,19 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 title_name_logger_video = title_name_logger+"_video_encrypted.mp4"
                 title_name_logger_audio = title_name_logger+"_audio_encrypted.mp4"
                 
-                logger.info("Downloading Encrypted Video, Audio Files..", extra={"service_name": "U-Next"})
+                logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                 
                 video_downloaded = unext_downloader.aria2c(video_url, title_name_logger_video.replace(":", ""), config, unixtime)
                 audio_downloaded = unext_downloader.aria2c(audio_url, title_name_logger_audio.replace(":", ""), config, unixtime)
                 
-                logger.info("Decrypting encrypted Video, Audio Files..", extra={"service_name": "U-Next"})
+                logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                 
                 unext.Unext_decrypt.decrypt_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), config)
                 unext.Unext_decrypt.decrypt_content(license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
                 
-                result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name)
+                logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
+                 
+                result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(message["duration"]))
                     
                 dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                 
