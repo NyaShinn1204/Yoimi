@@ -74,6 +74,8 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         try:
             if verbose:
                 LOG_LEVEL = "DEBUG"
+            else:
+                LOG_LEVEL = "INFO"
             yuuParser.main_command(sesi, input, username, password, LOG_LEVEL)
         except Exception as error:
             print(error)
