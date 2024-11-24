@@ -206,7 +206,8 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
                     if status == False:
                         logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "U-Next"})
-                        exit(1)
+                        session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
+                        session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
                     mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
         
                     logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})
@@ -322,7 +323,8 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
                 if status == False:
                     logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "U-Next"})
-                    exit(1)
+                    session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
+                    session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
                 mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
     
                 logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})
