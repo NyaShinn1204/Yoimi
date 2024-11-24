@@ -591,7 +591,7 @@ class Unext_downloader:
                                 
                 if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"] == "再生":
                     maybe_genre = "劇場"
-                if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("第"):
+                if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("第") or return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("#"):
                     maybe_genre = "ノーマルアニメ"
                 else:
                     maybe_genre = "劇場"
