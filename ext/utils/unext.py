@@ -605,7 +605,7 @@ class Unext_downloader:
         
     def check_buyed(self, url):
         matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)
-        '''映像タイプを取得するコード'''
+        '''購入済みか確認するコード'''
         meta_json = {
             "operationName": "cosmo_getVideoTitle",
             "variables": {"code": [match[0] for match in matches1 if match[0]][0]},
@@ -617,6 +617,46 @@ class Unext_downloader:
             if return_json["data"]["webfront_title_stage"] != None:
                 if return_json["data"]["webfront_title_stage"]["paymentBadgeList"][0]["id"] == "BUY":
                     return True
+                else:
+                    return False 
+            else:
+                return False
+        except Exception as e:
+            return False
+        
+    def buy_episode(self, title_id, episode_id):
+        '''購入またはレンタルするコード'''
+        meta_json = {
+            "operationName": "cosmo_videoProductList",
+            "variables": {
+                "titleCode": title_id,
+                "episodeCode": episode_id,
+                "deviceType": "700"
+            },
+            "query": "query cosmo_videoProductList($titleCode: ID!, $episodeCode: ID!, $deviceType: String!) {\n  webfront_title_stage(id: $titleCode) {\n    id\n    titleName\n    episode(id: $episodeCode) {\n      episodeName\n      displayNo\n      __typename\n    }\n    __typename\n  }\n  webfront_videoProductList(titleCode: $titleCode, episodeCode: $episodeCode) {\n    ppvProducts {\n      code\n      name\n      saleTypeCode\n      discountRate\n      displayButtonText\n      displayName\n      purchaseDescription\n      displaySaleType\n      displayValidityDurationText\n      discountRate\n      originalPrice\n      price\n      isSale\n      publicEndDate\n      svodAvailableFromText\n      __typename\n    }\n    contractProducts {\n      code\n      name\n      typeCode\n      price\n      displaySaleType\n      displayButtonText\n      ruleTitle\n      ruleNote\n      packDescription {\n        url {\n          browser\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  webfront_pointBack {\n    setting {\n      percentage\n      maxPercentage\n      productList\n      scheduleDate\n      isRestrictedToPoint\n      canIncreasePercentage\n      __typename\n    }\n    point\n    isAnnouncedIos\n    hasVideoSubscription\n    __typename\n  }\n  productsForVideoContent(deviceType: $deviceType, id: $episodeCode) {\n    subscriptions {\n      ... on UnextSubscriptionBundle {\n        name\n        subscriptionType\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+        }
+        try:   
+            metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+            return_json = metadata_response.json()
+            if return_json["data"]["webfront_videoProductList"] != None:
+                if return_json["data"]["webfront_videoProductList"]["ppvProducts"][0]["code"]:
+                    #return True
+                    meta_json = {
+                        "operationName": "cosmo_purchaseVideoProduct",
+                        "variables": {
+                            "productCode": return_json["data"]["webfront_videoProductList"]["ppvProducts"][0]["code"],
+                        },
+                        "mutation": "mutation cosmo_purchaseVideoProduct($productCode: ID, $liveTicketCode: ID, $useCooperationPoints: CooperationPointsPolicy) {\n  webfront_purchaseVideoProduct(\n    productCode: $productCode\n    liveTicketCode: $liveTicketCode\n    useCooperationPoints: $useCooperationPoints\n  ) {\n    product {\n      code\n      __typename\n    }\n    __typename\n  }\n}\n"
+                    }
+                    try:   
+                        metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+                        return_json = metadata_response.json()
+                        if return_json["data"]["webfront_purchaseVideoProduct"] != None:
+                            return True
+                        else:
+                            return False
+                    except Exception as e:
+                        return False
                 else:
                     return False 
             else:
