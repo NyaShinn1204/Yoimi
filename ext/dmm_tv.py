@@ -65,19 +65,19 @@ def main_command(session, url, email, password, LOG_LEVEL):
     try:
         global media_code, playtoken
         set_variable(session, LOG_LEVEL)
-        logger.info("Decrypt U-Next, Abema Content for Everyone", extra={"service_name": "Yoimi"})
+        logger.info("Decrypt U-Next, Abema, Dmm-TV Content for Everyone", extra={"service_name": "Yoimi"})
         
         dmm_tv_downloader = dmm_tv.Dmm_TV_downloader(session)
         
         status, message = dmm_tv_downloader.authorize(email, password)
-        logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "U-Next"})
+        logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Dmm-TV"})
         if status == False:
-            logger.error(message, extra={"service_name": "U-Next"})
+            logger.error(message, extra={"service_name": "Dmm-TV"})
             exit(1)
         else:
-            logger.info("Loggined Account", extra={"service_name": "U-Next"})
-            logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
-            logger.info(" + PlanType: "+message["planType"], extra={"service_name": "U-Next"})
+            logger.info("Loggined Account", extra={"service_name": "Dmm-TV"})
+            logger.info(" + ID: "+message["id"], extra={"service_name": "Dmm-TV"})
+            logger.info(" + PlanType: "+message["planStatus"]["planType"], extra={"service_name": "Dmm-TV"})
             
     except Exception as error:
         import traceback

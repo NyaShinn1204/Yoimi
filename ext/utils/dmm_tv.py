@@ -10,7 +10,7 @@ class Dmm_TV_utils:
         session = requests.Session()
         session.headers.update({'Content-Type': 'application/x-www-form-urlencoded'})
         
-        matches = re.findall('([api2|enterprise]+)\/anchor\?(.*)', anchor_url)[0]
+        matches = re.findall(r'([api2|enterprise]+)\/anchor\?(.*)', anchor_url)[0]
         url_base += matches[0]+'/'
         params = matches[1]
         
@@ -111,6 +111,3 @@ class Dmm_TV_downloader:
         }
         user_info_res = self.session.post(_ENDPOINT_CC, json=user_info_query)
         return True, user_info_res.json()["data"]["user"]
-
-aiueo = Dmm_TV_downloader(requests.Session())
-aiueo.authorize()
