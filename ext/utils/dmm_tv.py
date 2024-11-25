@@ -1,13 +1,8 @@
 import re
-import random
-import string
 import base64
 import requests
-from urllib.parse import urlparse, parse_qs
 
 class Dmm_TV_utils:
-    def random_name(length):
-        return "".join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
     def recaptcha_v3_bypass(anchor_url):
         url_base = 'https://www.google.com/recaptcha/'
         post_data = "v={}&reason=q&c={}&k={}&co={}"
@@ -99,8 +94,13 @@ class Dmm_TV_downloader:
                 
         token_response = self.session.post("https://gw.dmmapis.com/connect/v1/token", json=_auth, headers=headers)
         
-        print(token_response.text)
-        print("[+] Success to login Dmm-TV")
+        token_response_json = token_response.json()["header"]
+        
+        if token_response_json["result_code"] == 0:
+            print("[-] Failed to login Dmm-TV")
+            print(token_response.text)
+        else:
+            print("[+] Success to login Dmm-TV")
 
 aiueo = Dmm_TV_downloader(requests.Session())
 aiueo.authorize()
