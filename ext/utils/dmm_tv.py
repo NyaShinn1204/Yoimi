@@ -29,7 +29,9 @@ class Dmm_TV_utils:
 class Dmm_TV_downloader:
     def __init__(self, session):
         self.session = session
-    def authorize(self):
+    def authorize(self, email, password):
+        _ENDPOINT_CC = "https://api.tv.dmm.com/graphql"
+        
         login_recaptcha_token = Dmm_TV_utils.recaptcha_v3_bypass("https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfZLQEVAAAAAC-8pKwFNuzVoJW4tfUCghBX_7ZE&co=aHR0cHM6Ly9hY2NvdW50cy5kbW0uY29tOjQ0Mw..&hl=ja&v=pPK749sccDmVW_9DSeTMVvh2&size=invisible&cb=nswb324ozwnh")
         
         client_id = "S5wqksTne9ZGYLH1YeIaWcSYSkYvDtjOEi"
@@ -64,8 +66,8 @@ class Dmm_TV_downloader:
 
         _auth = {
             "token": token,
-            "login_id": "dokyopeyu@sendnow.win",
-            "password": "Paicha0721",
+            "login_id": email,
+            "password": password,
             "use_auto_login": "1",
             "recaptchaToken": login_recaptcha_token,
             "clientId": client_id,
@@ -97,10 +99,18 @@ class Dmm_TV_downloader:
         token_response_json = token_response.json()["header"]
         
         if token_response_json["result_code"] == 0:
-            print("[-] Failed to login Dmm-TV")
-            print(token_response.text)
+            return False, f"Authentication failed: {token_response.json()["body"]["reason"]}"
         else:
-            print("[+] Success to login Dmm-TV")
+            self.session.headers.update({'Authorization': 'Bearer ' + token_response.json()["body"]["access_token"]})
+
+        # ユーザー情報取得
+        user_info_query = {
+          "operationName": "GetServicePlan",
+          "variables": {},
+          "query": "query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }"
+        }
+        user_info_res = self.session.post(_ENDPOINT_CC, json=user_info_query)
+        return True, user_info_res.json()["data"]["user"]
 
 aiueo = Dmm_TV_downloader(requests.Session())
 aiueo.authorize()

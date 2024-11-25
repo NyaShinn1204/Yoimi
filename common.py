@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from ext import *
 from ext import unext_v2 as Unext_v2
+from ext import dmm_tv as Dmm_tv
 
 def get_parser(url):
     """
@@ -18,6 +19,7 @@ def get_parser(url):
     valid_gyao = r'(?isx)http(?:|s)://gyao.yahoo.co.jp/(?:player|p|title[\w])/(?P<p1>[\w]*.*)'
     valid_aniplus = r'http(?:|s)://(?:www\.|)aniplus-asia\.com/episode/(?P<video_id>[\w]*.*)'
     valid_unext = r'http(?:|s)://video\.unext\.jp/(?:play|title|freeword).*(?:SID(?P<sid>[0-9]+)|ED(?P<ed>[0-9]+))'
+    valid_dmm_tv = r"http(?:|s)://tv\.dmm\.com/vod/\?(?:.*&|)season=(?P<season>[^&]+)"
     if re.match(valid_abema, url):
         return AbemaTV, "abema"
     elif re.match(valid_gyao, url):
@@ -26,6 +28,8 @@ def get_parser(url):
         return Aniplus, "aniplus"
     elif re.match(valid_unext, url):
         return Unext_v2, "unext"
+    elif re.match(valid_dmm_tv, url):
+        return Dmm_tv, "unext"
     return None
 
 

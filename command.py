@@ -33,7 +33,8 @@ def streams_list():
         "AbemaTV": ["No", "No", "Yes (JP)"],
         "Aniplus Asia": ["Yes", "No", "Yes (SEA)"],
         "GYAO!": ["No", "No", "Yes (JP)"],
-        "U-Next": ["Yes", "Yes", "Unknown"]
+        "U-Next": ["Yes", "Yes", "Unknown"],
+        "DMM-tv": ["Yes", "Yes", "Unknown"]
     }
 
     print('[INFO] Supported website')
