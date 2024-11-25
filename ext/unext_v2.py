@@ -195,7 +195,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     else:
                         is_buyed = unext_downloader.check_buyed(url)
                         if is_buyed == True:
-                            logger.info(f" ! {title_name_logger} is already buyed", extra={"service_name": "U-Next"})
+                            logger.info(f" ! {title_name_logger} have already been purchased.", extra={"service_name": "U-Next"})
                         else:
                             check_downlaod = input(COLOR_GREEN+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+COLOR_RESET+" "+f"[{COLOR_GRAY}INFO{COLOR_RESET}]"+" "+f"{COLOR_BLUE}U-Next{COLOR_RESET}"+" : "+f" ! Do you want to buy {title_name_logger}?"+" | "+"y/n"+" ")
                             logger.info(f"Coming soon", extra={"service_name": "U-Next"})
@@ -316,7 +316,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 else:
                     is_buyed = unext_downloader.check_buyed(url)
                     if is_buyed == True:
-                        logger.info(f" ! {title_name_logger} is already buyed", extra={"service_name": "U-Next"})
+                        logger.info(f" ! {title_name_logger} have already been purchased.", extra={"service_name": "U-Next"})
                     else:
                         check_downlaod = input(COLOR_GREEN+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+COLOR_RESET+" "+f"[{COLOR_GRAY}INFO{COLOR_RESET}]"+" "+f"{COLOR_BLUE}U-Next{COLOR_RESET}"+" : "+f" ! Do you want to buy {title_name_logger}?"+" | "+"y/n"+" ")
                         logger.info(f"Coming soon", extra={"service_name": "U-Next"})
