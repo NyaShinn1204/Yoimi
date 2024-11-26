@@ -30,17 +30,16 @@ class Dmm_TV_downloader:
     def __init__(self, session):
         self.session = session
     def authorize(self, email, password):
-        _ENDPOINT_CC = "https://api.tv.dmm.com/graphql"
-        
+        _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
+        _ENDPOINT_RES = 'https://accounts.dmm.com/app/service/login/password'
+        _ENDPOINT_TOKEN = 'https://gw.dmmapis.com/connect/v1/token'
+        _CLIENT_ID = 'S5wqksTne9ZGYLH1YeIaWcSYSkYvDtjOEi'
+        _CLIENT_SECRET = 'zEq95QPlzmugWhHKayXK2hcGS5z8DYwP'
+                
         login_recaptcha_token = Dmm_TV_utils.recaptcha_v3_bypass("https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfZLQEVAAAAAC-8pKwFNuzVoJW4tfUCghBX_7ZE&co=aHR0cHM6Ly9hY2NvdW50cy5kbW0uY29tOjQ0Mw..&hl=ja&v=pPK749sccDmVW_9DSeTMVvh2&size=invisible&cb=nswb324ozwnh")
-        
-        client_id = "S5wqksTne9ZGYLH1YeIaWcSYSkYvDtjOEi"
-        client_secret = "zEq95QPlzmugWhHKayXK2hcGS5z8DYwP"
-        
-        # idとsecret全部同じだわ殺すぞ
-        
+                
         querystring = {
-            "client_id": client_id,
+            "client_id": _CLIENT_ID,
             "parts": ["regist", "snslogin", "darkmode"]
         }
         
@@ -60,10 +59,8 @@ class Dmm_TV_downloader:
             "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
         }
         
-        res1 = self.session.get("https://accounts.dmm.com/app/service/login/password", params=querystring, headers=headers)
-        
-        login_page = res1.text
-        token_match = re.search(r'name="token" value="([^"]*)"/>', login_page)
+        response = self.session.get(_ENDPOINT_RES, params=querystring, headers=headers)
+        token_match = re.search(r'name="token" value="([^"]*)"/>', response.text)
         token = token_match.group(1) if token_match else None
 
         _auth = {
@@ -72,16 +69,15 @@ class Dmm_TV_downloader:
             "password": password,
             "use_auto_login": "1",
             "recaptchaToken": login_recaptcha_token,
-            "clientId": client_id,
+            "clientId": _CLIENT_ID,
             "parts": ["regist", "snslogin", "darkmode"]
         }
 
-        res = self.session.post("https://accounts.dmm.com/app/service/login/password/authenticate", data=_auth, allow_redirects=False)
-        auth_url = res.text
-        redirect_auth_url = self.session.get(auth_url, allow_redirects=False).headers.get("Location")
+        response = self.session.post("https://accounts.dmm.com/app/service/login/password/authenticate", data=_auth, allow_redirects=False)
+        redirect_auth_url = self.session.get(response.text, allow_redirects=False).headers.get("Location")
         
         headers = {
-            "authorization": "Basic "+base64.b64encode((client_id+":"+client_secret).encode()).decode(),
+            "authorization": "Basic "+base64.b64encode((_CLIENT_ID + ":" + _CLIENT_SECRET).encode()).decode(),
             "accept": "application/json",
             "content-type": "application/json",
             "user-agent": "Dalvik/2.1.0 (Linux; U; Android 9; V2338A Build/PQ3B.190801.10101846)",
@@ -96,8 +92,7 @@ class Dmm_TV_downloader:
             "redirect_uri": "dmmtv://android/auth/"
         }
                 
-        token_response = self.session.post("https://gw.dmmapis.com/connect/v1/token", json=_auth, headers=headers)
-        
+        token_response = self.session.post(_ENDPOINT_TOKEN, json=_auth, headers=headers)
         token_response_json = token_response.json()["header"]
         
         if token_response_json["result_code"] == 0:
