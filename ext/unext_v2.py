@@ -13,24 +13,19 @@ COLOR_RESET = "\033[0m"
 COLOR_BLUE = "\033[94m"
 
 class CustomFormatter(logging.Formatter):
-    COLOR_GREEN = "\033[92m"
-    COLOR_GRAY = "\033[90m"
-    COLOR_RESET = "\033[0m"
-    COLOR_BLUE = "\033[94m"
-
     def format(self, record):
         log_message = super().format(record)
     
         if hasattr(record, "service_name"):
             log_message = log_message.replace(
-                record.service_name, f"{self.COLOR_BLUE}{record.service_name}{self.COLOR_RESET}"
+                record.service_name, f"{COLOR_BLUE}{record.service_name}{COLOR_RESET}"
             )
         
         log_message = log_message.replace(
-            record.asctime, f"{self.COLOR_GREEN}{record.asctime}{self.COLOR_RESET}"
+            record.asctime, f"{COLOR_GREEN}{record.asctime}{COLOR_RESET}"
         )
         log_message = log_message.replace(
-            record.levelname, f"{self.COLOR_GRAY}{record.levelname}{self.COLOR_RESET}"
+            record.levelname, f"{COLOR_GRAY}{record.levelname}{COLOR_RESET}"
         )
         
         return log_message
