@@ -37,8 +37,7 @@ class Dmm_TV_downloader:
         client_id = "S5wqksTne9ZGYLH1YeIaWcSYSkYvDtjOEi"
         client_secret = "zEq95QPlzmugWhHKayXK2hcGS5z8DYwP"
         
-        # clientidとclient_secretは変動なし(一日経過したのちチェック済み)
-        # つまり端末内部に置かれているか、初期化したときにリセットされるか、どっちかだと思われ
+        # idとsecret全部同じだわ殺すぞ
         
         querystring = {
             "client_id": client_id,
