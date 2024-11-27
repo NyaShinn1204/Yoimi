@@ -52,5 +52,13 @@ https://github.com/user-attachments/assets/c98fe42c-ab27-498d-b2e5-b0ba897e2d81
 
 [こちらからご覧ください](https://youtu.be/09vmBKzQMQE)
 
+
+&nbsp;
+- - -
+&nbsp;  
+
+##### Known issues:
+ * 時々ライセンス取得に失敗し、プログラムが停止してしまう問題がある
+
 > [!WARNING]
 > Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパッケージの約95％をコピーして圧縮するコードを改良されたものです。

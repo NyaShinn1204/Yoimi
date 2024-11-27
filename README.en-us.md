@@ -52,5 +52,13 @@ https://github.com/user-attachments/assets/c98fe42c-ab27-498d-b2e5-b0ba897e2d81
 
 [Click here](https://youtu.be/09vmBKzQMQE)
 
+
+&nbsp;
+- - -
+&nbsp;  
+
+##### Known issues:
+ * Sometimes licensing fails and the program stops.
+
 > [!WARNING]
 > Yoimi is an improved version of a code that copies and compresses about 95% of a package called [Yuu](https://github.com/noaione/yuu)
