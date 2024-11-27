@@ -257,7 +257,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     else:
                         print(f"指定されたディレクトリは存在しません: {dir_path}")
                     
-                    logger.info('Finished downloading: {}'.format(title_name_logger), extra={"service_name": "U-Next"})
+                    logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "U-Next"})
                                            
                     
                     session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
@@ -378,7 +378,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 else:
                     print(f"指定されたディレクトリは存在しません: {dir_path}")
                 
-                logger.info('Finished downloading: {}'.format(title_name_logger), extra={"service_name": "U-Next"})
+                logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "U-Next"})
                                        
                 
                 session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")

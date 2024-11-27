@@ -222,7 +222,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                     yuu_logger.info('Muxing video')
                     mux_video(_out_, muxfile)
             if yuuDownloader.merge:
-                yuu_logger.info('Finished downloading')
+                yuu_logger.info('Finished download')
                 yuu_logger.info('Merging video')
                 merge_video(dl_list, _out_)
                 if not keep_:
@@ -238,7 +238,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                         if not keep_:
                             os.remove(_out_)
                         _out_ = result
-            yuu_logger.info('Finished downloading: {}'.format(_out_))
+            yuu_logger.info('Finished download {}'.format(_out_))
         if not keep_:
             shutil.rmtree(temp_dir)
         exit(0)
