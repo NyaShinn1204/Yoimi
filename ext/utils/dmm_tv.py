@@ -26,6 +26,53 @@ class Dmm_TV_utils:
         
         return answer
 
+class Dmm_TV__license:
+    def license_vd_ad(video_pssh, audio_pssh, playtoken, session):
+        _WVPROXY = "https://mlic.dmm.com/drm/widevine/license"
+        from pywidevine.cdm import Cdm
+        from pywidevine.device import Device
+        from pywidevine.pssh import PSSH
+        device = Device.load(
+            "./l3.wvd"
+        )
+        cdm = Cdm.from_device(device)
+        session_id_video = cdm.open()
+        session_id_audio = cdm.open()
+        
+        headers = {
+            "Origin": "https://tv.dmm.com/",
+            "Referer": "https://tv.dmm.com/",
+            "Host": "mlic.dmm.com"   
+        }
+        
+        challenge_video = cdm.get_license_challenge(session_id_video, PSSH(video_pssh))
+        challenge_audio = cdm.get_license_challenge(session_id_audio, PSSH(audio_pssh))
+        response_video = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_video, headers=headers)    
+        response_video.raise_for_status()
+        response_audio = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_audio, headers=headers)    
+        response_audio.raise_for_status()
+    
+        cdm.parse_license(session_id_video, response_video.content)
+        cdm.parse_license(session_id_audio, response_audio.content)
+        video_keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id_video)
+        ]
+        audio_keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id_audio)
+        ]
+    
+        cdm.close(session_id_video)
+        cdm.close(session_id_audio)
+        
+        keys = {
+            "video_key": video_keys,
+            "audio_key": audio_keys
+        }
+        
+        return keys
+
 class Dmm_TV_downloader:
     def __init__(self, session):
         self.session = session
@@ -100,7 +147,6 @@ class Dmm_TV_downloader:
         else:
             self.session.headers.update({'Authorization': 'Bearer ' + token_response.json()["body"]["access_token"]})
 
-        # ユーザー情報取得
         user_info_query = {
           "operationName": "GetServicePlan",
           "variables": {},
