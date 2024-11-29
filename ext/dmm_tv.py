@@ -83,6 +83,8 @@ def main_command(session, url, email, password, LOG_LEVEL):
         #print(f"Content: {content_id}")
         #print("-")
         
+        episode_type = ""
+        
         status = dmm_tv_downloader.check_free(season_id, content_id)
         if "false" in status:
             logger.error("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
@@ -90,8 +92,11 @@ def main_command(session, url, email, password, LOG_LEVEL):
         else:
             logger.debug("This content is free!", extra={"service_name": "Dmm-TV"})
 
-        
-        
+        if type(status) == list:
+            logger.info("Get Title for Season", extra={"service_name": "Dmm-TV"})
+        else:
+            logger.info("Get Title for 1 Episode", extra={"service_name": "Dmm-TV"})
+            
     except Exception as error:
         import traceback
         import sys
