@@ -27,18 +27,19 @@ class Dmm_TV_utils:
         
         return answer
     def parse_url(url):
-        # URLを解析
-        parsed_url = urlparse(url)
+        # 正規表現で 'season' と 'content' を抽出
+        season_match = re.search(r"season=([^&/]+)", url)
+        content_match = re.search(r"content=([^&/]+)", url)
     
-        # クエリパラメータを解析して値を取得
-        query_params = parse_qs(parsed_url.query)
-        season = query_params.get('season', [None])[0]  # 'season' の値を取得
-        content = query_params.get('content', [None])[0]  # 'content' の値を取得
+        # 値を取得、存在しない場合は None
+        season = season_match.group(1) if season_match else None
+        content = content_match.group(1) if content_match else None
     
-        # URLの形式に応じたステータスを判定
-        status = bool(season)  # 'season' があれば True, なければ False
+        # 'season' の存在でステータスを決定
+        status = bool(season)
     
         return status, season, content
+    
 class Dmm_TV__license:
     def license_vd_ad(video_pssh, audio_pssh, playtoken, session):
         _WVPROXY = "https://mlic.dmm.com/drm/widevine/license"
@@ -186,7 +187,7 @@ class Dmm_TV_downloader:
             if res.status_code == 200:
                 if res.json()["data"] != None:
                     if res.json()["data"]["stream"]["contentTypeDetail"] == "VOD_FREE":
-                        return True
+                        return "true"
                     else:
                         return False
                 else:

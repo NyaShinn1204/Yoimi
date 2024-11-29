@@ -71,7 +71,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         
     sesi = requests.Session()
 
-    if site_text == "unext":
+    if site_text == "unext" or "dmm_tv":
         try:
             if verbose:
                 LOG_LEVEL = "DEBUG"
