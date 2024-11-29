@@ -2,3 +2,4 @@
 [pywidevine](https://github.com/devine-dl/pywidevine)
 [CDRM-Project](https://cdrm-project.com/)
 [paicha](https://github.com/voidpro-dev)
+[NCOverlay](https://github.com/Midra429/NCOverlay)
