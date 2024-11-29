@@ -86,8 +86,10 @@ def main_command(session, url, email, password, LOG_LEVEL):
 
         if type(status) == list:
             logger.info("Get Title for Season", extra={"service_name": "Dmm-TV"})
+            # forかなんかで取り出して、実行
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": "Dmm-TV"})
+            # ここでtitleをどりゃーする
             
     except Exception as error:
         import traceback
