@@ -64,16 +64,30 @@ def main_command(session, url, email, password, LOG_LEVEL):
         
         dmm_tv_downloader = dmm_tv.Dmm_TV_downloader(session)
         
-        status, message = dmm_tv_downloader.authorize(email, password)
-        logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Dmm-TV"})
-        if status == False:
-            logger.error(message, extra={"service_name": "Dmm-TV"})
-            exit(1)
-        else:
-            logger.info("Loggined Account", extra={"service_name": "Dmm-TV"})
-            logger.info(" + ID: "+message["id"], extra={"service_name": "Dmm-TV"})
-            logger.info(" + PlanType: "+message["planStatus"]["planType"], extra={"service_name": "Dmm-TV"})
-            
+        if email and password != "":
+            status, message = dmm_tv_downloader.authorize(email, password)
+            logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Dmm-TV"})
+            if status == False:
+                logger.error(message, extra={"service_name": "Dmm-TV"})
+                exit(1)
+            else:
+                logger.info("Loggined Account", extra={"service_name": "Dmm-TV"})
+                logger.info(" + ID: "+message["id"], extra={"service_name": "Dmm-TV"})
+                logger.info(" + PlanType: "+message["planStatus"]["planType"], extra={"service_name": "Dmm-TV"})
+        
+        status, season_id, content = dmm_tv.Dmm_TV_utils.parse_url(url)
+        
+        print(f"URL: {url}")
+        print(f"Status: {status}")
+        print(f"Season: {season_id}")
+        print(f"Content: {content}")
+        print("-")
+        
+        status = dmm_tv_downloader.check_free(season_id, None)
+        print(status)
+
+        
+        
     except Exception as error:
         import traceback
         import sys

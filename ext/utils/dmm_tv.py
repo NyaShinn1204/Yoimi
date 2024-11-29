@@ -1,6 +1,7 @@
 import re
 import base64
 import requests
+from urllib.parse import urlparse, parse_qs
 
 class Dmm_TV_utils:
     def recaptcha_v3_bypass(anchor_url):
@@ -25,7 +26,19 @@ class Dmm_TV_utils:
         answer = re.findall(r'"rresp","(.*?)"', res.text)[0]
         
         return answer
-
+    def parse_url(url):
+        # URLを解析
+        parsed_url = urlparse(url)
+    
+        # クエリパラメータを解析して値を取得
+        query_params = parse_qs(parsed_url.query)
+        season = query_params.get('season', [None])[0]  # 'season' の値を取得
+        content = query_params.get('content', [None])[0]  # 'content' の値を取得
+    
+        # URLの形式に応じたステータスを判定
+        status = bool(season)  # 'season' があれば True, なければ False
+    
+        return status, season, content
 class Dmm_TV__license:
     def license_vd_ad(video_pssh, audio_pssh, playtoken, session):
         _WVPROXY = "https://mlic.dmm.com/drm/widevine/license"
@@ -157,7 +170,7 @@ class Dmm_TV_downloader:
     
     def check_token(self, token):
         _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
-        res = self.session.post(_ENDPOINT_CC, json={"operationName":"GetServicePlan", "query":"query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }"}, headers={"Authorization": token})
+        res = self.session.post(_ENDPOINT_CC, json={"operationName":"GetServicePlan", "query":"query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }"})
         if res.status_code == 200:
             if res.json()["data"] != None:
                 return True, res.json()["data"]["user"]
@@ -165,3 +178,35 @@ class Dmm_TV_downloader:
                 return False, "Invalid Token"
         else:
             return False, "Invalid Token"
+        
+    def check_free(self, sessionid, contentid):
+        _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
+        if contentid != None:
+            res = self.session.post(_ENDPOINT_CC, json={"operationName":"FetchStream","variables":{"id":f"{contentid}","protectionCapabilities":[{"systemId":"edef8ba9-79d6-4ace-a3c8-27dcd51d21ed","format":"DASH","audio":[{"codec":"AAC"}],"video":[{"codec":"AV1","bpc":10,"rate":497664000,"yuv444p":True},{"codec":"VP9","bpc":10,"rate":497664000},{"codec":"AVC","bpc":8,"rate":497664000}],"hdcp":"V2_2"}],"audioChannelLayouts":["STEREO"],"device":"BROWSER","http":False},"query":"query FetchStream($id: ID!, $part: Int, $protectionCapabilities: [ProtectionCapability!]!, $audioChannelLayouts: [StreamingAudioChannelLayout!]!, $device: PlayDevice!, $http: Boolean, $temporaryDownload: Boolean) {\n  stream(\n    id: $id\n    part: $part\n    protectionCapabilities: $protectionCapabilities\n    audioChannelLayouts: $audioChannelLayouts\n    device: $device\n    http: $http\n    temporaryDownload: $temporaryDownload\n  ) {\n    contentTypeDetail\n    purchasedProductId\n    qualities {\n      name\n      displayName\n      __typename\n    }\n    textRenditionType\n    languages {\n      lang\n      displayName\n      __typename\n    }\n    videoRenditions {\n      lang\n      qualityName\n      streamingUrls {\n        systemIds\n        videoCodec\n        format\n        bpc\n        streamSize\n        urls\n        hdcp\n        __typename\n      }\n      __typename\n    }\n    audioRenditions {\n      lang\n      audioChannels\n      audioChannelLayout\n      __typename\n    }\n    textRenditions {\n      lang\n      __typename\n    }\n    chapter {\n      op {\n        start\n        end\n        __typename\n      }\n      ed {\n        start\n        end\n        __typename\n      }\n      skippable {\n        start\n        end\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"})
+            if res.status_code == 200:
+                if res.json()["data"] != None:
+                    if res.json()["data"]["stream"]["contentTypeDetail"] == "VOD_FREE":
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
+            else:
+                return False
+        else:
+            res = self.session.post(_ENDPOINT_CC, json={"operationName":"FetchVideoEpisodes","variables":{"seasonId":f"{sessionid}","playDevice":"BROWSER","isLoggedIn":False,"type":"MAIN","first":16},"query":"query FetchVideoEpisodes($seasonId: ID!, $playDevice: PlayDevice!, $isLoggedIn: Boolean!, $type: VideoEpisodeType, $first: Int, $last: Int, $after: Int, $before: Int) {\n  video(id: $seasonId) {\n    id\n    __typename\n    ... on VideoSeason {\n      episodes(\n        type: $type\n        first: $first\n        last: $last\n        after: $after\n        before: $before\n      ) {\n        edges {\n          node {\n            ...VideoSeasonContent\n            __typename\n          }\n          __typename\n        }\n        pageInfo {\n          endCursor\n          hasNextPage\n          __typename\n        }\n        total\n        allEpisodeNumbers\n        __typename\n      }\n      __typename\n    }\n    ... on VideoSpotLiveSeason {\n      episodes(\n        type: $type\n        first: $first\n        last: $last\n        after: $after\n        before: $before\n      ) {\n        edges {\n          node {\n            ...VideoSeasonContent\n            __typename\n          }\n          __typename\n        }\n        pageInfo {\n          endCursor\n          hasNextPage\n          __typename\n        }\n        total\n        __typename\n      }\n      __typename\n    }\n  }\n}\n\nfragment VideoSeasonContent on VideoContent {\n  id\n  seasonId\n  episodeTitle\n  episodeNumberName\n  episodeNumber\n  episodeImage\n  episodeDetail\n  sampleMovie\n  contentType\n  drmLevel {\n    hasStrictProtection\n    __typename\n  }\n  viewingRights(device: $playDevice) {\n    isStreamable\n    isDownloadable\n    downloadableFiles @include(if: $isLoggedIn) {\n      totalFileSize\n      quality {\n        name\n        displayName\n        displayPriority\n        __typename\n      }\n      parts {\n        partNumber\n        fileSize\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  ppvProducts {\n    id\n    isPurchased @include(if: $isLoggedIn)\n    isBeingDelivered\n    isBundleParent\n    isOnSale\n    price {\n      price\n      salePrice\n      isLimitedPremium\n      __typename\n    }\n    __typename\n  }\n  svodProduct {\n    contentId\n    isBeingDelivered\n    startDeliveryAt\n    __typename\n  }\n  freeProduct {\n    contentId\n    isBeingDelivered\n    __typename\n  }\n  priceSummary {\n    campaignId\n    lowestPrice\n    highestPrice\n    discountedLowestPrice\n    isLimitedPremium\n    __typename\n  }\n  ppvExpiration @include(if: $isLoggedIn) {\n    startDeliveryAt\n    expirationType\n    viewingExpiration\n    viewingStartExpiration\n    __typename\n  }\n  playInfo {\n    contentId\n    duration\n    textRenditions\n    audioRenditions\n    highestQuality\n    isSupportHDR\n    highestAudioChannelLayout\n    resumePartNumber @include(if: $isLoggedIn)\n    parts {\n      number\n      duration\n      contentId\n      resume @include(if: $isLoggedIn) {\n        point\n        isCompleted\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n"})
+            result_list = []
+            if res.status_code == 200:
+                if res.json()["data"]["video"]["episodes"]["edges"] != None:
+                    for episode in res.json()["data"]["video"]["episodes"]["edges"]:
+                        print(episode)
+                        if episode["node"]["freeProduct"] != None:
+                            result_list.append("true")
+                        else:
+                            result_list.append("false")
+                            
+                    return result_list
+                else:
+                    return False
+            else:
+                return False
