@@ -76,15 +76,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 logger.info(" + PlanType: "+message["planStatus"]["planType"], extra={"service_name": "Dmm-TV"})
         
         status, season_id, content_id = dmm_tv.Dmm_TV_utils.parse_url(url)
-        
-        #print(f"URL: {url}")
-        #print(f"Status: {status}")
-        #print(f"Season: {season_id}")
-        #print(f"Content: {content_id}")
-        #print("-")
-        
-        episode_type = ""
-        
+                
         status = dmm_tv_downloader.check_free(season_id, content_id)
         if "false" in status:
             logger.error("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
