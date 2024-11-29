@@ -80,12 +80,59 @@ def main_command(session, url, email, password, LOG_LEVEL):
         status = dmm_tv_downloader.check_free(season_id, content_id)
         if "false" in status:
             logger.error("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
-            exit(1)
+            pass
+            #exit(1)
         else:
             logger.debug("This content is free!", extra={"service_name": "Dmm-TV"})
 
         if type(status) == list:
             logger.info("Get Title for Season", extra={"service_name": "Dmm-TV"})
+            status, messages = dmm_tv_downloader.get_title_parse_all(season_id)
+            if status == False:
+                logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
+                exit(1)
+            for message in messages:
+                #if id_type[2] == "ノーマルアニメ":
+                #    format_string = config["format"]["anime"]
+                #    values = {
+                #        "seriesname": title_name,
+                #        "titlename": message.get("displayNo", ""),
+                #        "episodename": message.get("episodeName", "")
+                #    }
+                #    try:
+                #        title_name_logger = format_string.format(**values)
+                #    except KeyError as e:
+                #        missing_key = e.args[0]
+                #        values[missing_key] = ""
+                #        title_name_logger = format_string.format(**values)
+                #if id_type[2] == "劇場":
+                #    format_string = config["format"]["movie"]
+                #    if message.get("displayNo", "") == "":
+                #        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                #        values = {
+                #            "seriesname": title_name,
+                #        }
+                #    else:
+                #        values = {
+                #            "seriesname": title_name,
+                #            "titlename": message.get("displayNo", ""),
+                #            "episodename": message.get("episodeName", "")
+                #        }
+                #    try:
+                #        title_name_logger = format_string.format(**values)
+                #    except KeyError as e:
+                #        missing_key = e.args[0]
+                #        values[missing_key] = ""
+                #        title_name_logger = format_string.format(**values)
+                title_name_logger = message["node"]["episodeNumberName"]+"_"+message["node"]["episodeTitle"]
+                format_string = config["format"]["anime"]
+                values = {
+                    "seriesname": "none",
+                    "titlename": message.get("displayNo", ""),
+                    "episodename": message.get("episodeName", "")
+                }
+                title_name_logger = format_string.format(**values)
+                logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
             # forかなんかで取り出して、実行
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": "Dmm-TV"})

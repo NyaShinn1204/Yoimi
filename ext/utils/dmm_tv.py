@@ -210,3 +210,23 @@ class Dmm_TV_downloader:
                     return False
             else:
                 return False
+            
+    def get_title_parse_all(self, sessionid):
+        _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
+        '''エピソードのタイトルについて取得するコード'''
+        meta_json = {
+            "operationName": "FetchVideoEpisodes",
+            "variables":{"seasonId":f"{sessionid}","playDevice":"BROWSER","isLoggedIn":False,"type":"MAIN","first":16},
+            "query": "query FetchVideoEpisodes($seasonId: ID!, $playDevice: PlayDevice!, $isLoggedIn: Boolean!, $type: VideoEpisodeType, $first: Int, $last: Int, $after: Int, $before: Int) {\n  video(id: $seasonId) {\n    id\n    __typename\n    ... on VideoSeason {\n      episodes(\n        type: $type\n        first: $first\n        last: $last\n        after: $after\n        before: $before\n      ) {\n        edges {\n          node {\n            ...VideoSeasonContent\n            __typename\n          }\n          __typename\n        }\n        pageInfo {\n          endCursor\n          hasNextPage\n          __typename\n        }\n        total\n        allEpisodeNumbers\n        __typename\n      }\n      __typename\n    }\n    ... on VideoSpotLiveSeason {\n      episodes(\n        type: $type\n        first: $first\n        last: $last\n        after: $after\n        before: $before\n      ) {\n        edges {\n          node {\n            ...VideoSeasonContent\n            __typename\n          }\n          __typename\n        }\n        pageInfo {\n          endCursor\n          hasNextPage\n          __typename\n        }\n        total\n        __typename\n      }\n      __typename\n    }\n  }\n}\n\nfragment VideoSeasonContent on VideoContent {\n  id\n  seasonId\n  episodeTitle\n  episodeNumberName\n  episodeNumber\n  episodeImage\n  episodeDetail\n  sampleMovie\n  contentType\n  drmLevel {\n    hasStrictProtection\n    __typename\n  }\n  viewingRights(device: $playDevice) {\n    isStreamable\n    isDownloadable\n    downloadableFiles @include(if: $isLoggedIn) {\n      totalFileSize\n      quality {\n        name\n        displayName\n        displayPriority\n        __typename\n      }\n      parts {\n        partNumber\n        fileSize\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  ppvProducts {\n    id\n    isPurchased @include(if: $isLoggedIn)\n    isBeingDelivered\n    isBundleParent\n    isOnSale\n    price {\n      price\n      salePrice\n      isLimitedPremium\n      __typename\n    }\n    __typename\n  }\n  svodProduct {\n    contentId\n    isBeingDelivered\n    startDeliveryAt\n    __typename\n  }\n  freeProduct {\n    contentId\n    isBeingDelivered\n    __typename\n  }\n  priceSummary {\n    campaignId\n    lowestPrice\n    highestPrice\n    discountedLowestPrice\n    isLimitedPremium\n    __typename\n  }\n  ppvExpiration @include(if: $isLoggedIn) {\n    startDeliveryAt\n    expirationType\n    viewingExpiration\n    viewingStartExpiration\n    __typename\n  }\n  playInfo {\n    contentId\n    duration\n    textRenditions\n    audioRenditions\n    highestQuality\n    isSupportHDR\n    highestAudioChannelLayout\n    resumePartNumber @include(if: $isLoggedIn)\n    parts {\n      number\n      duration\n      contentId\n      resume @include(if: $isLoggedIn) {\n        point\n        isCompleted\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n",
+        }
+        try:
+            metadata_response = self.session.post(_ENDPOINT_CC, json=meta_json)
+            return_json = metadata_response.json()
+            if return_json.json()["data"]["video"]["episodes"]["edges"] != None:
+                metadata_response_single = return_json["data"]["video"]["episodes"]["edges"]
+                return True, metadata_response_single
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False, None
