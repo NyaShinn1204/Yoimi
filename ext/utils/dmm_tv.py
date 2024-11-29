@@ -179,7 +179,7 @@ class Dmm_TV_downloader:
         else:
             return False, "Invalid Token"
         
-    def check_free(self, sessionid, contentid):
+    def check_free(self, sessionid, contentid=None):
         _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
         if contentid != None:
             res = self.session.post(_ENDPOINT_CC, json={"operationName":"FetchStream","variables":{"id":f"{contentid}","protectionCapabilities":[{"systemId":"edef8ba9-79d6-4ace-a3c8-27dcd51d21ed","format":"DASH","audio":[{"codec":"AAC"}],"video":[{"codec":"AV1","bpc":10,"rate":497664000,"yuv444p":True},{"codec":"VP9","bpc":10,"rate":497664000},{"codec":"AVC","bpc":8,"rate":497664000}],"hdcp":"V2_2"}],"audioChannelLayouts":["STEREO"],"device":"BROWSER","http":False},"query":"query FetchStream($id: ID!, $part: Int, $protectionCapabilities: [ProtectionCapability!]!, $audioChannelLayouts: [StreamingAudioChannelLayout!]!, $device: PlayDevice!, $http: Boolean, $temporaryDownload: Boolean) {\n  stream(\n    id: $id\n    part: $part\n    protectionCapabilities: $protectionCapabilities\n    audioChannelLayouts: $audioChannelLayouts\n    device: $device\n    http: $http\n    temporaryDownload: $temporaryDownload\n  ) {\n    contentTypeDetail\n    purchasedProductId\n    qualities {\n      name\n      displayName\n      __typename\n    }\n    textRenditionType\n    languages {\n      lang\n      displayName\n      __typename\n    }\n    videoRenditions {\n      lang\n      qualityName\n      streamingUrls {\n        systemIds\n        videoCodec\n        format\n        bpc\n        streamSize\n        urls\n        hdcp\n        __typename\n      }\n      __typename\n    }\n    audioRenditions {\n      lang\n      audioChannels\n      audioChannelLayout\n      __typename\n    }\n    textRenditions {\n      lang\n      __typename\n    }\n    chapter {\n      op {\n        start\n        end\n        __typename\n      }\n      ed {\n        start\n        end\n        __typename\n      }\n      skippable {\n        start\n        end\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"})
@@ -199,7 +199,6 @@ class Dmm_TV_downloader:
             if res.status_code == 200:
                 if res.json()["data"]["video"]["episodes"]["edges"] != None:
                     for episode in res.json()["data"]["video"]["episodes"]["edges"]:
-                        print(episode)
                         if episode["node"]["freeProduct"] != None:
                             result_list.append("true")
                         else:

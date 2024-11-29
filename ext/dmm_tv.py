@@ -58,7 +58,7 @@ def set_variable(session, LOG_LEVEL):
 
 def main_command(session, url, email, password, LOG_LEVEL):
     try:
-        global media_code, playtoken
+        #global media_code, playtoken
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt U-Next, Abema, Dmm-TV Content for Everyone", extra={"service_name": "Yoimi"})
         
@@ -75,15 +75,18 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 logger.info(" + ID: "+message["id"], extra={"service_name": "Dmm-TV"})
                 logger.info(" + PlanType: "+message["planStatus"]["planType"], extra={"service_name": "Dmm-TV"})
         
-        status, season_id, content = dmm_tv.Dmm_TV_utils.parse_url(url)
+        status, season_id, content_id = dmm_tv.Dmm_TV_utils.parse_url(url)
         
         print(f"URL: {url}")
         print(f"Status: {status}")
         print(f"Season: {season_id}")
-        print(f"Content: {content}")
+        print(f"Content: {content_id}")
         print("-")
         
-        status = dmm_tv_downloader.check_free(season_id, None)
+        status = dmm_tv_downloader.check_free(season_id, content_id)
+        if "true" in status:
+            logger.error("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
+            exit(1)
         print(status)
 
         
