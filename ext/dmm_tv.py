@@ -84,7 +84,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
             #exit(1)
         else:
             logger.warning("This content is free!", extra={"service_name": "Dmm-TV"})
-        
+                
         status, meta_response = dmm_tv_downloader.get_title_metadata(season_id)
         if status == False:
             logger.error("Failed to Get Series Json", extra={"service_name": "Dmm-tv"})
@@ -150,7 +150,48 @@ def main_command(session, url, email, password, LOG_LEVEL):
             # forかなんかで取り出して、実行
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": "Dmm-TV"})
-            # ここでtitleをどりゃーする
+            status, message = dmm_tv_downloader.get_title_parse_single(season_id, content_id)
+            if status == False:
+                logger.error("Failed to Get Episode Json", extra={"service_name": "Dmm-TV"})
+                exit(1)
+            if id_type[0] == "ノーマルアニメ":
+                format_string = config["format"]["anime"]
+                values = {
+                    "seriesname": title_name,
+                    "titlename": message["node"]["episodeNumberName"],
+                    "episodename": message["node"]["episodeTitle"]
+                }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
+            if id_type[0] == "劇場":
+                format_string = config["format"]["movie"]
+                if message["node"]["episodeNumberName"] == "":
+                    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                    values = {
+                        "seriesname": title_name,
+                    }
+                else:
+                    values = {
+                        "seriesname": title_name,
+                        "titlename": message["node"]["episodeNumberName"],
+                        "episodename": message["node"]["episodeTitle"]
+                    }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
+            content_type = status_check[i]
+            if content_type == "true":
+                content_type = "FREE   "
+            else:
+                content_type = "PREMIUM"
+            logger.info(f" + {content_type} | {title_name_logger}", extra={"service_name": "Dmm-TV"})
             
     except Exception as error:
         import traceback
