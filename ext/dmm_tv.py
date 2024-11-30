@@ -79,11 +79,11 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 
         status_check = dmm_tv_downloader.check_free(season_id, content_id)
         if "false" in status_check:
-            logger.error("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
+            logger.warning("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
             pass
             #exit(1)
         else:
-            logger.debug("This content is free!", extra={"service_name": "Dmm-TV"})
+            logger.warning("This content is free!", extra={"service_name": "Dmm-TV"})
         
         status, meta_response = dmm_tv_downloader.get_title_metadata(season_id)
         if status == False:
@@ -92,19 +92,20 @@ def main_command(session, url, email, password, LOG_LEVEL):
         else:
             title_name = meta_response["titleName"]
             
-        logger.info("Get Video Type for URL", extra={"service_name": "U-Next"})
+        logger.info("Get Video Type for URL", extra={"service_name": "Dmm-TV"})
         status_id, id_type = dmm_tv_downloader.get_id_type(season_id)
         if status_id == False:
-            logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
+            logger.error("Failed to Get Episode Json", extra={"service_name": "Dmm-TV"})
             exit(1)
-        logger.info(f" + Video Type: {id_type}", extra={"service_name": "U-Next"})
+        logger.info(f" + Video Type: {id_type}", extra={"service_name": "Dmm-TV"})
 
         if type(status_check) == list:
             logger.info("Get Title for Season", extra={"service_name": "Dmm-TV"})
             status, messages = dmm_tv_downloader.get_title_parse_all(season_id)
             if status == False:
-                logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
+                logger.error("Failed to Get Episode Json", extra={"service_name": "Dmm-TV"})
                 exit(1)
+            i = 0
             for message in messages:
                 #if id_type[2] == "ノーマルアニメ":
                 #    format_string = config["format"]["anime"]
@@ -145,7 +146,14 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     "episodename": message["node"]["episodeTitle"]
                 }
                 title_name_logger = format_string.format(**values)
-                logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
+                content_type = status_check[i]
+                if content_type == "true":
+                    content_type = "FREE   "
+                else:
+                    content_type = "PREMIUM"
+                logger.info(f" + {content_type} | {title_name_logger}", extra={"service_name": "Dmm-TV"})
+                
+                i=i+1
             # forかなんかで取り出して、実行
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": "Dmm-TV"})
