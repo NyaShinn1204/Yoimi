@@ -186,7 +186,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     missing_key = e.args[0]
                     values[missing_key] = ""
                     title_name_logger = format_string.format(**values)
-            content_type = status_check[i]
+            content_type = status_check
             if content_type == "true":
                 content_type = "FREE   "
             else:
