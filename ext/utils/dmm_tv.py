@@ -171,7 +171,7 @@ class Dmm_TV_downloader:
     
     def check_token(self, token):
         _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
-        res = self.session.post(_ENDPOINT_CC, json={"operationName":"GetServicePlan", "query":"query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }"})
+        res = self.session.post(_ENDPOINT_CC, json={"operationName":"GetServicePlan", "query":"query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }"}, headers={"Authorization": token})
         if res.status_code == 200:
             if res.json()["data"] != None:
                 return True, res.json()["data"]["user"]
