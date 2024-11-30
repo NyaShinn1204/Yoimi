@@ -3,3 +3,5 @@ class Prime_downloader:
         self.session = session
     def authorize(self, email, password):
         print(email, password)
+        
+#__make_yourself__
