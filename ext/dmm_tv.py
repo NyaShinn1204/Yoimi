@@ -77,8 +77,8 @@ def main_command(session, url, email, password, LOG_LEVEL):
         
         status, season_id, content_id = dmm_tv.Dmm_TV_utils.parse_url(url)
                 
-        status = dmm_tv_downloader.check_free(season_id, content_id)
-        if "false" in status:
+        status_check = dmm_tv_downloader.check_free(season_id, content_id)
+        if "false" in status_check:
             logger.error("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
             pass
             #exit(1)
@@ -99,7 +99,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
             exit(1)
         logger.info(f" + Video Type: {id_type}", extra={"service_name": "U-Next"})
 
-        if type(status) == list:
+        if type(status_check) == list:
             logger.info("Get Title for Season", extra={"service_name": "Dmm-TV"})
             status, messages = dmm_tv_downloader.get_title_parse_all(season_id)
             if status == False:
