@@ -138,12 +138,11 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 #        missing_key = e.args[0]
                 #        values[missing_key] = ""
                 #        title_name_logger = format_string.format(**values)
-                title_name_logger = message["node"]["episodeNumberName"]+"_"+message["node"]["episodeTitle"]
                 format_string = config["format"]["anime"]
                 values = {
-                    "seriesname": "none",
-                    "titlename": message.get("displayNo", ""),
-                    "episodename": message.get("episodeName", "")
+                    "seriesname": title_name,
+                    "titlename": message["node"]["episodeNumberName"],
+                    "episodename": message["node"]["episodeTitle"]
                 }
                 title_name_logger = format_string.format(**values)
                 logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})

@@ -253,7 +253,7 @@ class Dmm_TV_downloader:
         try:
             metadata_response = self.session.post(_ENDPOINT_CC, json=meta_json)
             return_json = metadata_response.json()
-            if return_json.json()["data"]["video"]["episodes"]["edges"] != None:
+            if return_json["data"]["video"]["episodes"]["edges"] != None:
                 metadata_response_single = return_json["data"]["video"]["episodes"]["edges"]
                 return True, metadata_response_single
             else:
