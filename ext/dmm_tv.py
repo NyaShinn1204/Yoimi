@@ -107,45 +107,38 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 exit(1)
             i = 0
             for message in messages:
-                #if id_type[2] == "ノーマルアニメ":
-                #    format_string = config["format"]["anime"]
-                #    values = {
-                #        "seriesname": title_name,
-                #        "titlename": message.get("displayNo", ""),
-                #        "episodename": message.get("episodeName", "")
-                #    }
-                #    try:
-                #        title_name_logger = format_string.format(**values)
-                #    except KeyError as e:
-                #        missing_key = e.args[0]
-                #        values[missing_key] = ""
-                #        title_name_logger = format_string.format(**values)
-                #if id_type[2] == "劇場":
-                #    format_string = config["format"]["movie"]
-                #    if message.get("displayNo", "") == "":
-                #        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                #        values = {
-                #            "seriesname": title_name,
-                #        }
-                #    else:
-                #        values = {
-                #            "seriesname": title_name,
-                #            "titlename": message.get("displayNo", ""),
-                #            "episodename": message.get("episodeName", "")
-                #        }
-                #    try:
-                #        title_name_logger = format_string.format(**values)
-                #    except KeyError as e:
-                #        missing_key = e.args[0]
-                #        values[missing_key] = ""
-                #        title_name_logger = format_string.format(**values)
-                format_string = config["format"]["anime"]
-                values = {
-                    "seriesname": title_name,
-                    "titlename": message["node"]["episodeNumberName"],
-                    "episodename": message["node"]["episodeTitle"]
-                }
-                title_name_logger = format_string.format(**values)
+                if id_type[0] == "ノーマルアニメ":
+                    format_string = config["format"]["anime"]
+                    values = {
+                        "seriesname": title_name,
+                        "titlename": message["node"]["episodeNumberName"],
+                        "episodename": message["node"]["episodeTitle"]
+                    }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
+                if id_type[0] == "劇場":
+                    format_string = config["format"]["movie"]
+                    if message["node"]["episodeNumberName"] == "":
+                        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                        values = {
+                            "seriesname": title_name,
+                        }
+                    else:
+                        values = {
+                            "seriesname": title_name,
+                            "titlename": message["node"]["episodeNumberName"],
+                            "episodename": message["node"]["episodeTitle"]
+                        }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
                 content_type = status_check[i]
                 if content_type == "true":
                     content_type = "FREE   "
