@@ -84,7 +84,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
             #exit(1)
         else:
             logger.debug("This content is free!", extra={"service_name": "Dmm-TV"})
-
+        
         status, meta_response = dmm_tv_downloader.get_title_metadata(season_id)
         if status == False:
             logger.error("Failed to Get Series Json", extra={"service_name": "Dmm-tv"})
@@ -93,7 +93,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
             title_name = meta_response["titleName"]
             
         logger.info("Get Video Type for URL", extra={"service_name": "U-Next"})
-        status_id, id_type = dmm_tv_downloader.get_id_type(url)
+        status_id, id_type = dmm_tv_downloader.get_id_type(season_id)
         if status_id == False:
             logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
             exit(1)
