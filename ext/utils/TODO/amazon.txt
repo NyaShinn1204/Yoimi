@@ -1,0 +1,7 @@
+poetry run vt dl --profile default -al en-US -sl en-US -r HDR --list Amazon 0SGEGC629FCXQ5DJ9ORNE42PXK
+
+poetry run vt dl --profile default -al en-US -sl en-US --list Amazon 0SGEGC629FCXQ5DJ9ORNE42PXK
+
+poetry run vt dl --profile default -al en-US --selected --keys Amazon 0SGEGC629FCXQ5DJ9ORNE42PXK
+
+poetry run vt dl --profile default -al en-US --selected Amazon 0SGEGC629FCXQ5DJ9ORNE42PXK
