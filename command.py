@@ -66,12 +66,12 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
     yuuParser, site_text = get_parser(input)
 
     if not yuuParser:
-        yuu_logger.error('Unknown url format')
+        print('Unknown url format')
         exit(1)
         
     sesi = requests.Session()
-
-    if site_text == "unext" or "dmm_tv":
+    
+    if site_text == "unext" or "dmm_tv" or "brainshark":
         try:
             if verbose:
                 LOG_LEVEL = "DEBUG"

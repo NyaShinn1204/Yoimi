@@ -8,18 +8,21 @@ from tqdm import tqdm
 from ext import *
 from ext import unext_v2 as Unext_v2
 from ext import dmm_tv as Dmm_tv
+from ext import brainshark as Brainshark
 
 def get_parser(url):
     """
-    Function that are called first time to check if it's a valid supported link
+    Function that is called first time to check if it's a valid supported link
 
     :return: A class of one of supported website
     """
-    valid_abema = r'http(?:|s)://(?:abema\.tv)/(?:channels|video)/(?:\w*)(?:/|-\w*/)((?P<slot>slots/)|)(?P<video_id>.*[^-_])'
-    valid_gyao = r'(?isx)http(?:|s)://gyao.yahoo.co.jp/(?:player|p|title[\w])/(?P<p1>[\w]*.*)'
-    valid_aniplus = r'http(?:|s)://(?:www\.|)aniplus-asia\.com/episode/(?P<video_id>[\w]*.*)'
-    valid_unext = r'http(?:|s)://video\.unext\.jp/(?:play|title|freeword).*(?:SID(?P<sid>[0-9]+)|ED(?P<ed>[0-9]+))'
-    valid_dmm_tv = r"http(?:s)?://tv\.dmm\.com/vod(?:/playback)?/\?(?:.*&|)season=(?P<season>[^&?]+)"
+    valid_abema = r'^["\']?http(?:|s)://(?:abema\.tv)/(?:channels|video)/(?:\w*)(?:/|-\w*/)((?P<slot>slots/)|)(?P<video_id>.*[^-_])["\']?$'
+    valid_gyao = r'(?isx)^["\']?http(?:|s)://gyao.yahoo.co.jp/(?:player|p|title[\w])/(?P<p1>[\w]*.*)["\']?$'
+    valid_aniplus = r'^["\']?http(?:|s)://(?:www\.|)aniplus-asia\.com/episode/(?P<video_id>[\w]*.*)["\']?$'
+    valid_unext = r'^["\']?http(?:|s)://video\.unext\.jp/(?:play|title|freeword).*(?:SID(?P<sid>[0-9]+)|ED(?P<ed>[0-9]+))["\']?$'
+    valid_dmm_tv = r'^["\']?http(?:s)?://tv\.dmm\.com/vod(?:/playback)?/\?(?:.*&|)season=(?P<season>[^&?]+)["\']?$'
+    valid_brainshark = r'^["\']?https?://www\.brainshark\.com/brainshark/brainshark\.services\.player/api/v1\.0/Presentation\?([^&]*&)*pi=(?P<pi>[^&]+)(&|$)'
+    
     if re.match(valid_abema, url):
         return AbemaTV, "abema"
     elif re.match(valid_gyao, url):
@@ -30,7 +33,9 @@ def get_parser(url):
         return Unext_v2, "unext"
     elif re.match(valid_dmm_tv, url):
         return Dmm_tv, "dmm_tv"
-    return None
+    elif re.match(valid_brainshark, url):
+        return Brainshark, "brainshark"
+    return None, None
 
 
 def merge_video(path, output):
