@@ -41,7 +41,7 @@ class Dmm_TV_utils:
         return status, season, content
     
 class Dmm_TV__license:
-    def license_vd_ad(video_pssh, audio_pssh, playtoken, session):
+    def license_vd_ad(video_pssh, audio_pssh, session):
         _WVPROXY = "https://mlic.dmm.com/drm/widevine/license"
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
@@ -61,9 +61,9 @@ class Dmm_TV__license:
         
         challenge_video = cdm.get_license_challenge(session_id_video, PSSH(video_pssh))
         challenge_audio = cdm.get_license_challenge(session_id_audio, PSSH(audio_pssh))
-        response_video = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_video, headers=headers)    
+        response_video = session.post(f"{_WVPROXY}", data=challenge_video, headers=headers)    
         response_video.raise_for_status()
-        response_audio = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_audio, headers=headers)    
+        response_audio = session.post(f"{_WVPROXY}", data=challenge_audio, headers=headers)    
         response_audio.raise_for_status()
     
         cdm.parse_license(session_id_video, response_video.content)
@@ -334,3 +334,54 @@ class Dmm_TV_downloader:
         except Exception as e:
             print(e)
             return False, None
+        
+    def get_mpd_content(self, content_id):
+        DRM_ID = {
+            "FAIRPLAY": "94ce86fb-07ff-4f43-adb8-93d2fa968ca2",
+            "PLAYREADY": "9a04f079-9840-4286-ab92-e65be0885f95",
+            "WIDEVINE": "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed"
+        }
+        _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
+        '''映像タイプを取得するコード'''
+        meta_json = {
+            "operationName": "FetchStream",
+            "variables":{
+                "id":content_id,
+                "protectionCapabilities":[
+                    {
+                        "systemId":DRM_ID["WIDEVINE"],
+                        "format":"DASH",
+                        "audio":[{"codec":"AAC"}],
+                        "video":[{"codec":"AV1","bpc":10,"rate":497664000,"yuv444p":True},{"codec":"VP9","bpc":10,"rate":497664000},{"codec":"AVC","bpc":8,"rate":497664000}],
+                        "hdcp":"V2_2"}
+                    ],
+                "audioChannelLayouts":["STEREO"],
+                "device":"BROWSER",
+                "http":False
+            },
+            "query": "query FetchStream($id: ID!, $part: Int, $protectionCapabilities: [ProtectionCapability!]!, $audioChannelLayouts: [StreamingAudioChannelLayout!]!, $device: PlayDevice!, $http: Boolean, $temporaryDownload: Boolean) {\n  stream(\n    id: $id\n    part: $part\n    protectionCapabilities: $protectionCapabilities\n    audioChannelLayouts: $audioChannelLayouts\n    device: $device\n    http: $http\n    temporaryDownload: $temporaryDownload\n  ) {\n    contentTypeDetail\n    purchasedProductId\n    qualities {\n      name\n      displayName\n      __typename\n    }\n    textRenditionType\n    languages {\n      lang\n      displayName\n      __typename\n    }\n    videoRenditions {\n      lang\n      qualityName\n      streamingUrls {\n        systemIds\n        videoCodec\n        format\n        bpc\n        streamSize\n        urls\n        hdcp\n        __typename\n      }\n      __typename\n    }\n    audioRenditions {\n      lang\n      audioChannels\n      audioChannelLayout\n      __typename\n    }\n    textRenditions {\n      lang\n      __typename\n    }\n    chapter {\n      op {\n        start\n        end\n        __typename\n      }\n      ed {\n        start\n        end\n        __typename\n      }\n      skippable {\n        start\n        end\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+        }
+        try:   
+            metadata_response = self.session.post(_ENDPOINT_CC, json=meta_json)
+            return_json = metadata_response.json()
+            #print(return_json)
+            if return_json["data"] != None:
+                content_mpd_list = []
+                
+                for n_d in return_json["data"]["stream"]["videoRenditions"]:
+                    temp_mpd_list = {}
+                    temp_mpd_list["quality_name"] = n_d["qualityName"]
+                    temp_mpd_list["link_mpd"] = n_d["streamingUrls"][0]["urls"][0]
+                    content_mpd_list.append(temp_mpd_list)
+                
+                return True, content_mpd_list
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False, None
+        
+    def parse_quality(self, links):
+        for link in links:
+            if link["quality_name"] == "hd":
+                return link["link_mpd"]

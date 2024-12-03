@@ -193,6 +193,14 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 content_type = "PREMIUM"
             logger.info(f" + {content_type} | {title_name_logger}", extra={"service_name": "Dmm-TV"})
             
+            status, links = dmm_tv_downloader.get_mpd_content(content_id)
+            logger.info(f"{status},{links}", extra={"service_name": "Dmm-TV"})
+            
+            logger.info(f"Parse links", extra={"service_name": "Dmm-TV"})
+            
+            hd_link = dmm_tv_downloader.parse_quality(links)
+            logger.info(f" + HD MPD: {hd_link}", extra={"service_name": "Dmm-TV"})
+            
     except Exception as error:
         import traceback
         import sys
