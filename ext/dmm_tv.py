@@ -193,13 +193,26 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 content_type = "PREMIUM"
             logger.info(f" + {content_type} | {title_name_logger}", extra={"service_name": "Dmm-TV"})
             
-            status, links = dmm_tv_downloader.get_mpd_content(content_id)
-            logger.info(f"{status},{links}", extra={"service_name": "Dmm-TV"})
+            status, links = dmm_tv_downloader.get_mpd_link(content_id)
+            logger.debug(f"{status},{links}", extra={"service_name": "Dmm-TV"})
             
             logger.info(f"Parse links", extra={"service_name": "Dmm-TV"})
             
             hd_link = dmm_tv_downloader.parse_quality(links)
             logger.info(f" + HD MPD: {hd_link}", extra={"service_name": "Dmm-TV"})
+            
+            logger.info(f"Get License for 1 Episode", extra={"service_name": "Dmm-TV"})
+            status, mpd_content = dmm_tv_downloader.get_mpd_content(hd_link)
+            
+            mpd_lic = dmm_tv.Dmm_TV_utils.parse_mpd_logic(mpd_content)
+                        
+            logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": "Dmm-TV"})
+            
+            license_key = dmm_tv.Dmm_TV__license.license_vd_ad(mpd_lic["pssh"][1], session)
+            
+            logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "Dmm-TV"})
+            
+            logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": "Dmm-TV"})
             
     except Exception as error:
         import traceback

@@ -1,7 +1,7 @@
 import re
 import base64
 import requests
-from urllib.parse import urlparse, parse_qs
+from lxml import etree
 
 class Dmm_TV_utils:
     def recaptcha_v3_bypass(anchor_url):
@@ -39,9 +39,61 @@ class Dmm_TV_utils:
         status = bool(season)
     
         return status, season, content
+    def parse_mpd_logic(content):
+        try:
+            # Ensure the content is in bytes
+            if isinstance(content, str):
+                content = content.encode('utf-8')
     
+            # Parse XML
+            root = etree.fromstring(content)
+            namespaces = {
+                'mpd': 'urn:mpeg:dash:schema:mpd:2011',
+                'cenc': 'urn:mpeg:cenc:2013'
+            }
+    
+            # Extract video information
+            videos = []
+            for adaptation_set in root.findall('.//mpd:AdaptationSet[@contentType="video"]', namespaces):
+                for representation in adaptation_set.findall('mpd:Representation', namespaces):
+                    videos.append({
+                        'resolution': f"{representation.get('width')}x{representation.get('height')}",
+                        'codec': representation.get('codecs'),
+                        'mimetype': representation.get('mimeType')
+                    })
+    
+            # Extract audio information
+            audios = []
+            for adaptation_set in root.findall('.//mpd:AdaptationSet[@contentType="audio"]', namespaces):
+                for representation in adaptation_set.findall('mpd:Representation', namespaces):
+                    audios.append({
+                        'audioSamplingRate': representation.get('audioSamplingRate'),
+                        'codec': representation.get('codecs'),
+                        'mimetype': representation.get('mimeType')
+                    })
+    
+            # Extract PSSH values
+            pssh_list = []
+            for content_protection in root.findall('.//mpd:ContentProtection', namespaces):
+                pssh_element = content_protection.find('cenc:pssh', namespaces)
+                if pssh_element is not None:
+                    pssh_list.append(pssh_element.text)
+    
+            # Build the result
+            result = {
+                "main_content": content.decode('utf-8'),
+                "pssh": pssh_list
+            }
+    
+            return result
+    
+        except etree.XMLSyntaxError as e:
+            raise ValueError(f"Invalid MPD content: {e}")
+        except Exception as e:
+            raise RuntimeError(f"An unexpected error occurred: {e}")
+
 class Dmm_TV__license:
-    def license_vd_ad(video_pssh, audio_pssh, session):
+    def license_vd_ad(pssh, session):
         _WVPROXY = "https://mlic.dmm.com/drm/widevine/license"
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
@@ -50,42 +102,26 @@ class Dmm_TV__license:
             "./l3.wvd"
         )
         cdm = Cdm.from_device(device)
-        session_id_video = cdm.open()
-        session_id_audio = cdm.open()
-        
-        headers = {
-            "Origin": "https://tv.dmm.com/",
-            "Referer": "https://tv.dmm.com/",
-            "Host": "mlic.dmm.com"   
-        }
-        
-        challenge_video = cdm.get_license_challenge(session_id_video, PSSH(video_pssh))
-        challenge_audio = cdm.get_license_challenge(session_id_audio, PSSH(audio_pssh))
-        response_video = session.post(f"{_WVPROXY}", data=challenge_video, headers=headers)    
-        response_video.raise_for_status()
-        response_audio = session.post(f"{_WVPROXY}", data=challenge_audio, headers=headers)    
-        response_audio.raise_for_status()
+        session_id = cdm.open()
     
-        cdm.parse_license(session_id_video, response_video.content)
-        cdm.parse_license(session_id_audio, response_audio.content)
-        video_keys = [
+        challenge = cdm.get_license_challenge(session_id, PSSH(pssh))
+        response = session.post(f"{_WVPROXY}", data=bytes(challenge))
+        response.raise_for_status()
+    
+        cdm.parse_license(session_id, response.content)
+        keys = [
             {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
-            for key in cdm.get_keys(session_id_video)
-        ]
-        audio_keys = [
-            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
-            for key in cdm.get_keys(session_id_audio)
+            for key in cdm.get_keys(session_id)
         ]
     
-        cdm.close(session_id_video)
-        cdm.close(session_id_audio)
+        cdm.close(session_id)
         
         keys = {
-            "video_key": video_keys,
-            "audio_key": audio_keys
+            "key": keys,
         }
         
         return keys
+
 
 class Dmm_TV_downloader:
     def __init__(self, session):
@@ -335,7 +371,7 @@ class Dmm_TV_downloader:
             print(e)
             return False, None
         
-    def get_mpd_content(self, content_id):
+    def get_mpd_link(self, content_id):
         DRM_ID = {
             "FAIRPLAY": "94ce86fb-07ff-4f43-adb8-93d2fa968ca2",
             "PLAYREADY": "9a04f079-9840-4286-ab92-e65be0885f95",
@@ -377,6 +413,14 @@ class Dmm_TV_downloader:
                 return True, content_mpd_list
             else:
                 return False, None
+        except Exception as e:
+            print(e)
+            return False, None
+        
+    def get_mpd_content(self, url):
+        try:
+            metadata_response = self.session.get(url)
+            return True, metadata_response.text
         except Exception as e:
             print(e)
             return False, None
