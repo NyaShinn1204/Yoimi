@@ -87,10 +87,15 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
     if site_text == "unext" or "dmm_tv" or "brainshark":
         if os.name != 'nt':
             commands = ["aria2c", "ffmpeg"]
+            error_found = False
             for cmd in commands:
-                stauts = check_command(cmd)
+                status = check_command(cmd)
                 if status == False:
                     print("[!] Requirement to install {}".format(cmd))
+                    error_found = True
+                    
+            if error_found:
+                sys.exit(1)
 
         try:
             if verbose:
