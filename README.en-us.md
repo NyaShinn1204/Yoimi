@@ -5,7 +5,7 @@
 
 ## Installation
 
-**※ Python version 3.10 or higher is required**
+**※ Python version 3.12 or higher is required**
 
 To use 「Yoimi」, execute the following command
 
