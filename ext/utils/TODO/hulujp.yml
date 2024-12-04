@@ -1,0 +1,52 @@
+certificate: |
+  CAUSxwUKwQIIAxIQFwW5F8wSBIaLBjM6L3cqjBiCtIKSBSKOAjCCAQoCggEBAJntWzsyfateJO/DtiqVtZhSCtW8yzdQPgZFuBTYdrjfQFEEQa2M462xG7
+  iMTnJaXkqeB5UpHVhYQCOn4a8OOKkSeTkwCGELbxWMh4x+Ib/7/up34QGeHleB6KRfRiY9FOYOgFioYHrc4E+shFexN6jWfM3rM3BdmDoh+07svUoQykd
+  JDKR+ql1DghjduvHK3jOS8T1v+2RC/THhv0CwxgTRxLpMlSCkv5fuvWCSmvzu9Vu69WTi0Ods18Vcc6CCuZYSC4NZ7c4kcHCCaA1vZ8bYLErF8xNEkKdO
+  7DevSy8BDFnoKEPiWC8La59dsPxebt9k+9MItHEbzxJQAZyfWgkCAwEAAToUbGljZW5zZS53aWRldmluZS5jb20SgAOuNHMUtag1KX8nE4j7e7jLUnfSS
+  YI83dHaMLkzOVEes8y96gS5RLknwSE0bv296snUE5F+bsF2oQQ4RgpQO8GVK5uk5M4PxL/CCpgIqq9L/NGcHc/N9XTMrCjRtBBBbPneiAQwHL2zNMr80N
+  QJeEI6ZC5UYT3wr8+WykqSSdhV5Cs6cD7xdn9qm9Nta/gr52u/DLpP3lnSq8x2/rZCR7hcQx+8pSJmthn8NpeVQ/ypy727+voOGlXnVaPHvOZV+WRvWCq
+  5z3CqCLl5+Gf2Ogsrf9s2LFvE7NVV2FvKqcWTw4PIV9Sdqrd+QLeFHd/SSZiAjjWyWOddeOrAyhb3BHMEwg2T7eTo/xxvF+YkPj89qPwXCYcOxF+6gjom
+  PwzvofcJOxkJkoMmMzcFBDopvab5tDQsyN9UPLGhGC98X/8z8QSQ+spbJTYLdgFenFoGq47gLwDS6NWYYQSqzE3Udf2W7pzk4ybyG4PHBYV3s4cyzdq8a
+  mvtE/sNSdOKReuHpfQ=
+
+user_agent: 'Mozilla/5.0 (Linux; Android 7.1.2; AFTMM Build/NS6281; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/88.0.4324.152 Mobile Safari/537.36 jp.happyon.android/3.0.59'
+user_agent_browser: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36'
+
+common_params:
+  app_id: 4
+  device_code: 7
+
+auth_params:
+  app_version: '3.0.59'
+  device_code: 7
+  device_manufacturer: 'Amazon'
+  device_model: 'AFTMM'
+  device_higher_category: 'settop'
+  device_lower_category: 'fire_tv'
+  is_mobile: 'true'
+  manufacturer: 'Amazon'
+  os_version: '7.1.2'
+  os_build_id: '25'
+  user_agent: ''
+
+meta_params:
+  expand_object_flag: 0
+  datasource: 'decorator'
+
+search_params:
+  limit: 999
+  page: 1
+  order: 'asc'
+  sort: 'sort:asc,id_in_schema:asc'
+  with_total_count: true
+
+endpoints:
+  get_user_info: 'https://mapi.prod.hjholdings.tv/api/v1/sessions/get_user_info'
+  metas: 'https://mapi.prod.hjholdings.tv/api/v1/metas/{id}'
+  metas_children: 'https://mapi.prod.hjholdings.tv/api/v1/metas/{id}/children'
+  playback_auth: 'https://papi.prod.hjholdings.tv/api/v1/playback/auth'
+  playback_medias: 'https://playback.prod.hjholdings.tv/session/open/v1/merchants/hulu/medias/{id}'
+  session_create: 'https://mapi.prod.hjholdings.tv/api/v1/sessions/create'
+  token_check: 'https://token.prod.hjholdings.tv/token/check'
+  user_auth: 'https://mapi.prod.hjholdings.tv/api/v1/users/auth'
+  web: 'https://www.hulu.jp/{slug}'
