@@ -7,11 +7,24 @@ from datetime import datetime
 
 import click
 import requests
+import subprocess
 
 from common import (_prepare_yuu_data, get_parser,
                      get_yuu_folder, merge_video, mux_video)
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], ignore_unknown_options=True)
+
+def check_command(command):
+    try:
+        subprocess.run([command, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        #print(f"{command} is installed.")
+        return True
+    except FileNotFoundError:
+        #print(f"{command} is not installed.")
+        return False
+    except subprocess.CalledProcessError:
+        #print(f"{command} is installed but an error occurred while checking its version.")
+        return False
 
 def delete_folder_contents(folder):
     for filename in os.listdir(folder):
@@ -72,6 +85,13 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
     sesi = requests.Session()
     
     if site_text == "unext" or "dmm_tv" or "brainshark":
+        if os.name != 'nt':
+            commands = ["aria2c", "ffmpeg"]
+            for cmd in commands:
+                stauts = check_command(cmd)
+                if status == False:
+                    print("[!] Requirement to install {}".format(cmd))
+
         try:
             if verbose:
                 LOG_LEVEL = "DEBUG"
