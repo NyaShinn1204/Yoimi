@@ -16,7 +16,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], ignore_unknown_optio
 
 def check_command(command):
     try:
-        subprocess.run([command, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        subprocess.run([command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         #print(f"{command} is installed.")
         return True
     except FileNotFoundError:
@@ -24,7 +24,7 @@ def check_command(command):
         return False
     except subprocess.CalledProcessError:
         #print(f"{command} is installed but an error occurred while checking its version.")
-        return False
+        return True
 
 def delete_folder_contents(folder):
     for filename in os.listdir(folder):
