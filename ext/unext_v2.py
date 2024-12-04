@@ -84,7 +84,10 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 exit(1)
         else:
             status, message = unext_downloader.authorize(email, password)
-            logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "U-Next"})
+            try:
+                logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "U-Next"})
+            except:
+                logger.info("Failed to login")
             if status == False:
                 logger.error(message, extra={"service_name": "U-Next"})
                 exit(1)

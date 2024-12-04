@@ -494,6 +494,10 @@ class Unext_downloader:
             aria2c = os.path.join(config["directorys"]["Binaries"], "aria2c.exe")
         else:
             aria2c = os.path.join(config["directorys"]["Binaries"], "aria2c")
+        
+        if not os.path.isfile(aria2c) or not os.access(aria2c, os.X_OK):
+            raise OSError(f"aria2c binary not found or not executable: {aria2c}")
+            
         aria2c_command = [
             aria2c,
             url,
