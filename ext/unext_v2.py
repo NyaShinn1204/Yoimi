@@ -65,7 +65,6 @@ def check_proxie(session):
         #
         _ENDPOINT_CHALLENG_ID = 'https://oauth.unext.jp/oauth2/auth?state={state}&scope=offline%20unext&nonce={nonce}&response_type=code&client_id=unextAndroidApp&redirect_uri=jp.unext%3A%2F%2Fpage%3Doauth_callback'
         _ENDPOINT_RES = 'https://oauth.unext.jp/oauth2/login'
-        _ENDPOINT_OAUTH = 'https://oauth.unext.jp{pse}'
         
         response = session.get(
             _ENDPOINT_CHALLENG_ID.format(
@@ -114,7 +113,9 @@ def main_command(session, url, email, password, LOG_LEVEL):
         #url = "https://video.unext.jp/play/SID0104147/ED00570918"
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt U-Next, Abema Content for Everyone", extra={"service_name": "Yoimi"})
-        check_proxie(session)
+        print(session.proxies)
+        if session.proxies != {}:
+            check_proxie(session)
         
         unext_downloader = unext.Unext_downloader(session)
         
