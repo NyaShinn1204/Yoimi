@@ -46,7 +46,7 @@ def streams_list():
         "AbemaTV": ["No", "No", "Yes (JP)"],
         "Aniplus Asia": ["Yes", "No", "Yes (SEA)"],
         "GYAO!": ["No", "No", "Yes (JP)"],
-        "U-Next": ["Yes", "Yes", "Unknown"],
+        "U-Next": ["Yes", "Yes", "Yes (JP)"],
         "DMM-tv": ["Yes", "Yes", "Unknown"]
     }
 
@@ -85,6 +85,11 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
     sesi = requests.Session()
     
     if site_text == "unext" or "dmm_tv" or "brainshark":
+        
+        if proxy:
+            sesi.proxies = {'http': proxy, 'https': proxy}
+        #yuu_logger.debug('Using proxy: {}'.format(proxy))
+        
         if os.name != 'nt':
             commands = ["aria2c", "ffmpeg"]
         else:
