@@ -20,37 +20,71 @@ cd Yoimi
 python3 yoimi.py -h
 ```
 
-#### ✨ Download the first episode of「Frieren: Beyond Journey's End」from Abema（.ts file）
+## Usage
+```
+>> python yoimi.py download -h
+Usage: yoimi.py download [OPTIONS] <URL site>
 
-```python
-python3 yoimi.py download "https://abema.tv/video/episode/19-171_s1_p1"
+  Main command to access downloader
+
+  Check supported streams from yuu with `yuu streams`
+
+Options:
+  -U, --username TEXT        Use username/password to download premium video
+  -P, --password TEXT        Use username/password to download premium video
+  -p, --proxy <ip:port/url>  Use http(s)/socks5 proxies (please add
+                             `socks5://` if you use socks5)
+  -r, --resolution TEXT      Resolution to be downloaded (Default: best)
+  -R, --resolutions          Show available resolutions
+  -m, --mux                  Mux .ts to .mkv (Need ffmpeg or mkvmerge)
+  -mf, --muxfile TEXT        Mux .ts to opticial file
+  -keep, --keep-fragments    Keep downloaded fragment and combined fragment
+                             (If muxing) (Default: no)
+  -o, --output TEXT          Output filename
+  -v, --verbose              Enable verbosity
+  -h, --help                 Show this message and exit.
 ```
 
-#### ✨ Download the first episode of「Frieren: Beyond Journey's End」from Abema（Conver to mp4）
+- **`--username/-U`**: Username or email
+- **`--password/-P`**: Password
+- **`--proxies/-p`**: Proxie
+    - 例: `127.0.0.1:1080`, `http://127.0.0.1:1080`, `http://user:pass@127.0.0.1:1080`, `socks5://127.0.0.1:1080`
+- **`--verbose/-v`**: Enable debug mode
 
-```python
-python3 yoimi.py download "https://abema.tv/video/episode/19-171_s1_p1" --mux
-```
+**Proxy has not yet been fully tested**
 
-#### ✨ Download an episode of「Alya Sometimes Hides Her Feelings in Russian」from Unext
+#### Example command: 
+Download from Abema
+1. **Download original file**  
+   ```bash
+   python3 yoimi.py download "https://abema.tv/video/episode/19-171_s1_p1"
+   ```
+   ✨ Download the first episode of「Frieren: Beyond Journey's End」from Abema（.ts file）
 
-```python
-python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --username EMAIL_HERE --password PASSWORD_HERE
-```
+2. **Download convert mp4 file**  
+   ```bash
+   python3 yoimi.py download "https://abema.tv/video/episode/19-171_s1_p1" --mux
+   ```
+   ✨ Download the first episode of「Frieren: Beyond Journey's End」from Abema（Conver to mp4）
 
-#### ✨ Download the entire one season of「Alya Sometimes Hides Her Feelings in Russian」from Unext
+- - -
 
-```python
-python3 yoimi.py download "https://video.unext.jp/play/SID0104147" --username EMAIL_HERE --password PASSWORD_HERE
-```
+Download from U-Next
+1. **Download specific episodes**  
+   ```bash
+   python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --username EMAIL_HERE --password PASSWORD_HERE
+   ```
+   ✨ Download an episode of「Alya Sometimes Hides Her Feelings in Russian」from Unext
 
-#### ✨ Sample video to download an episode of “Arya next door who can answer in Russian” from Unext
+   **Sample Video**: [Click Here](https://github.com/user-attachments/assets/c98fe42c-ab27-498d-b2e5-b0ba897e2d81)
 
-https://github.com/user-attachments/assets/c98fe42c-ab27-498d-b2e5-b0ba897e2d81
+2. **Download one season**  
+   ```bash
+   python3 yoimi.py download "https://video.unext.jp/play/SID0104147" --username EMAIL_HERE --password PASSWORD_HERE
+   ```
+   ✨ Download the entire one season of「Alya Sometimes Hides Her Feelings in Russian」from Unext
 
-#### ✨ Sample video to download the entire one season of “Arya-san next door who can answer in Russian” from Unext.
-
-[Click here](https://youtu.be/09vmBKzQMQE)
+   **Sample Video**: [Click Here](https://youtu.be/09vmBKzQMQE)
 
 
 &nbsp;
