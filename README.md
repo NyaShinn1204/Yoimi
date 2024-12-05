@@ -94,5 +94,8 @@ U-NEXTからのダウンロード
 ##### Known issues:
  * 時々ライセンス取得に失敗し、プログラムが停止してしまう問題がある
 
+## サポート
+- discord: nyanyakko005
+
 > [!WARNING]
 > Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパッケージの約95％をコピーして圧縮するコードを改良されたものです。
