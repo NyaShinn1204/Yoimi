@@ -94,5 +94,8 @@ Download from U-Next
 ##### Known issues:
  * Sometimes licensing fails and the program stops.
 
+## Contact us:
+- discord: nyanyakko005
+
 > [!WARNING]
 > Yoimi is an improved version of a code that copies and compresses about 95% of a package called [Yuu](https://github.com/noaione/yuu)
