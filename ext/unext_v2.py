@@ -87,7 +87,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
             try:
                 logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "U-Next"})
             except:
-                logger.info("Failed to login")
+                logger.info("Failed to login", extra={"service_name": "U-Next"})
             if status == False:
                 logger.error(message, extra={"service_name": "U-Next"})
                 exit(1)
