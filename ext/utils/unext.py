@@ -252,10 +252,13 @@ class Unext_downloader:
             "scope": ["offline", "unext"],
         }
         auth_response = self.session.post(_ENDPOINT_RES, json=payload_).json()
-        if auth_response["error_hint"] == "GAW0500003":
-            return False, "Require Japan VPN, Proxy" 
-        else:
-            _ENDPOINT_OAUTH = _ENDPOINT_OAUTH.format(pse=auth_response.get("post_auth_endpoint"))
+        try:
+            if auth_response["error_hint"] == "GAW0500003":
+                return False, "Require Japan VPN, Proxy" 
+        except:
+            pass
+        
+        _ENDPOINT_OAUTH = _ENDPOINT_OAUTH.format(pse=auth_response.get("post_auth_endpoint"))
     
         try:
             # OAuth 認証コード取得

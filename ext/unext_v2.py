@@ -2,8 +2,10 @@ import os
 import yaml
 import time
 import shutil
+import json
 import logging
 from datetime import datetime
+from bs4 import BeautifulSoup
 
 from ext.utils import unext
 
@@ -56,6 +58,55 @@ def set_variable(session, LOG_LEVEL):
         
     session.headers.update({"User-Agent": config["headers"]["User-Agent"]})
 
+def check_proxie(session):
+    logger.info("Checking Proxie...", extra={"service_name": "Yoimi"})
+    try:
+        start = time.time()
+        #
+        _ENDPOINT_CHALLENG_ID = 'https://oauth.unext.jp/oauth2/auth?state={state}&scope=offline%20unext&nonce={nonce}&response_type=code&client_id=unextAndroidApp&redirect_uri=jp.unext%3A%2F%2Fpage%3Doauth_callback'
+        _ENDPOINT_RES = 'https://oauth.unext.jp/oauth2/login'
+        _ENDPOINT_OAUTH = 'https://oauth.unext.jp{pse}'
+        
+        response = session.get(
+            _ENDPOINT_CHALLENG_ID.format(
+                state="ma68aiLyo4LhQkOVHGctEN7jH7PGmRIhRVOmzgK8f5y",
+                nonce="ArnY3qesx6DVqiMIXYxEnJG2KzHhMe9l4bzZLOaLnZw"
+            )
+        )
+        script_tag = BeautifulSoup(response.text, "lxml").find("script", {"id": "__NEXT_DATA__"})
+        json_data = json.loads(script_tag.string)
+        challenge_id = json_data.get("props", {}).get("challengeId")
+    
+        payload_ = {
+            "id": "example@example.com",
+            "password": "example123",
+            "challenge_id": challenge_id,
+            "device_code": "920",
+            "scope": ["offline", "unext"],
+        }
+        auth_response = session.post(_ENDPOINT_RES, json=payload_).json()
+        #    
+        #
+        end = time.time()
+        time_elapsed = end - start
+        time_elapsed = time_elapsed * 1000
+        
+        try:
+            if auth_response["error_hint"] == "GAW0500003":
+                logger.error(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
+                logger.error(f"However, this proxy is not located in Japan. You will not be able to use it.", extra={"service_name": "Yoimi"})
+                exit(1)
+        except Exception as e:
+            pass
+        
+        logger.info(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
+    except IOError:
+        logger.error(f"Connection error of {session.proxies}", extra={"service_name": "Yoimi"})
+        exit(1)
+    except:
+        logger.error(f"Failed Check Proxies of {session.proxies}", extra={"service_name": "Yoimi"})
+        exit(1)
+
 def main_command(session, url, email, password, LOG_LEVEL):
     try:
         global media_code, playtoken
@@ -63,6 +114,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
         #url = "https://video.unext.jp/play/SID0104147/ED00570918"
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt U-Next, Abema Content for Everyone", extra={"service_name": "Yoimi"})
+        check_proxie(session)
         
         unext_downloader = unext.Unext_downloader(session)
         
