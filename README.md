@@ -20,37 +20,71 @@ cd Yoimi
 python3 yoimi.py -h
 ```
 
-#### ✨ 「最弱テイマー、ゴミ拾いの旅に出る」をAbemaから第1話をダウンロード（オリジナルファイル）
+## 使い方
+```
+>> python yoimi.py download -h
+Usage: yoimi.py download [OPTIONS] <URL site>
 
-```python
-python3 yoimi.py download "https://abema.tv/video/episode/248-17_s1_p1"
+  Main command to access downloader
+
+  Check supported streams from yuu with `yuu streams`
+
+Options:
+  -U, --username TEXT        Use username/password to download premium video
+  -P, --password TEXT        Use username/password to download premium video
+  -p, --proxy <ip:port/url>  Use http(s)/socks5 proxies (please add
+                             `socks5://` if you use socks5)
+  -r, --resolution TEXT      Resolution to be downloaded (Default: best)
+  -R, --resolutions          Show available resolutions
+  -m, --mux                  Mux .ts to .mkv (Need ffmpeg or mkvmerge)
+  -mf, --muxfile TEXT        Mux .ts to opticial file
+  -keep, --keep-fragments    Keep downloaded fragment and combined fragment
+                             (If muxing) (Default: no)
+  -o, --output TEXT          Output filename
+  -v, --verbose              Enable verbosity
+  -h, --help                 Show this message and exit.
 ```
 
-#### ✨ 「最弱テイマー、ゴミ拾いの旅に出る」をAbemaから1話をダウンロード（mp4に変換）
+- **`--username/-U`**: ユーザー名またはメールアドレス
+- **`--password/-P`**: パスワード
+- **`--proxies/-p`**: プロキシ
+    - 例: `127.0.0.1:1080`, `http://127.0.0.1:1080`, `http://user:pass@127.0.0.1:1080`, `socks5://127.0.0.1:1080`
+- **`--verbose/-v`**: デバッグモードを利用する
 
-```python
-python3 yoimi.py download "https://abema.tv/video/episode/248-17_s1_p1" --mux
-```
+**プロキシはまだ完全にはテストされていません**
 
-#### ✨ 「ロシア語で出れる隣のアーリャさん」をUnextから一話をダウンロードする
+#### Example command: 
+Abemaからのダウンロード
+1. **オリジナルファイルでダウンロード**  
+   ```bash
+   python3 yoimi.py download "https://abema.tv/video/episode/248-17_s1_p1"
+   ```
+   ✨ 「最弱テイマー、ゴミ拾いの旅に出る」第1話をオリジナル形式でダウンロードします。
 
-```python
-python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --username ここにemail --password ここにパスワード
-```
+2. **MP4形式に変換してダウンロード**  
+   ```bash
+   python3 yoimi.py download "https://abema.tv/video/episode/248-17_s1_p1" --mux
+   ```
+   ✨ 「最弱テイマー、ゴミ拾いの旅に出る」第1話をMP4形式でダウンロードします。
 
-#### ✨ 「ロシア語で出れる隣のアーリャさん」をUnextからワンシーズンすべてをダウンロードする
+- - -
 
-```python
-python3 yoimi.py download "https://video.unext.jp/play/SID0104147" --username ここにemail --password ここにパスワード
-```
+U-NEXTからのダウンロード
+1. **特定エピソードをダウンロード**  
+   ```bash
+   python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --username あなたのメールアドレス --password あなたのパスワード
+   ```
+   ✨ 「ロシア語で出れる隣のアーリャさん」第1話をダウンロードします。
 
-#### ✨ 「ロシア語で出れる隣のアーリャさん」をUnextから一話をダウンロードするサンプルビデオ
+   **サンプルビデオ**: [こちらをクリック](https://github.com/user-attachments/assets/c98fe42c-ab27-498d-b2e5-b0ba897e2d81)
 
-https://github.com/user-attachments/assets/c98fe42c-ab27-498d-b2e5-b0ba897e2d81
+2. **シーズン全体をダウンロード**  
+   ```bash
+   python3 yoimi.py download "https://video.unext.jp/play/SID0104147" --username あなたのメールアドレス --password あなたのパスワード
+   ```
+   ✨ 「ロシア語で出れる隣のアーリャさん」のシーズン全エピソードをダウンロードします。
 
-#### ✨ 「ロシア語で出れる隣のアーリャさん」をUnextからワンシーズンすべてをダウンロードするサンプルビデオ
-
-[こちらからご覧ください](https://youtu.be/09vmBKzQMQE)
+   **サンプルビデオ**: [こちらをクリック](https://youtu.be/09vmBKzQMQE)
 
 
 &nbsp;
