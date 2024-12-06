@@ -135,19 +135,34 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 logger.error("Please input token", extra={"service_name": "U-Next"})
                 exit(1)
         else:
-            status, message = unext_downloader.authorize(email, password)
-            try:
-                logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "U-Next"})
-            except:
-                logger.info("Failed to login", extra={"service_name": "U-Next"})
-            if status == False:
-                logger.error(message, extra={"service_name": "U-Next"})
-                exit(1)
+            if id != None:
+                status, message = unext_downloader.authorize(email, password)
+                try:
+                    logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "U-Next"})
+                except:
+                    logger.info("Failed to login", extra={"service_name": "U-Next"})
+                if status == False:
+                    logger.error(message, extra={"service_name": "U-Next"})
+                    exit(1)
+                else:
+                    account_point = str(message["points"])
+                    logger.info("Loggined Account", extra={"service_name": "U-Next"})
+                    logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
+                    logger.info(" + Point: "+account_point, extra={"service_name": "U-Next"})
             else:
-                account_point = str(message["points"])
-                logger.info("Loggined Account", extra={"service_name": "U-Next"})
-                logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
-                logger.info(" + Point: "+account_point, extra={"service_name": "U-Next"})
+                status, message = unext_downloader.authorize(email, password)
+                try:
+                    logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "U-Next"})
+                except:
+                    logger.info("Failed to login", extra={"service_name": "U-Next"})
+                if status == False:
+                    logger.error(message, extra={"service_name": "U-Next"})
+                    exit(1)
+                else:
+                    account_point = str(message["points"])
+                    logger.info("Loggined Account", extra={"service_name": "U-Next"})
+                    logger.info(" + ID: "+message["id"], extra={"service_name": "U-Next"})
+                    logger.info(" + Point: "+account_point, extra={"service_name": "U-Next"})
             
         status, meta_response = unext_downloader.get_title_metadata(url)
         if status == False:

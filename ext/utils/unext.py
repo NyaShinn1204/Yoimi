@@ -221,7 +221,7 @@ class Unext_decrypt:
 class Unext_downloader:
     def __init__(self, session):
         self.session = session
-    def authorize(self, email, password):
+    def authorize(self, email_or_id, password):
         _ENDPOINT_CC = 'https://cc.unext.jp'
         _ENDPOINT_CHALLENG_ID = 'https://oauth.unext.jp/oauth2/auth?state={state}&scope=offline%20unext&nonce={nonce}&response_type=code&client_id=unextAndroidApp&redirect_uri=jp.unext%3A%2F%2Fpage%3Doauth_callback'
         _ENDPOINT_RES = 'https://oauth.unext.jp/oauth2/login'
@@ -229,8 +229,9 @@ class Unext_downloader:
         _ENDPOINT_TOKEN = 'https://oauth.unext.jp/oauth2/token'
         mail_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     
-        if not re.fullmatch(mail_regex, email):
-            return False, "Unext require email and password"
+        if not re.fullmatch('[0-9]+', email_or_id):
+            if not re.fullmatch(mail_regex, email_or_id):
+                return False, "Unext require email and password"
     
         # 初回リクエストとチャレンジID取得
         response = self.session.get(
@@ -245,7 +246,7 @@ class Unext_downloader:
     
         # 認証
         payload_ = {
-            "id": email,
+            "id": email_or_id,
             "password": password,
             "challenge_id": challenge_id,
             "device_code": "920",
