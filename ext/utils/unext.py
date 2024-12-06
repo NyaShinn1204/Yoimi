@@ -255,6 +255,8 @@ class Unext_downloader:
         try:
             if auth_response["error_hint"] == "GAW0500003":
                 return False, "Require Japan VPN, Proxy" 
+            if auth_response["error_hint"] == "GUN8030006":
+                return False, 'Wrong Email or password combination'
         except:
             pass
         

@@ -113,7 +113,6 @@ def main_command(session, url, email, password, LOG_LEVEL):
         #url = "https://video.unext.jp/play/SID0104147/ED00570918"
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt U-Next, Abema Content for Everyone", extra={"service_name": "Yoimi"})
-        print(session.proxies)
         if session.proxies != {}:
             check_proxie(session)
         
