@@ -76,6 +76,33 @@ class mpd_parse:
                     return {"pssh": pssh_list, "base_url": base_url}
     
         return None
+    
+    def get_resolutions(mpd_content):
+        # 名前空間の定義
+        namespace = {'': 'urn:mpeg:dash:schema:mpd:2011'}
+        
+        # MPDテキストを解析
+        root = ET.fromstring(mpd_content)
+        
+        # 結果を格納するリスト
+        video_representations = []
+        
+        # 映像の AdaptationSet をフィルタリング
+        for adaptation_set in root.findall(".//AdaptationSet", namespace):
+            if adaptation_set.get("contentType") == "video":  # 映像のみ
+                for representation in adaptation_set.findall("Representation", namespace):
+                    # 幅、高さ、コーデック、MIMEタイプを取得
+                    width = representation.get("width")
+                    height = representation.get("height")
+                    codecs = representation.get("codecs")
+                    mime_type = representation.get("mimeType")
+                    
+                    # 映像の情報をリストに追加
+                    if width and height and mime_type and codecs:
+                        info = f"{width}x{height} {mime_type.split('/')[-1]} {codecs}"
+                        video_representations.append(info)
+        
+        return video_representations
 
 class Unext_utils:
     def random_name(length):

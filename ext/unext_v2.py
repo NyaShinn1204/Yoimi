@@ -289,8 +289,14 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
                     logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
                                         
+                    logger.info("Checking resolution...", extra={"service_name": "unext"})
+                    resolution_s = unext.mpd_parse.get_resolutions(mpd_content)
+                    logger.info("Found resolution", extra={"service_name": "U-Next"})
+                    for resolution_one in resolution_s:
+                        logger.info(" + "+resolution_one, extra={"service_name": "U-Next"})
+                    
                     logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
-                    video_url = unext.mpd_parse.extract_video_info(mpd_content, "1920x1080 mp4 avc1.4d4028")["base_url"]
+                    video_url = unext.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
                     audio_url = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
                     logger.info(" + Video_URL: "+video_url, extra={"service_name": "U-Next"})
                     logger.info(" + Audio_URL: "+audio_url, extra={"service_name": "U-Next"})
@@ -410,8 +416,14 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
                 logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
                 
+                logger.info("Checking resolution...", extra={"service_name": "unext"})
+                resolution_s = unext.mpd_parse.get_resolutions(mpd_content)
+                logger.info("Found resolution", extra={"service_name": "U-Next"})
+                for resolution_one in resolution_s:
+                    logger.info(" + "+resolution_one, extra={"service_name": "U-Next"})
+                
                 logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
-                video_url = unext.mpd_parse.extract_video_info(mpd_content, "1920x1080 mp4 avc1.4d4028")["base_url"]
+                video_url = unext.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
                 audio_url = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
                 logger.info(" + Video_URL: "+video_url, extra={"service_name": "U-Next"})
                 logger.info(" + Audio_URL: "+audio_url, extra={"service_name": "U-Next"})
