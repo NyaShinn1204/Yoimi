@@ -217,7 +217,13 @@ def main_command(session, url, email, password, LOG_LEVEL):
             logger.info("Checking resolution...", extra={"service_name": "Dmm-TV"})
             logger.info("Found resolution", extra={"service_name": "Dmm-TV"})
             for resolution_one in links:
-                logger.info(" + "+resolution_one["quality_name"], extra={"service_name": "Dmm-TV"})
+                if resolution_one["quality_name"] == "auto":
+                    pixel_d = "Unknown"
+                elif resolution_one["quality_name"] == "hd":
+                    pixel_d = "1920x1080"
+                elif resolution_one["quality_name"] == "sd":
+                    pixel_d = "1024x576"
+                logger.info(" + {reso} {pixel}".format(reso=resolution_one["quality_name"], pixel=pixel_d), extra={"service_name": "Dmm-TV"})
             
     except Exception as error:
         import traceback
