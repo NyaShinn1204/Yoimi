@@ -388,7 +388,7 @@ class Dmm_TV_downloader:
                         "systemId":DRM_ID["WIDEVINE"],
                         "format":"DASH",
                         "audio":[{"codec":"AAC"}],
-                        "video":[{"codec":"AV1","bpc":10,"rate":497664000,"yuv444p":True},{"codec":"VP9","bpc":10,"rate":497664000},{"codec":"AVC","bpc":8,"rate":497664000}],
+                        "video":[{"codec":"AV1","bpc":10,"rate":497664000,"yuv444p":True},{"codec":"VP9","bpc":10,"rate":497664000},{"codec":"AVC","bpc":8,"rate":497664000}], # what this? i don't know
                         "hdcp":"V2_2"}
                     ],
                 "audioChannelLayouts":["STEREO"],

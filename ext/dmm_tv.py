@@ -196,10 +196,10 @@ def main_command(session, url, email, password, LOG_LEVEL):
             status, links = dmm_tv_downloader.get_mpd_link(content_id)
             logger.debug(f"{status},{links}", extra={"service_name": "Dmm-TV"})
             
-            logger.info(f"Parse links", extra={"service_name": "Dmm-TV"})
+            logger.debug(f"Parse links", extra={"service_name": "Dmm-TV"})
             
             hd_link = dmm_tv_downloader.parse_quality(links)
-            logger.info(f" + HD MPD: {hd_link}", extra={"service_name": "Dmm-TV"})
+            logger.debug(f" + HD MPD: {hd_link}", extra={"service_name": "Dmm-TV"})
             
             logger.info(f"Get License for 1 Episode", extra={"service_name": "Dmm-TV"})
             status, mpd_content = dmm_tv_downloader.get_mpd_content(hd_link)
@@ -213,6 +213,11 @@ def main_command(session, url, email, password, LOG_LEVEL):
             logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "Dmm-TV"})
             
             logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": "Dmm-TV"})
+            
+            logger.info("Checking resolution...", extra={"service_name": "Dmm-TV"})
+            logger.info("Found resolution", extra={"service_name": "Dmm-TV"})
+            for resolution_one in links:
+                logger.info(" + "+resolution_one["quality_name"], extra={"service_name": "Dmm-TV"})
             
     except Exception as error:
         import traceback
