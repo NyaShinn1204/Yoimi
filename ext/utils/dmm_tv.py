@@ -429,3 +429,7 @@ class Dmm_TV_downloader:
         for link in links:
             if link["quality_name"] == "hd":
                 return link["link_mpd"]
+            
+    def parse_mpd_content(self, mpd_content):
+        # make you self
+        pass
