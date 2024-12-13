@@ -141,19 +141,25 @@ class Dmm_TV_downloader:
         }
         
         headers = {
+            #"cookie": "ckcy=1; cklg=ja; i3_ab=34f7f31a-78c5-4869-9908-093952f537a8; rieSh3Ee_ga=GA1.1.2115625759.1732515167; FPID=FPID2.2.Gf8e9eNYE%2BFJ4rkGHV76BKWWnH%2BdoRCb9vJHEYSFiEY%3D.1732515167; FPAU=1.2.1971568096.1732515166; alcb=true; check_done_login=true; subscription_members_status=non; latestlogin=email; secid=c2ff18927c360afd7f0ea9c93b8a2704; login_secure_id=c2ff18927c360afd7f0ea9c93b8a2704; connect.sid=s%3AA6NafxfwQoEhS-Ly9qzUWUb1S9dL-Wvs.UtLv8pevnbkt31I4Lt53LFzTHf6hxnbXsDp1Lqj1mvE; FPLC=OhBPtpeBs5Hmk%2FSy%2By6jCF0%2FNWBI7N0%2FuBZBsO%2B7AaCH1KwOAYwtijxSh7U9UlOyAR4UJJDaAqlqg0BxhHXlGh8Tl89jXB07fITgx7BpPBu1kO%2BLcGaTU12WtmG6Vg%3D%3D; FPGSID=1.1734090035.1734090035.G-KQYE0DE5JW.hvyzjcWQI2aQOhAcFnMRCg; rieSh3Ee_ga_KQYE0DE5JW=GS1.1.1734090037.4.0.1734090039.0.0.1991823790; _dd_s=logs=1&id=2ca2ffde-fd45-4aef-8ddf-32ebce08454a&created=1734090036817&expire=1734090952781",
             "host": "accounts.dmm.com",
             "connection": "keep-alive",
+            "cache-control": "max-age=0",
             "sec-ch-ua": "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"",
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": "\"Android\"",
             "upgrade-insecure-requests": "1",
+            "origin": "https://accounts.dmm.com",
+            "content-type": "application/x-www-form-urlencoded",
             "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "sec-fetch-site": "cross-site",
+            "sec-fetch-site": "same-origin",
             "sec-fetch-mode": "navigate",
+            "sec-fetch-user": "?1",
             "sec-fetch-dest": "document",
+            "referer": "https://accounts.dmm.com/app/service/login/password?client_id=S5wqksTne9ZGYLH1YeIaWcSYSkYvDtjOEi&parts=regist&parts=snslogin&parts=darkmode",
             "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+            "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7"
         }
         
         response = self.session.get(_ENDPOINT_RES, params=querystring, headers=headers)
@@ -164,14 +170,37 @@ class Dmm_TV_downloader:
             "token": token,
             "login_id": email,
             "password": password,
-            "use_auto_login": "1",
+            #"use_auto_login": "1",
             "recaptchaToken": login_recaptcha_token,
             "clientId": _CLIENT_ID,
             "parts": ["regist", "snslogin", "darkmode"]
         }
 
-        response = self.session.post("https://accounts.dmm.com/app/service/login/password/authenticate", data=_auth, allow_redirects=False)
-        redirect_auth_url = self.session.get(response.text, allow_redirects=False).headers.get("Location")
+        response = self.session.post("https://accounts.dmm.com/app/service/login/password/authenticate", data=_auth, headers=headers)
+        querystring = {
+            "parts[]": ["regist", "snslogin", "darkmode"],
+            "response_type": "code",
+            "client_id": _CLIENT_ID,
+            "from_domain": "accounts"
+        }
+        headers = {
+           # "cookie": "ckcy=1; cklg=ja; i3_ab=34f7f31a-78c5-4869-9908-093952f537a8; rieSh3Ee_ga=GA1.1.2115625759.1732515167; FPID=FPID2.2.Gf8e9eNYE%2BFJ4rkGHV76BKWWnH%2BdoRCb9vJHEYSFiEY%3D.1732515167; FPAU=1.2.1971568096.1732515166; alcb=true; check_done_login=true; FPLC=OhBPtpeBs5Hmk%2FSy%2By6jCF0%2FNWBI7N0%2FuBZBsO%2B7AaCH1KwOAYwtijxSh7U9UlOyAR4UJJDaAqlqg0BxhHXlGh8Tl89jXB07fITgx7BpPBu1kO%2BLcGaTU12WtmG6Vg%3D%3D; FPGSID=1.1734090035.1734090035.G-KQYE0DE5JW.hvyzjcWQI2aQOhAcFnMRCg; INT_SESID=Ag4DXBkVDwReRjZ7IhoIFV9XVAMTAlAAAAAMBAAbUQRQBh1SWgAMGgVSVlBLDwcFA1RWCAUFDVwOEA5AWQMNEDBgcTQ2RA5eXlVUAVIIClZVUVMCQlkNXhV7e2c8ZXJhKnASXQNcAg0fF1kBXBpmLyFGWUoLUAJeFQIFClMOAwUCGVJRVlIYA1RXUB9fCQMCSAZbXAICVVdUVA0EVBQMQVkNCkQPA1hVARY8WwIaCBVfVVADEycFVAdKRwIKUkNWUxYLFVhTDxUABjxbAhoIFV9VWBsBQQ8XDQUPERZFUkA8XVREWRUPBlJeQUsydFgwECcUVAhVBjdcVw0RWEUNC1kWURMWDmpDDQkGEF1RCVdSV1YJCFMEUQYJRglSBw0QB0FACgsFVEMNCw0QXUsJVl9GQAJCWQVcDRBcQDxXUVQKWFkHFgNqWBMKBkBEA1FcVV8fRA%3D%3D; INT_SESID_SECURE=Ag4DXBkVDwReRjZ7IhoIFV9XVAMTAlAAAAAMBAAbUQRQBh1SWgAMGgVSVlBLDwcFA1RWCAUFDVwOEA5AWQMNEDBgcTQ2RA5eXlVUAVIIClZVUVMCQlkNXhV7e2c8ZXJhKnASXQNcAg0fF1kBXBpmLyFGWUoLUAJeFQIFClMOAwUCGVJRVlIYA1RXUB9fCQMCSAZbXAICVVdUVA0EVBQMQVkNCkQPA1hVARY8WwIaCBVfVVADEycFVAdKRwIKUkNWUxYLFVhTDxUABjxbAhoIFV9VWBsBQQ8XDQUPERZFUkA8XVREWRUPBlJeQUsydFgwECcUVAhVBjdcVw0RWEUNC1kWURMWDmpDDQkGEF1RCVdSV1YJCFMEUQYJRglSBw0QB0FACgsFVEMNCw0QXUsJVl9GQAJCWQVcDRBcQDxXUVQKWFkHFgNqWBMKBkBEA1FcVV8fRA%3D%3D; secid=40b473baf2efa31f9b82dddbe32ce00e; login_secure_id=40b473baf2efa31f9b82dddbe32ce00e; login_session_id=0090847a-b744-4033-910d-b9e3aa3cf877; i3_opnd=yTLkVuCvm962Ske8; subscription_members_status=trial; ckcy_remedied_check=ktkrt_argt; rieSh3Ee_ga_KQYE0DE5JW=GS1.1.1734090037.4.1.1734090054.0.0.1991823790",
+            "host": "www.dmm.com",
+            "connection": "keep-alive",
+            "sec-ch-ua": "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Android\"",
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "sec-fetch-site": "same-site",
+            "sec-fetch-mode": "navigate",
+            "sec-fetch-dest": "document",
+            "referer": "https://accounts.dmm.com/app/service/login/password/authenticate",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7"
+        }
+        redirect_auth_url = self.session.get("https://www.dmm.com/my/-/authorize", allow_redirects=False, params=querystring, headers=headers).headers.get("Location")
         
         headers = {
             "authorization": "Basic "+base64.b64encode((_CLIENT_ID + ":" + _CLIENT_SECRET).encode()).decode(),

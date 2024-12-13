@@ -222,8 +222,13 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 elif resolution_one["quality_name"] == "hd":
                     pixel_d = "1920x1080"
                 elif resolution_one["quality_name"] == "sd":
-                    pixel_d = "1024x576"
+                    pixel_d = "1280x720"
                 logger.info(" + {reso} {pixel}".format(reso=resolution_one["quality_name"], pixel=pixel_d), extra={"service_name": "Dmm-TV"})
+                
+            logger.debug("Get Segment URL")
+            segemnt_content = dmm_tv.Dmm_TV_utils.parse_mpd_content(mpd_content)
+            #print(segemnt_content)
+            print(segemnt_content)
             
     except Exception as error:
         import traceback
