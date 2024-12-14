@@ -91,6 +91,53 @@ class Dmm_TV_utils:
             raise ValueError(f"Invalid MPD content: {e}")
         except Exception as e:
             raise RuntimeError(f"An unexpected error occurred: {e}")
+    def parse_mpd_content(mpd_content):
+        if isinstance(mpd_content, str):
+            content = mpd_content.encode('utf-8')
+        else:
+            content = mpd_content
+    
+        root = etree.fromstring(content)
+    
+        # Define the namespace (extracted from the MPD file's root element)
+        namespace = {'ns': 'urn:mpeg:dash:schema:mpd:2011'}
+    
+        # Extract all <Representation> elements
+        representations = root.findall(".//ns:Representation", namespace)
+    
+        # Initialize lists for video and audio information
+        video_list = []
+        audio_list = []
+    
+        # Extract relevant attributes for each representation
+        for elem in representations:
+            rep_id = elem.attrib.get('id', '')
+            bandwidth = int(elem.attrib.get('bandwidth', 0))
+            codecs = elem.attrib.get('codecs', '')
+            width = int(elem.attrib.get('width', 0)) if 'width' in elem.attrib else None
+            height = int(elem.attrib.get('height', 0)) if 'height' in elem.attrib else None
+    
+            if rep_id.startswith("p0va0br"):
+                video_list.append({
+                    "name": rep_id,
+                    "bandwidth": bandwidth,
+                    "width": width,
+                    "height": height,
+                    "codecs": codecs
+                })
+            elif rep_id.startswith("p0aa0br"):
+                audio_list.append({
+                    "name": rep_id,
+                    "bandwidth": bandwidth,
+                    "codecs": codecs
+                })
+    
+        # Return the classified lists with details
+        return {
+            "video_list": video_list,
+            "audio_list": audio_list
+        }
+
 
 class Dmm_TV__license:
     def license_vd_ad(pssh, session):
@@ -257,7 +304,56 @@ class Dmm_TV_downloader:
     def check_free(self, sessionid, contentid=None):
         _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
         if contentid != None:
-            res = self.session.post(_ENDPOINT_CC, json={"operationName":"FetchStream","variables":{"id":f"{contentid}","protectionCapabilities":[{"systemId":"edef8ba9-79d6-4ace-a3c8-27dcd51d21ed","format":"DASH","audio":[{"codec":"AAC"}],"video":[{"codec":"AV1","bpc":10,"rate":497664000,"yuv444p":True},{"codec":"VP9","bpc":10,"rate":497664000},{"codec":"AVC","bpc":8,"rate":497664000}],"hdcp":"V2_2"}],"audioChannelLayouts":["STEREO"],"device":"ANDROID_MOBILE","http":False},"query":"query FetchStream($id: ID!, $part: Int, $protectionCapabilities: [ProtectionCapability!]!, $audioChannelLayouts: [StreamingAudioChannelLayout!]!, $device: PlayDevice!, $http: Boolean, $temporaryDownload: Boolean) {\n  stream(\n    id: $id\n    part: $part\n    protectionCapabilities: $protectionCapabilities\n    audioChannelLayouts: $audioChannelLayouts\n    device: $device\n    http: $http\n    temporaryDownload: $temporaryDownload\n  ) {\n    contentTypeDetail\n    purchasedProductId\n    qualities {\n      name\n      displayName\n      __typename\n    }\n    textRenditionType\n    languages {\n      lang\n      displayName\n      __typename\n    }\n    videoRenditions {\n      lang\n      qualityName\n      streamingUrls {\n        systemIds\n        videoCodec\n        format\n        bpc\n        streamSize\n        urls\n        hdcp\n        __typename\n      }\n      __typename\n    }\n    audioRenditions {\n      lang\n      audioChannels\n      audioChannelLayout\n      __typename\n    }\n    textRenditions {\n      lang\n      __typename\n    }\n    chapter {\n      op {\n        start\n        end\n        __typename\n      }\n      ed {\n        start\n        end\n        __typename\n      }\n      skippable {\n        start\n        end\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"})
+            payload = {
+              "operationName": "GetStream",
+              "variables": {
+                "contentId": contentid,
+                "part": 1,
+                "protectionCapabilities": [
+                  {
+                    "systemId": "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed",
+                    "format": "DASH",
+                    "audio": [
+                      {
+                        "codec": "AAC"
+                      }
+                    ],
+                    "video": [
+                      {
+                        "codec": "AVC",
+                        "tee": False,
+                        "bpc": 8,
+                        "rate": 503316480,
+                        "yuv444p": False
+                      },
+                      {
+                        "codec": "HEVC",
+                        "tee": False,
+                        "bpc": 8,
+                        "rate": 530841600,
+                        "yuv444p": False
+                      },
+                      {
+                        "codec": "VP9",
+                        "tee": False,
+                        "bpc": 8,
+                        "rate": 267386880,
+                        "yuv444p": False
+                      }
+                    ],
+                    "hdcp": "NONE"
+                  }
+                ],
+                "audioChannelLayouts": [
+                  "STEREO"
+                ],
+                "device": "ANDROID_MOBILE",
+                "http": False,
+                "temporaryDownload": False
+              },
+              "query": "query GetStream($contentId: ID!, $part: Int!, $protectionCapabilities: [ProtectionCapability!]!, $audioChannelLayouts: [StreamingAudioChannelLayout!]!, $device: PlayDevice!, $http: Boolean!, $temporaryDownload: Boolean!) { stream(id: $contentId, part: $part, protectionCapabilities: $protectionCapabilities, audioChannelLayouts: $audioChannelLayouts, device: $device, http: $http, temporaryDownload: $temporaryDownload) { qualities { __typename ...qualityFragment } textRenditionType languages { __typename ...languageFragment } videoRenditions { __typename ...videoRenditionFragment } audioRenditions { __typename ...audioRenditionFragment } textRenditions { __typename ...textRenditionFragment } chapter { __typename ...chapterFragment } contentTypeDetail streamCacheExpiration purchasedProductId } }  fragment qualityFragment on Quality { name displayName displayPriority }  fragment languageFragment on Language { lang displayName }  fragment videoRenditionFragment on VideoRendition { lang qualityName streamingUrls { systemIds videoCodec format bpc streamSize urls hdcp } }  fragment audioRenditionFragment on AudioRendition { lang audioChannels audioChannelLayout }  fragment textRenditionFragment on TextRendition { lang }  fragment chapterRangeFragment on ChapterRange { start end }  fragment chapterFragment on Chapter { op { __typename ...chapterRangeFragment } ed { __typename ...chapterRangeFragment } skippable { __typename ...chapterRangeFragment } }"
+            }
+            res = self.session.post(_ENDPOINT_CC, json=payload)
             if res.status_code == 200:
                 if res.json()["data"] != None:
                     temp_json = {}
@@ -302,13 +398,22 @@ class Dmm_TV_downloader:
                 if res.json()["data"]["tab"]["episodes"]["edges"] != None:
                     for episode in res.json()["data"]["tab"]["episodes"]["edges"]:
                         temp_json = {}
-                        if episode["node"]["freeProduct"] != None:
+                        #if episode["node"]["freeProduct"] != None:
+                        #    temp_json["status"] = "true"
+                        #    temp_json["start_at"] = episode["node"]["freeProduct"]["startDeliveryAt"]
+                        #    temp_json["end_at"] = episode["node"]["freeProduct"]["endDeliveryAt"]
+                        #    result_list.append(temp_json)
+                        #else:
+                        #    temp_json["status"] = "false"
+                        #    result_list.append(temp_json)
+                        
+                        if episode["node"]["contentType"] == "VOD_2D":
+                            temp_json["status"] = "false"
+                            result_list.append(temp_json)
+                        else:
                             temp_json["status"] = "true"
                             temp_json["start_at"] = episode["node"]["freeProduct"]["startDeliveryAt"]
                             temp_json["end_at"] = episode["node"]["freeProduct"]["endDeliveryAt"]
-                            result_list.append(temp_json)
-                        else:
-                            temp_json["status"] = "false"
                             result_list.append(temp_json)
                             
                     return result_list
@@ -499,7 +604,3 @@ class Dmm_TV_downloader:
         for link in links:
             if link["quality_name"] == "hd":
                 return link["link_mpd"]
-            
-    def parse_mpd_content(self, mpd_content):
-        # make you self
-        pass

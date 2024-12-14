@@ -81,12 +81,28 @@ def main_command(session, url, email, password, LOG_LEVEL):
         status, season_id, content_id = dmm_tv.Dmm_TV_utils.parse_url(url)
                 
         status_check = dmm_tv_downloader.check_free(season_id, content_id)
-        if "false" in status_check and plan_status != "STANDARD":
-            logger.warning("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
-            pass
-            #exit(1)
+        if content_id == None:
+            if any(item['status'] == 'false' for item in status_check) and plan_status != "STANDARD":
+                logger.warning("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
+                pass
+                #exit(1)
+            elif any(item['status'] == 'false' for item in status_check) and plan_status == "STANDARD":
+                #if "false" in status_check:
+                #    print("lol")
+                logger.warning("This content is all require subscribe", extra={"service_name": "Dmm-TV"})
+            else:
+                logger.warning("This content is free!", extra={"service_name": "Dmm-TV"})
         else:
-            logger.warning("This content is free!", extra={"service_name": "Dmm-TV"})
+            if status_check["status"] == 'false' and plan_status != "STANDARD":
+                logger.warning("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
+                pass
+                #exit(1)
+            elif status_check["status"] == 'false' and plan_status == "STANDARD":
+                #if "false" in status_check:
+                #    print("lol")
+                logger.warning("This content is all require subscribe", extra={"service_name": "Dmm-TV"})
+            else:
+                logger.warning("This content is free!", extra={"service_name": "Dmm-TV"})
                 
         status, meta_response = dmm_tv_downloader.get_title_metadata(season_id)
         if status == False:
