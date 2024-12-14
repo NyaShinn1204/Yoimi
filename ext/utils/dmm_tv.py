@@ -616,16 +616,18 @@ class Dmm_TV_downloader:
             return_json = metadata_response.json()
             if return_json["data"]["video"]["episodes"]["edges"] != None:
                 metadata_response_single = return_json["data"]["video"]["episodes"]["edges"]
+                found = False
                 for episode in metadata_response_single:
                     if episode['node']['id'] == content:
+                        found= True
                         return True, episode
-                    else:
-                        return False, None
+                if found == False:
+                    return False, "not found ??"
             else:
-                return False, None
+                return False, "Not found edges"
         except Exception as e:
             print(e)
-            return False, None
+            return False, e
         
     def get_id_type(self, session_id):
         _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
