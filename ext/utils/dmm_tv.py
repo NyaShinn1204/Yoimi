@@ -137,7 +137,69 @@ class Dmm_TV_utils:
             "video_list": video_list,
             "audio_list": audio_list
         }
-
+    def get_segment_link_list(mpd_content, representation_id):
+        if isinstance(mpd_content, str):
+            content = mpd_content.encode('utf-8')
+        else:
+            content = mpd_content
+        """
+        MPDコンテンツから指定されたRepresentation IDに対応するSegmentTemplateのリストを取得する。
+    
+        Args:
+            mpd_content (str): MPDファイルのXMLコンテンツ。
+            representation_id (str): 抽出したいRepresentation ID。
+    
+        Returns:
+            list: セグメントリストのリスト。セグメントリストが見つからない場合は空のリストを返す。
+        """
+        try:
+            tree = etree.fromstring(content)
+            # 名前空間を設定
+            ns = {'dash': 'urn:mpeg:dash:schema:mpd:2011'}
+    
+            # 指定されたRepresentation IDを持つRepresentation要素を探す
+            representation = tree.find(f'.//dash:Representation[@id="{representation_id}"]', ns)
+            if representation is None:
+              return []
+    
+            # 親のAdaptationSet要素を見つける
+            adaptation_set = representation.find('..')
+    
+            # そのAdaptationSetの子要素であるSegmentTemplateを探す
+            segment_template = adaptation_set.find('dash:SegmentTemplate', ns)
+            if segment_template is None:
+              return []
+    
+            segment_timeline = segment_template.find('dash:SegmentTimeline', ns)
+            if segment_timeline is None:
+              return []
+    
+            # SegmentTimeline内のすべてのS要素を探し、'd'属性の値を取り出す
+            segments = [int(s.get('d')) for s in segment_timeline.findall('dash:S', ns)]
+    
+            media_template = segment_template.get('media')
+            init_template = segment_template.get('initialization')
+            
+            # テンプレート文字列の $RepresentationID$ を実際のIDに置換
+            media_template = media_template.replace('$RepresentationID$', representation_id)
+            init_template = init_template.replace('$RepresentationID$', representation_id)
+    
+            # セグメントリストの構築
+            segment_list = []
+            current_time = 0
+            for segment_duration in segments:
+                segment_file = media_template.replace('$Time$', str(current_time))
+                segment_list.append(segment_file)
+                current_time += segment_duration
+                
+            return {"init": init_template, "segments": segment_list}
+    
+        except etree.ParseError:
+            print("XML解析エラー")
+            return []
+        except Exception as e:
+            print(f"予期せぬエラーが発生しました: {e}")
+            return []
 
 class Dmm_TV__license:
     def license_vd_ad(pssh, session):

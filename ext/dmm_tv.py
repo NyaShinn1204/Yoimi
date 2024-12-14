@@ -254,6 +254,20 @@ def main_command(session, url, email, password, LOG_LEVEL):
             #print(segemnt_content)
             print(segemnt_content)
             
+            segment_list = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["video_list"][1]["name"])
+            print(segment_list)
+            for i in segment_list["segments"]:
+                print(i)
+            
+                    #logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
+                    #video_url = unext.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
+                    #audio_url = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
+                    #logger.info(" + Video_URL: "+video_url, extra={"service_name": "U-Next"})
+                    #logger.info(" + Audio_URL: "+audio_url, extra={"service_name": "U-Next"})
+                    
+            #      <SegmentTemplate presentationTimeOffset="0" timescale="90000" media="segment_ctvideo_rid$RepresentationID$_cs$Time$_mpd.m4s?cfr=4%2F15015" initialization="segment_ctvideo_rid$RepresentationID$_cinit_mpd.m4s">
+            #      <SegmentTemplate presentationTimeOffset="0" timescale="48000" media="segment_ctaudio_rid$RepresentationID$_cs$Time$_mpd.m4s" initialization="segment_ctaudio_rid$RepresentationID$_cinit_mpd.m4s">
+            
     except Exception as error:
         import traceback
         import sys
