@@ -226,7 +226,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
             logger.debug(f" + HD MPD: {hd_link}", extra={"service_name": "Dmm-TV"})
             
             logger.info(f"Get License for 1 Episode", extra={"service_name": "Dmm-TV"})
-            status, mpd_content = dmm_tv_downloader.get_mpd_content(hd_link)
+            status, mpd_content, hd_link_base = dmm_tv_downloader.get_mpd_content(hd_link)
             
             mpd_lic = dmm_tv.Dmm_TV_utils.parse_mpd_logic(mpd_content)
                         
@@ -249,16 +249,33 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     pixel_d = "1280x720"
                 logger.info(" + {reso} {pixel}".format(reso=resolution_one["quality_name"], pixel=pixel_d), extra={"service_name": "Dmm-TV"})
                 
-            logger.debug("Get Segment URL")
+            logger.debug("Get Segment URL", extra={"service_name": "Dmm-TV"})
             segemnt_content = dmm_tv.Dmm_TV_utils.parse_mpd_content(mpd_content)
             #print(segemnt_content)
-            print(segemnt_content)
+            #print(segemnt_content)
             
-            segment_list = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["video_list"][1]["name"])
-            print(segment_list)
-            for i in segment_list["segments"]:
-                print(i)
+            #print(hd_link_base)
             
+            mpd_base = hd_link_base.replace("manifest.mpd", "")
+            
+            segment_list_video = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["video_list"][1]["name"], mpd_base)
+            #print(segment_list_video)
+            for i in segment_list_video["segments"]:
+                logger.debug(" + Video Segment URL "+i, extra={"service_name": "Dmm-TV"})
+            
+            segment_list_audio = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["audio_list"][1]["name"], mpd_base)
+            #print(segment_list_audio)
+            for i in segment_list_audio["segments"]:
+                logger.debug(" + Audio Segment URL "+i, extra={"service_name": "Dmm-TV"})
+            
+            logger.info("Video, Audio Content Segment Link", extra={"service_name": "U-Next"})
+            logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": "U-Next"})
+            logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": "U-Next"})
+            
+            #dmm_tv_downloader.download_segment(segment_list_audio["segments"], config, unixtime)
+            
+            #print(mpd_base+segment_list_video["init"], mpd_base+segment_list_audio["init"])
+            #print(segment_list_video,segment_list_audio)
                     #logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
                     #video_url = unext.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
                     #audio_url = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]

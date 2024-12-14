@@ -1,7 +1,9 @@
 import re
+import os
 import base64
 import requests
 from lxml import etree
+from tqdm import tqdm
 
 class Dmm_TV_utils:
     def recaptcha_v3_bypass(anchor_url):
@@ -137,7 +139,7 @@ class Dmm_TV_utils:
             "video_list": video_list,
             "audio_list": audio_list
         }
-    def get_segment_link_list(mpd_content, representation_id):
+    def get_segment_link_list(mpd_content, representation_id, url):
         if isinstance(mpd_content, str):
             content = mpd_content.encode('utf-8')
         else:
@@ -189,7 +191,8 @@ class Dmm_TV_utils:
             current_time = 0
             for segment_duration in segments:
                 segment_file = media_template.replace('$Time$', str(current_time))
-                segment_list.append(segment_file)
+                segment_list.append(url+segment_file)
+                print(current_time)
                 current_time += segment_duration
                 
             return {"init": init_template, "segments": segment_list}
@@ -656,13 +659,51 @@ class Dmm_TV_downloader:
         
     def get_mpd_content(self, url):
         try:
-            metadata_response = self.session.get(url)
-            return True, metadata_response.text
+            metadata_response = self.session.get(url, allow_redirects=False)
+            #print(metadata_response.headers.Location)
+            new_url_cdn = metadata_response.headers.get("Location")
+            metadata_response = self.session.get(new_url_cdn, allow_redirects=False)
+            return True, metadata_response.text, new_url_cdn
         except Exception as e:
             print(e)
-            return False, None
+            return False, None, None
         
     def parse_quality(self, links):
         for link in links:
             if link["quality_name"] == "hd":
                 return link["link_mpd"]
+            
+    def download_segment(self, segment_links, config, unixtime):
+        try:
+            # Define the base temp directory
+            base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+    
+            # Ensure the base temp directory exists
+            os.makedirs(base_temp_dir, exist_ok=True)
+    
+            with tqdm(total=len(segment_links), desc='Downloading', ascii=True, unit='file') as pbar:
+                for tsf in segment_links:
+                    # Construct the full output file path
+                    outputtemp = os.path.join(base_temp_dir, os.path.basename(tsf.replace("?cfr=4%2F15015", "")))
+    
+                    try:
+                        # Open the output file for writing
+                        with open(outputtemp, 'wb') as outf:
+                            vid = self.session.get(tsf).content  # Download the segment
+                            #vid = self._aes.decrypt(vid.content)  # Decrypt the segment
+                            outf.write(vid)  # Write the content to file
+    
+                    except Exception as err:
+                        print('Problem occurred\nReason: {}'.format(err))
+                        return None  # Exit the function if any error occurs
+    
+                    # Update the progress bar and append the file to the downloaded list
+                    pbar.update()
+                    #self.downloaded_files.append(outputtemp)
+    
+        except KeyboardInterrupt:
+            print('User pressed CTRL+C, cleaning up...')
+            return None
+    
+        #return self.downloaded_files
+        return True
