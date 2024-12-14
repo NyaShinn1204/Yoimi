@@ -307,8 +307,8 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                     
                     video_downloaded = unext_downloader.aria2c(video_url, title_name_logger_video.replace(":", ""), config, unixtime)
-                    audio_downloaded = unext_downloader.aria2c(audio_url, title_name_logger_audio.replace(":", ""), config, unixtime)
-                    
+                    audio_downloaded = unext_downloader.aria2c(audio_url, title_name_logger_audio.replace(":", ""), config, unixtime)                    
+
                     logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                     
                     unext.Unext_decrypt.decrypt_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), config)

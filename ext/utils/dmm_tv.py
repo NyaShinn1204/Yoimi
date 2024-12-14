@@ -29,7 +29,7 @@ class DMM_TV_decrypt:
                     ]
                 )
         return mp4decrypt_command
-    def decrypt_content(keys, input_file, output_file, config, service_name="U-Next"):
+    def decrypt_content(keys, input_file, output_file, config, service_name="Dmm-TV"):
         mp4decrypt_command = DMM_TV_decrypt.mp4decrypt(keys, config)
         mp4decrypt_command.extend([input_file, output_file])
         # 「ｲ」の数を最大100として進捗バーを作成
@@ -731,7 +731,7 @@ class Dmm_TV_downloader:
             if link["quality_name"] == "hd":
                 return link["link_mpd"]
             
-    def download_segment(self, segment_links, config, unixtime):
+    def download_segment(self, segment_links, config, unixtime, service_name="Dmm-TV"):
         downloaded_files = []
         try:
             # Define the base temp directory
@@ -740,7 +740,7 @@ class Dmm_TV_downloader:
             # Ensure the base temp directory exists
             os.makedirs(base_temp_dir, exist_ok=True)
     
-            with tqdm(total=len(segment_links), desc='Downloading', ascii=True, unit='file') as pbar:
+            with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", ascii=True, unit='file') as pbar:
                 for tsf in segment_links:
                     # Construct the full output file path
                     outputtemp = os.path.join(base_temp_dir, os.path.basename(tsf.replace("?cfr=4%2F15015", "")))
@@ -766,28 +766,30 @@ class Dmm_TV_downloader:
     
         return downloaded_files
 
-    def merge_m4s_files(self, input_files, output_file):
+    def merge_m4s_files(self, input_files, output_file, service_name="Dmm-TV"):
         """
         m4sファイルを結合して1つの動画ファイルにする関数
-    
+        
         Args:
             input_files (list): 結合するm4sファイルのリスト
             output_file (str): 出力する結合済みのファイル名
         """
-        # 入力ファイル
-       # files = ["init.m4s", "1.m4s", "2.m4s"]
-        #output_file = "output.mp4"
+        total_files = len(input_files)
         
         # バイナリモードでファイルを結合
         with open(output_file, "wb") as outfile:
-            for f in input_files:
-                with open(f, "rb") as infile:
-                    outfile.write(infile.read())
+            with tqdm(total=total_files, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as pbar:
+                for i, f in enumerate(input_files, start=1):
+                    with open(f, "rb") as infile:
+                        outfile.write(infile.read())
+                    pbar.set_postfix(file=f, refresh=True)
+                    pbar.update(1)
         
+        # 結合完了メッセージ
         #print(f"結合が完了しました: {output_file}")
         return True
 
-    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="U-Next"):
+    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="Dmm-TV"):
         # 出力ディレクトリを作成
         os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)
     
@@ -799,9 +801,11 @@ class Dmm_TV_downloader:
             "-i",
             os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),
             "-c:v",
-            "copy",
+            "copy",               # 映像はコピー
             "-c:a",
-            "copy",
+            "aac",                # 音声をAAC形式に変換
+            "-b:a",
+            "192k",               # 音声ビットレートを設定（192kbpsに調整）
             "-strict",
             "experimental",
             "-y",
@@ -809,7 +813,7 @@ class Dmm_TV_downloader:
             "-nostats",            # 標準出力を進捗情報のみにする
             output_name,
         ]
-    
+
         # tqdmを使用した進捗表示
         #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:

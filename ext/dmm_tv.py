@@ -208,6 +208,8 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     values[missing_key] = ""
                     title_name_logger = format_string.format(**values)
             #"print(status_check)
+            video_duration = message["node"]["playInfo"]["duration"]
+            
             content_type = status_check["status"]
             if content_type == "true":
                 content_type = "FREE   "
@@ -233,9 +235,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
             logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": "Dmm-TV"})
             
             license_key = dmm_tv.Dmm_TV__license.license_vd_ad(mpd_lic["pssh"][1], session)
-            
-            print(license_key)
-            
+                        
             logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "Dmm-TV"})
             
             logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": "Dmm-TV"})
@@ -270,42 +270,33 @@ def main_command(session, url, email, password, LOG_LEVEL):
             for i in segment_list_audio["segments"]:
                 logger.debug(" + Audio Segment URL "+i, extra={"service_name": "Dmm-TV"})
             
-            logger.info("Video, Audio Content Segment Link", extra={"service_name": "U-Next"})
-            logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": "U-Next"})
-            logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": "U-Next"})
+            logger.info("Video, Audio Content Segment Link", extra={"service_name": "Dmm-TV"})
+            logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": "Dmm-TV"})
+            logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": "Dmm-TV"})
 
+            
+            logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": "Dmm-TV"})
             
             downloaded_files_video = dmm_tv_downloader.download_segment(segment_list_video["all"], config, unixtime)
             downloaded_files_audio = dmm_tv_downloader.download_segment(segment_list_audio["all"], config, unixtime)
             #print(downloaded_files)
             
-            logger.info("Merging encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
+            logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": "Dmm-TV"})
             
             dmm_tv_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
             dmm_tv_downloader.merge_m4s_files(downloaded_files_audio, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"))
             
-            logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
+            logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": "Dmm-TV"})
+
+            dmm_tv.DMM_TV_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
+            dmm_tv.DMM_TV_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
             
-            license_key_multi = [f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT'][0]
+            logger.info("Muxing Episode...", extra={"service_name": "Dmm-TV"})
             
-            dmm_tv.DMM_TV_decrypt.decrypt_content(license_key_multi, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
-            dmm_tv.DMM_TV_decrypt.decrypt_content(license_key_multi, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
-            
-            logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
-            
-            result = dmm_tv_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(message["duration"]))
+            result = dmm_tv_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(video_duration))
                         
-            #print(mpd_base+segment_list_video["init"], mpd_base+segment_list_audio["init"])
-            #print(segment_list_video,segment_list_audio)
-                    #logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
-                    #video_url = unext.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
-                    #audio_url = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
-                    #logger.info(" + Video_URL: "+video_url, extra={"service_name": "U-Next"})
-                    #logger.info(" + Audio_URL: "+audio_url, extra={"service_name": "U-Next"})
-                    
-            #      <SegmentTemplate presentationTimeOffset="0" timescale="90000" media="segment_ctvideo_rid$RepresentationID$_cs$Time$_mpd.m4s?cfr=4%2F15015" initialization="segment_ctvideo_rid$RepresentationID$_cinit_mpd.m4s">
-            #      <SegmentTemplate presentationTimeOffset="0" timescale="48000" media="segment_ctaudio_rid$RepresentationID$_cs$Time$_mpd.m4s" initialization="segment_ctaudio_rid$RepresentationID$_cinit_mpd.m4s">
-            
+            logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Dmm-TV"})
+                        
     except Exception as error:
         import traceback
         import sys
