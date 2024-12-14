@@ -1,4 +1,4 @@
-![Yoimi](https://socialify.git.ci/NyaShinn1204/Yoimi/image?description=1&descriptionEditable=Abema%E3%82%84U-Next%E3%81%AE%E5%8B%95%E7%94%BB%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%89%E3%83%84%E3%83%BC%E3%83%AB%0AA%20Simple%20Abema%20TV%2C%20U-Next%20Downloader&font=Raleway&forks=1&issues=1&language=1&logo=https%3A%2F%2Ffiles.catbox.moe%2Fue535j.png&name=1&stargazers=1&theme=Light)
+![Yoimi](https://socialify.git.ci/NyaShinn1204/Yoimi/image?description=1&descriptionEditable=Abema%E3%82%84U-Next%E3%80%81Dmm-TV%E3%81%AE%E5%8B%95%E7%94%BB%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%80%E3%83%BC%0AA%20Simple%20Abema%20TV%2C%20U-Next%2C%20Dmm-TV%2C%20Dmm-TV%20Downloader&font=Raleway&forks=1&issues=1&language=1&logo=https%3A%2F%2Ffiles.catbox.moe%2Fue535j.png&name=1&stargazers=1&theme=Light)
 
 [![jp](https://img.shields.io/badge/README-jp-red.svg)](README.md)
 [![en](https://img.shields.io/badge/README-en-red.svg)](README.en-us.md)
@@ -53,7 +53,7 @@ Options:
 
 **Proxy has not yet been fully tested**
 
-#### Example command: 
+### Example command: 
 Download from Abema
 1. **Download original file**  
    ```bash
@@ -94,7 +94,7 @@ Download from U-Next
 ##### Known issues:
  * Sometimes licensing fails and the program stops.
 
-## Contact us:
+##### Contact us:
 - discord: nyanyakko005
 
 > [!WARNING]
