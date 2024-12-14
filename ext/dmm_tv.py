@@ -272,7 +272,11 @@ def main_command(session, url, email, password, LOG_LEVEL):
             logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": "U-Next"})
             logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": "U-Next"})
             
-            #dmm_tv_downloader.download_segment(segment_list_audio["segments"], config, unixtime)
+            downloaded_files = dmm_tv_downloader.download_segment(segment_list_video["segments"], config, unixtime)
+            
+            print(downloaded_files)
+            
+            dmm_tv_downloader.merge_m4s_files(downloaded_files, "output.mp4")
             
             #print(mpd_base+segment_list_video["init"], mpd_base+segment_list_audio["init"])
             #print(segment_list_video,segment_list_audio)

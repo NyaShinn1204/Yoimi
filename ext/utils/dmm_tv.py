@@ -2,8 +2,51 @@ import re
 import os
 import base64
 import requests
-from lxml import etree
+import subprocess
 from tqdm import tqdm
+from lxml import etree
+from datetime import datetime
+from urllib.parse import urljoin
+
+COLOR_GREEN = "\033[92m"
+COLOR_GRAY = "\033[90m"
+COLOR_RESET = "\033[0m"
+COLOR_BLUE = "\033[94m"
+
+class DMM_TV_decrypt:
+    def mp4decrypt(keys, config):
+        if os.name == 'nt':
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
+        else:
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
+        for key in keys:
+            if key["type"] == "CONTENT":
+                mp4decrypt_command.extend(
+                    [
+                        "--show-progress",
+                        "--key",
+                        "{}:{}".format(key["kid_hex"], key["key_hex"]),
+                    ]
+                )
+        return mp4decrypt_command
+    def decrypt_content(keys, input_file, output_file, config, service_name="U-Next"):
+        mp4decrypt_command = DMM_TV_decrypt.mp4decrypt(keys, config)
+        mp4decrypt_command.extend([input_file, output_file])
+        # 「ｲ」の数を最大100として進捗バーを作成
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as process:
+                for line in process.stdout:
+                    match = re.search(r"(ｲ+)", line)
+                    if match:
+                        progress_count = len(match.group(1))
+                        pbar.n = progress_count
+                        pbar.refresh()
+            
+            process.wait()
+            if process.returncode == 0:  # 正常終了の場合
+                pbar.n = 100
+                pbar.refresh()
+            pbar.close()
 
 class Dmm_TV_utils:
     def recaptcha_v3_bypass(anchor_url):
@@ -150,9 +193,10 @@ class Dmm_TV_utils:
         Args:
             mpd_content (str): MPDファイルのXMLコンテンツ。
             representation_id (str): 抽出したいRepresentation ID。
+            url (str) : mpdファイルのURL
     
         Returns:
-            list: セグメントリストのリスト。セグメントリストが見つからない場合は空のリストを返す。
+            dict: セグメントリストのリスト。セグメントリストが見つからない場合は空の辞書を返す。
         """
         try:
             tree = etree.fromstring(content)
@@ -162,7 +206,7 @@ class Dmm_TV_utils:
             # 指定されたRepresentation IDを持つRepresentation要素を探す
             representation = tree.find(f'.//dash:Representation[@id="{representation_id}"]', ns)
             if representation is None:
-              return []
+              return {}
     
             # 親のAdaptationSet要素を見つける
             adaptation_set = representation.find('..')
@@ -170,14 +214,11 @@ class Dmm_TV_utils:
             # そのAdaptationSetの子要素であるSegmentTemplateを探す
             segment_template = adaptation_set.find('dash:SegmentTemplate', ns)
             if segment_template is None:
-              return []
+              return {}
     
             segment_timeline = segment_template.find('dash:SegmentTimeline', ns)
             if segment_timeline is None:
-              return []
-    
-            # SegmentTimeline内のすべてのS要素を探し、'd'属性の値を取り出す
-            segments = [int(s.get('d')) for s in segment_timeline.findall('dash:S', ns)]
+              return {}
     
             media_template = segment_template.get('media')
             init_template = segment_template.get('initialization')
@@ -185,24 +226,38 @@ class Dmm_TV_utils:
             # テンプレート文字列の $RepresentationID$ を実際のIDに置換
             media_template = media_template.replace('$RepresentationID$', representation_id)
             init_template = init_template.replace('$RepresentationID$', representation_id)
-    
+            
             # セグメントリストの構築
             segment_list = []
             current_time = 0
-            for segment_duration in segments:
-                segment_file = media_template.replace('$Time$', str(current_time))
-                segment_list.append(url+segment_file)
-                print(current_time)
-                current_time += segment_duration
+            for segment in segment_timeline.findall('dash:S', ns):
+                d_attr = segment.get('d')
+                r_attr = segment.get('r')
+                if not d_attr:
+                    continue
+                duration = int(d_attr)
                 
-            return {"init": init_template, "segments": segment_list}
+                repeat_count = 1
+                if r_attr is not None:
+                    repeat_count = int(r_attr) + 1
+    
+                for _ in range(repeat_count):
+                    segment_file = media_template.replace('$Time$', str(current_time))
+                    segment_list.append(urljoin(url, segment_file))
+                    current_time += duration
+    
+    
+            init_url = urljoin(url, init_template)
+    
+    
+            return {"init": init_url, "segments": segment_list}
     
         except etree.ParseError:
             print("XML解析エラー")
-            return []
+            return {}
         except Exception as e:
             print(f"予期せぬエラーが発生しました: {e}")
-            return []
+            return {}
 
 class Dmm_TV__license:
     def license_vd_ad(pssh, session):
@@ -674,6 +729,7 @@ class Dmm_TV_downloader:
                 return link["link_mpd"]
             
     def download_segment(self, segment_links, config, unixtime):
+        downloaded_files = []
         try:
             # Define the base temp directory
             base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -699,11 +755,46 @@ class Dmm_TV_downloader:
     
                     # Update the progress bar and append the file to the downloaded list
                     pbar.update()
-                    #self.downloaded_files.append(outputtemp)
+                    downloaded_files.append(outputtemp)
     
         except KeyboardInterrupt:
             print('User pressed CTRL+C, cleaning up...')
             return None
     
-        #return self.downloaded_files
-        return True
+        return downloaded_files
+
+    def merge_m4s_files(self, input_files, output_file):
+        """
+        m4sファイルを結合して1つの動画ファイルにする関数
+    
+        Args:
+            input_files (list): 結合するm4sファイルのリスト
+            output_file (str): 出力する結合済みのファイル名
+        """
+        # 一時ファイルリストを作成
+        temp_list_file = "file_list.txt"
+        with open(temp_list_file, "w", encoding="utf-8") as f:
+            for file in input_files:
+                f.write(f"file '{file}'\n")
+    
+        # FFmpegコマンドで結合
+        try:
+            # FFmpegでファイルを結合しつつ再エンコード
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-i", f"concat:{'|'.join(input_files)}",  # ファイルを連結
+                    "-c:v", "libx264",  # 映像をH.264にエンコード
+                    "-c:a", "aac",  # 音声をAACにエンコード
+                    "-strict", "experimental",  # AACを有効化
+                    output_file
+                ],
+                check=True
+            )
+            print(f"強引な結合が完了しました: {output_file}")
+        except subprocess.CalledProcessError as e:
+            print(f"エラーが発生しました: {e}")
+        finally:
+            # 一時ファイルを削除
+            if os.path.exists(temp_list_file):
+                os.remove(temp_list_file)
