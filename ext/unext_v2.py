@@ -289,7 +289,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
                     logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
                                         
-                    logger.info("Checking resolution...", extra={"service_name": "unext"})
+                    logger.info("Checking resolution...", extra={"service_name": "U-Next"})
                     resolution_s = unext.mpd_parse.get_resolutions(mpd_content)
                     logger.info("Found resolution", extra={"service_name": "U-Next"})
                     for resolution_one in resolution_s:

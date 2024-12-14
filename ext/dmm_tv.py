@@ -71,14 +71,17 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 logger.error(message, extra={"service_name": "Dmm-TV"})
                 exit(1)
             else:
+                plan_status = message["planStatus"]["planType"]
                 logger.info("Loggined Account", extra={"service_name": "Dmm-TV"})
                 logger.info(" + ID: "+message["id"], extra={"service_name": "Dmm-TV"})
-                logger.info(" + PlanType: "+message["planStatus"]["planType"], extra={"service_name": "Dmm-TV"})
+                logger.info(" + PlanType: "+plan_status, extra={"service_name": "Dmm-TV"})
+        else:
+            plan_status = "No Logined"
         
         status, season_id, content_id = dmm_tv.Dmm_TV_utils.parse_url(url)
                 
         status_check = dmm_tv_downloader.check_free(season_id, content_id)
-        if "false" in status_check:
+        if "false" in status_check and plan_status != "STANDARD":
             logger.warning("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
             pass
             #exit(1)
@@ -139,12 +142,14 @@ def main_command(session, url, email, password, LOG_LEVEL):
                         missing_key = e.args[0]
                         values[missing_key] = ""
                         title_name_logger = format_string.format(**values)
-                content_type = status_check[i]
+                content_type = status_check[i]["status"]
                 if content_type == "true":
                     content_type = "FREE   "
+                    content_status_lol = f" | END FREE {status_check[i]["end_at"]}"
                 else:
                     content_type = "PREMIUM"
-                logger.info(f" + {content_type} | {title_name_logger}", extra={"service_name": "Dmm-TV"})
+                    content_status_lol = ""
+                logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Dmm-TV"})
                 
                 i=i+1
             # forかなんかで取り出して、実行
@@ -186,12 +191,15 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     missing_key = e.args[0]
                     values[missing_key] = ""
                     title_name_logger = format_string.format(**values)
-            content_type = status_check
+            #"print(status_check)
+            content_type = status_check["status"]
             if content_type == "true":
                 content_type = "FREE   "
+                content_status_lol = f" | END FREE {status_check["end_at"]}"
             else:
                 content_type = "PREMIUM"
-            logger.info(f" + {content_type} | {title_name_logger}", extra={"service_name": "Dmm-TV"})
+                content_status_lol = ""
+            logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Dmm-TV"})
             
             status, links = dmm_tv_downloader.get_mpd_link(content_id)
             logger.debug(f"{status},{links}", extra={"service_name": "Dmm-TV"})
