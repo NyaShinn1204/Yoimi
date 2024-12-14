@@ -234,6 +234,8 @@ def main_command(session, url, email, password, LOG_LEVEL):
             
             license_key = dmm_tv.Dmm_TV__license.license_vd_ad(mpd_lic["pssh"][1], session)
             
+            print(license_key)
+            
             logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "Dmm-TV"})
             
             logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": "Dmm-TV"})
@@ -271,13 +273,28 @@ def main_command(session, url, email, password, LOG_LEVEL):
             logger.info("Video, Audio Content Segment Link", extra={"service_name": "U-Next"})
             logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": "U-Next"})
             logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": "U-Next"})
+
             
-            downloaded_files = dmm_tv_downloader.download_segment(segment_list_video["segments"], config, unixtime)
+            downloaded_files_video = dmm_tv_downloader.download_segment(segment_list_video["all"], config, unixtime)
+            downloaded_files_audio = dmm_tv_downloader.download_segment(segment_list_audio["all"], config, unixtime)
+            #print(downloaded_files)
             
-            print(downloaded_files)
+            logger.info("Merging encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
             
-            dmm_tv_downloader.merge_m4s_files(downloaded_files, "output.mp4")
+            dmm_tv_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
+            dmm_tv_downloader.merge_m4s_files(downloaded_files_audio, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"))
             
+            logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
+            
+            license_key_multi = [f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT'][0]
+            
+            dmm_tv.DMM_TV_decrypt.decrypt_content(license_key_multi, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
+            dmm_tv.DMM_TV_decrypt.decrypt_content(license_key_multi, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
+            
+            logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
+            
+            result = dmm_tv_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(message["duration"]))
+                        
             #print(mpd_base+segment_list_video["init"], mpd_base+segment_list_audio["init"])
             #print(segment_list_video,segment_list_audio)
                     #logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})

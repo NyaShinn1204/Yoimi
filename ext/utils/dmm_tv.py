@@ -229,6 +229,8 @@ class Dmm_TV_utils:
             
             # セグメントリストの構築
             segment_list = []
+            segment_all = []
+            segment_all.append(urljoin(url, init_template))
             current_time = 0
             for segment in segment_timeline.findall('dash:S', ns):
                 d_attr = segment.get('d')
@@ -244,13 +246,14 @@ class Dmm_TV_utils:
                 for _ in range(repeat_count):
                     segment_file = media_template.replace('$Time$', str(current_time))
                     segment_list.append(urljoin(url, segment_file))
+                    segment_all.append(urljoin(url, segment_file))
                     current_time += duration
     
     
             init_url = urljoin(url, init_template)
     
     
-            return {"init": init_url, "segments": segment_list}
+            return {"init": init_url, "segments": segment_list, "all": segment_all}
     
         except etree.ParseError:
             print("XML解析エラー")
@@ -771,30 +774,63 @@ class Dmm_TV_downloader:
             input_files (list): 結合するm4sファイルのリスト
             output_file (str): 出力する結合済みのファイル名
         """
-        # 一時ファイルリストを作成
-        temp_list_file = "file_list.txt"
-        with open(temp_list_file, "w", encoding="utf-8") as f:
-            for file in input_files:
-                f.write(f"file '{file}'\n")
+        # 入力ファイル
+       # files = ["init.m4s", "1.m4s", "2.m4s"]
+        #output_file = "output.mp4"
+        
+        # バイナリモードでファイルを結合
+        with open(output_file, "wb") as outfile:
+            for f in input_files:
+                with open(f, "rb") as infile:
+                    outfile.write(infile.read())
+        
+        #print(f"結合が完了しました: {output_file}")
+        return True
+
+    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="U-Next"):
+        # 出力ディレクトリを作成
+        os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)
     
-        # FFmpegコマンドで結合
-        try:
-            # FFmpegでファイルを結合しつつ再エンコード
-            subprocess.run(
-                [
-                    "ffmpeg",
-                    "-i", f"concat:{'|'.join(input_files)}",  # ファイルを連結
-                    "-c:v", "libx264",  # 映像をH.264にエンコード
-                    "-c:a", "aac",  # 音声をAACにエンコード
-                    "-strict", "experimental",  # AACを有効化
-                    output_file
-                ],
-                check=True
-            )
-            print(f"強引な結合が完了しました: {output_file}")
-        except subprocess.CalledProcessError as e:
-            print(f"エラーが発生しました: {e}")
-        finally:
-            # 一時ファイルを削除
-            if os.path.exists(temp_list_file):
-                os.remove(temp_list_file)
+        # ffmpegコマンド
+        compile_command = [
+            "ffmpeg",
+            "-i",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),
+            "-i",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),
+            "-c:v",
+            "copy",
+            "-c:a",
+            "copy",
+            "-strict",
+            "experimental",
+            "-y",
+            "-progress", "pipe:1",  # 進捗を標準出力に出力
+            "-nostats",            # 標準出力を進捗情報のみにする
+            output_name,
+        ]
+    
+        # tqdmを使用した進捗表示
+        #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
+            with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
+                for line in process.stdout:    
+                    # "time=" の進捗情報を解析
+                    match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
+                    if match:
+                        hours = int(match.group(1))
+                        minutes = int(match.group(2))
+                        seconds = float(match.group(3))
+                        current_time = hours * 3600 + minutes * 60 + seconds
+    
+                        # 進捗率を計算して更新
+                        progress = (current_time / duration) * 100
+                        pbar.n = int(progress)
+                        pbar.refresh()
+    
+            # プロセスが終了したら進捗率を100%にする
+            process.wait()
+            if process.returncode == 0:  # 正常終了の場合
+                pbar.n = 100
+                pbar.refresh()
+            pbar.close()
