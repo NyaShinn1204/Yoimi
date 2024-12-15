@@ -1,7 +1,6 @@
 import logging
 import os
 import shutil
-import re
 import sys
 from datetime import datetime
 
@@ -100,6 +99,12 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
             if status == False:
                 print("[!] Requirement to install {}".format(cmd))
                 error_found = True
+                
+        if os.path.exists("l3.wvd"):
+            pass
+        else:
+            print("[-] Error: Widevine CDM File (l3,wvd) is not found")
+            sys.exit(1)
                 
         if error_found:
             sys.exit(1)
