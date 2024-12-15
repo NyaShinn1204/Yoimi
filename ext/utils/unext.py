@@ -185,6 +185,9 @@ class Unext_license:
         challenge_video = cdm.get_license_challenge(session_id_video, PSSH(video_pssh))
         challenge_audio = cdm.get_license_challenge(session_id_audio, PSSH(audio_pssh))
         response_video = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_video)    
+        if response_video.text == "Possibly compromised client":
+            print("THIS WVD IS NOT ALLOWED")
+            #return None
         response_video.raise_for_status()
         response_audio = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_audio)    
         response_audio.raise_for_status()
