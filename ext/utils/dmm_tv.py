@@ -303,115 +303,117 @@ class Dmm_TV_downloader:
         _ENDPOINT_TOKEN = 'https://gw.dmmapis.com/connect/v1/token'
         _CLIENT_ID = 'S5wqksTne9ZGYLH1YeIaWcSYSkYvDtjOEi'
         _CLIENT_SECRET = 'zEq95QPlzmugWhHKayXK2hcGS5z8DYwP'
-                
-        login_recaptcha_token = Dmm_TV_utils.recaptcha_v3_bypass("https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfZLQEVAAAAAC-8pKwFNuzVoJW4tfUCghBX_7ZE&co=aHR0cHM6Ly9hY2NvdW50cy5kbW0uY29tOjQ0Mw..&hl=ja&v=pPK749sccDmVW_9DSeTMVvh2&size=invisible&cb=nswb324ozwnh")
-                
-        querystring = {
-            "client_id": _CLIENT_ID,
-            "parts": ["regist", "snslogin", "darkmode"]
-        }
-        
-        headers = {
-            "host": "accounts.dmm.com",
-            "connection": "keep-alive",
-            "cache-control": "max-age=0",
-            "sec-ch-ua": "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Android\"",
-            "upgrade-insecure-requests": "1",
-            "origin": "https://accounts.dmm.com",
-            "content-type": "application/x-www-form-urlencoded",
-            "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "sec-fetch-site": "same-origin",
-            "sec-fetch-mode": "navigate",
-            "sec-fetch-user": "?1",
-            "sec-fetch-dest": "document",
-            "referer": "https://accounts.dmm.com/app/service/login/password?client_id=S5wqksTne9ZGYLH1YeIaWcSYSkYvDtjOEi&parts=regist&parts=snslogin&parts=darkmode",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7"
-        }
-        
-        response = self.session.get(_ENDPOINT_RES, params=querystring, headers=headers)
-        token_match = re.search(r'name="token" value="([^"]*)"/>', response.text)
-        token = token_match.group(1) if token_match else None
-
-        _auth = {
-            "token": token,
-            "login_id": email,
-            "password": password,
-            "recaptchaToken": login_recaptcha_token,
-            "clientId": _CLIENT_ID,
-            "parts": ["regist", "snslogin", "darkmode"]
-        }
-
-        response = self.session.post("https://accounts.dmm.com/app/service/login/password/authenticate", data=_auth, headers=headers)
-        querystring = {
-            "parts[]": ["regist", "snslogin", "darkmode"],
-            "response_type": "code",
-            "client_id": _CLIENT_ID,
-            "from_domain": "accounts"
-        }
-        headers = {
-            "host": "www.dmm.com",
-            "connection": "keep-alive",
-            "sec-ch-ua": "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Android\"",
-            "upgrade-insecure-requests": "1",
-            "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "sec-fetch-site": "same-site",
-            "sec-fetch-mode": "navigate",
-            "sec-fetch-dest": "document",
-            "referer": "https://accounts.dmm.com/app/service/login/password/authenticate",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7"
-        }
-        redirect_auth_url = self.session.get("https://www.dmm.com/my/-/authorize", allow_redirects=False, params=querystring, headers=headers).headers.get("Location")
-        
-        headers = {
-            "authorization": "Basic "+base64.b64encode((_CLIENT_ID + ":" + _CLIENT_SECRET).encode()).decode(),
-            "accept": "application/json",
-            "content-type": "application/json",
-            "user-agent": "Dalvik/2.1.0 (Linux; U; Android 9; V2338A Build/PQ3B.190801.10101846)",
-            "host": "gw.dmmapis.com",
-            "connection": "Keep-Alive",
-            "accept-encoding": "gzip"
-        }
-        
-        _auth = {
-            "grant_type": "authorization_code",
-            "code": redirect_auth_url.replace("dmmtv://android/auth/?code=", ""),
-            "redirect_uri": "dmmtv://android/auth/"
-        }
-                
-        token_response = self.session.post(_ENDPOINT_TOKEN, json=_auth, headers=headers)
-        token_response_json = token_response.json()["header"]
-        
-        if token_response_json["result_code"] == 0:
-            auth_success = False
-            return False, f"Authentication failed: {token_response.json()["body"]["reason"]}"
-        else:
-            self.session.headers.update({'Authorization': 'Bearer ' + token_response.json()["body"]["access_token"]})
-
-        user_info_query = {
-          "operationName": "GetServicePlan",
-          "variables": {},
-          "query": "query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }"
-        }
-        user_info_res = self.session.post(_ENDPOINT_CC, json=user_info_query)
-        get_profile_id_query = {
-          "operationName": "GetProfileList",
-          "variables": {},
-          "query": "query GetProfileList { user { id profiles { __typename ...profileFragment } } }  fragment profileIconFragment on ProfileIcon { id url }  fragment profileFragment on Profile { id name profileIcon { __typename ...profileIconFragment } isParent viewableRating canPurchase securityCodeSettings { hasSecurityCode } }"
-        }
-        get_profile_id_query = self.session.post(_ENDPOINT_CC, json=get_profile_id_query)
-        self.session.headers.update({'x-dmm-profile-id': get_profile_id_query.json()["data"]["user"]["profiles"][0]["id"]})
-        
-        auth_success = True
-        
-        return True, user_info_res.json()["data"]["user"]
+        try:
+            login_recaptcha_token = Dmm_TV_utils.recaptcha_v3_bypass("https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfZLQEVAAAAAC-8pKwFNuzVoJW4tfUCghBX_7ZE&co=aHR0cHM6Ly9hY2NvdW50cy5kbW0uY29tOjQ0Mw..&hl=ja&v=pPK749sccDmVW_9DSeTMVvh2&size=invisible&cb=nswb324ozwnh")
+                    
+            querystring = {
+                "client_id": _CLIENT_ID,
+                "parts": ["regist", "snslogin", "darkmode"]
+            }
+            
+            headers = {
+                "host": "accounts.dmm.com",
+                "connection": "keep-alive",
+                "cache-control": "max-age=0",
+                "sec-ch-ua": "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": "\"Android\"",
+                "upgrade-insecure-requests": "1",
+                "origin": "https://accounts.dmm.com",
+                "content-type": "application/x-www-form-urlencoded",
+                "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "sec-fetch-site": "same-origin",
+                "sec-fetch-mode": "navigate",
+                "sec-fetch-user": "?1",
+                "sec-fetch-dest": "document",
+                "referer": "https://accounts.dmm.com/app/service/login/password?client_id=S5wqksTne9ZGYLH1YeIaWcSYSkYvDtjOEi&parts=regist&parts=snslogin&parts=darkmode",
+                "accept-encoding": "gzip, deflate, br, zstd",
+                "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7"
+            }
+            
+            response = self.session.get(_ENDPOINT_RES, params=querystring, headers=headers)
+            token_match = re.search(r'name="token" value="([^"]*)"/>', response.text)
+            token = token_match.group(1) if token_match else None
+    
+            _auth = {
+                "token": token,
+                "login_id": email,
+                "password": password,
+                "recaptchaToken": login_recaptcha_token,
+                "clientId": _CLIENT_ID,
+                "parts": ["regist", "snslogin", "darkmode"]
+            }
+    
+            response = self.session.post("https://accounts.dmm.com/app/service/login/password/authenticate", data=_auth, headers=headers)
+            querystring = {
+                "parts[]": ["regist", "snslogin", "darkmode"],
+                "response_type": "code",
+                "client_id": _CLIENT_ID,
+                "from_domain": "accounts"
+            }
+            headers = {
+                "host": "www.dmm.com",
+                "connection": "keep-alive",
+                "sec-ch-ua": "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": "\"Android\"",
+                "upgrade-insecure-requests": "1",
+                "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "sec-fetch-site": "same-site",
+                "sec-fetch-mode": "navigate",
+                "sec-fetch-dest": "document",
+                "referer": "https://accounts.dmm.com/app/service/login/password/authenticate",
+                "accept-encoding": "gzip, deflate, br, zstd",
+                "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7"
+            }
+            redirect_auth_url = self.session.get("https://www.dmm.com/my/-/authorize", allow_redirects=False, params=querystring, headers=headers).headers.get("Location")
+            
+            headers = {
+                "authorization": "Basic "+base64.b64encode((_CLIENT_ID + ":" + _CLIENT_SECRET).encode()).decode(),
+                "accept": "application/json",
+                "content-type": "application/json",
+                "user-agent": "Dalvik/2.1.0 (Linux; U; Android 9; V2338A Build/PQ3B.190801.10101846)",
+                "host": "gw.dmmapis.com",
+                "connection": "Keep-Alive",
+                "accept-encoding": "gzip"
+            }
+            
+            _auth = {
+                "grant_type": "authorization_code",
+                "code": redirect_auth_url.replace("dmmtv://android/auth/?code=", ""),
+                "redirect_uri": "dmmtv://android/auth/"
+            }
+                    
+            token_response = self.session.post(_ENDPOINT_TOKEN, json=_auth, headers=headers)
+            token_response_json = token_response.json()["header"]
+            
+            if token_response_json["result_code"] == 0:
+                auth_success = False
+                return False, f"Authentication failed: {token_response.json()["body"]["reason"]}"
+            else:
+                self.session.headers.update({'Authorization': 'Bearer ' + token_response.json()["body"]["access_token"]})
+    
+            user_info_query = {
+              "operationName": "GetServicePlan",
+              "variables": {},
+              "query": "query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }"
+            }
+            user_info_res = self.session.post(_ENDPOINT_CC, json=user_info_query)
+            get_profile_id_query = {
+              "operationName": "GetProfileList",
+              "variables": {},
+              "query": "query GetProfileList { user { id profiles { __typename ...profileFragment } } }  fragment profileIconFragment on ProfileIcon { id url }  fragment profileFragment on Profile { id name profileIcon { __typename ...profileIconFragment } isParent viewableRating canPurchase securityCodeSettings { hasSecurityCode } }"
+            }
+            get_profile_id_query = self.session.post(_ENDPOINT_CC, json=get_profile_id_query)
+            self.session.headers.update({'x-dmm-profile-id': get_profile_id_query.json()["data"]["user"]["profiles"][0]["id"]})
+            
+            auth_success = True
+            
+            return True, user_info_res.json()["data"]["user"]
+        except Exception as e:
+            return False, e
     
     def check_token(self, token):
         _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'

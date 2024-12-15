@@ -66,11 +66,11 @@ def main_command(session, url, email, password, LOG_LEVEL):
         
         if email and password != "":
             status, message = dmm_tv_downloader.authorize(email, password)
-            logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Dmm-TV"})
             if status == False:
                 logger.error(message, extra={"service_name": "Dmm-TV"})
                 exit(1)
             else:
+                logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Dmm-TV"})
                 plan_status = message["planStatus"]["planType"]
                 logger.info("Loggined Account", extra={"service_name": "Dmm-TV"})
                 logger.info(" + ID: "+message["id"], extra={"service_name": "Dmm-TV"})
@@ -293,7 +293,20 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 logger.info("Muxing Episode...", extra={"service_name": "Dmm-TV"})
                 
                 result = dmm_tv_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(video_duration))
-                            
+                dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                
+                if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                    for filename in os.listdir(dir_path):
+                        file_path = os.path.join(dir_path, filename)
+                        try:
+                            if os.path.isfile(file_path):
+                                os.remove(file_path)
+                            elif os.path.isdir(file_path):
+                                shutil.rmtree(file_path)
+                        except Exception as e:
+                            print(f"削除エラー: {e}")
+                else:
+                    print(f"指定されたディレクトリは存在しません: {dir_path}")
                 logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Dmm-TV"})
             # forかなんかで取り出して、実行
         else:
@@ -421,7 +434,20 @@ def main_command(session, url, email, password, LOG_LEVEL):
             logger.info("Muxing Episode...", extra={"service_name": "Dmm-TV"})
             
             result = dmm_tv_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(video_duration))
-                        
+            dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+            
+            if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                for filename in os.listdir(dir_path):
+                    file_path = os.path.join(dir_path, filename)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                    except Exception as e:
+                        print(f"削除エラー: {e}")
+            else:
+                print(f"指定されたディレクトリは存在しません: {dir_path}")
             logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Dmm-TV"})
                         
     except Exception as error:
