@@ -105,12 +105,21 @@ Dmm-TVからのダウンロード
 
    **サンプルビデオ**: [こちらをクリック](https://youtu.be/hVpCYZ2bV88)
 
+- - -
+
+### サポートリスト
+
+現在サポートされているリストです
+
+- [x] [Abema](https://abema.tv)
+- [x] [U-Next](https://video.unext.jp)
+- [x] [Dmm-TV](https://tv.dmm.com/vod)
 
 &nbsp;
 - - -
 &nbsp;  
 
-##### Known issues:
+##### 把握している問題:
  * 時々ライセンス取得に失敗し、プログラムが停止してしまう問題がある
 
 ##### サポート

@@ -105,6 +105,16 @@ Download from Dmm-TV
 
    **Sample Video**: [Click Here](https://youtu.be/hVpCYZ2bV88)
 
+- - -
+
+### Support List
+
+Here is the current supported list
+
+- [x] [Abema](https://abema.tv)
+- [x] [U-Next](https://video.unext.jp)
+- [x] [Dmm-TV](https://tv.dmm.com/vod)
+
 &nbsp;
 - - -
 &nbsp;  
