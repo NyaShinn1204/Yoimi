@@ -86,6 +86,25 @@ U-NEXTからのダウンロード
 
    **サンプルビデオ**: [こちらをクリック](https://youtu.be/09vmBKzQMQE)
 
+- - -
+
+Dmm-TVからのダウンロード
+1. **特定エピソードをダウンロード**  
+   ```bash
+   python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb&content=4sqn17vutgo79wc8jugmupy3f" --username あなたのメールアドレス --password あなたのパスワード
+   ```
+   ✨ 「ロシア語で出れる隣のアーリャさん」第1話をダウンロードします。
+
+   **サンプルビデオ**: [こちらをクリック](https://youtu.be/rOpmUqHd5MM)
+
+2. **シーズン全体をダウンロード**  
+   ```bash
+   python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb" --username あなたのメールアドレス --password あなたのパスワード
+   ```
+   ✨ 「ロシア語で出れる隣のアーリャさん」のシーズン全エピソードをダウンロードします。
+
+   **サンプルビデオ**: [こちらをクリック](https://youtu.be/hVpCYZ2bV88)
+
 
 &nbsp;
 - - -

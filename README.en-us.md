@@ -48,7 +48,7 @@ Options:
 - **`--username/-U`**: Username or email
 - **`--password/-P`**: Password
 - **`--proxies/-p`**: Proxie
-    - 例: `127.0.0.1:1080`, `http://127.0.0.1:1080`, `http://user:pass@127.0.0.1:1080`, `socks5://127.0.0.1:1080`
+    - Example: `127.0.0.1:1080`, `http://127.0.0.1:1080`, `http://user:pass@127.0.0.1:1080`, `socks5://127.0.0.1:1080`
 - **`--verbose/-v`**: Enable debug mode
 
 **Proxy has not yet been fully tested**
@@ -86,6 +86,24 @@ Download from U-Next
 
    **Sample Video**: [Click Here](https://youtu.be/09vmBKzQMQE)
 
+- - -
+
+Download from Dmm-TV
+1. **Download specific episodes**  
+   ```bash
+   python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb&content=4sqn17vutgo79wc8jugmupy3f" --username EMAIL_HERE --password PASSWORD_HERE
+   ```
+   ✨ Download an episode of「Dandadan」from Unext
+
+   **Sample Video**: [Click Here](https://youtu.be/rOpmUqHd5MM)
+
+2. **Download one season**  
+   ```bash
+   python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb" --username EMAIL_HERE --password PASSWORD_HERE
+   ```
+   ✨ Download the entire one season of「Dandadan」from Unext
+
+   **Sample Video**: [Click Here](https://youtu.be/hVpCYZ2bV88)
 
 &nbsp;
 - - -
