@@ -218,7 +218,7 @@ class Unext_decrypt:
         if os.name == 'nt':
             mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
         else:
-            mp4decrypt_command = ["mp4decrpyt"]
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
         for key in keys:
             if key["type"] == "CONTENT":
                 mp4decrypt_command.extend(
@@ -532,7 +532,7 @@ class Unext_downloader:
         if os.name == 'nt':
             aria2c = os.path.join(config["directorys"]["Binaries"], "aria2c.exe")
         else:
-            aria2c = os.path.join(config["directorys"]["Binaries"], "aria2c")
+            aria2c = "aria2c"
         
         if not os.path.isfile(aria2c) or not os.access(aria2c, os.X_OK):
             print(f"aria2c binary not found or not executable: {aria2c}")

@@ -2,12 +2,13 @@ import re
 import os
 import base64
 import requests
+import threading
 import subprocess
 from tqdm import tqdm
 from lxml import etree
 from datetime import datetime
 from urllib.parse import urljoin
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
 COLOR_RESET = "\033[0m"
@@ -18,7 +19,7 @@ class DMM_TV_decrypt:
         if os.name == 'nt':
             mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
         else:
-            mp4decrypt_command = ["mp4decrypt"]
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
         for key in keys:
             if key["type"] == "CONTENT":
                 mp4decrypt_command.extend(
@@ -734,42 +735,62 @@ class Dmm_TV_downloader:
         for link in links:
             if link["quality_name"] == "hd":
                 return link["link_mpd"]
-            
+
     def download_segment(self, segment_links, config, unixtime, service_name="Dmm-TV"):
         downloaded_files = []
         try:
             # Define the base temp directory
             base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
-    
-            # Ensure the base temp directory exists
             os.makedirs(base_temp_dir, exist_ok=True)
     
-            with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", ascii=True, unit='file') as pbar:
-                for tsf in segment_links:
-                    # Construct the full output file path
-                    outputtemp = os.path.join(base_temp_dir, os.path.basename(tsf.replace("?cfr=4%2F15015", "")))
+            # Progress bar setup
+            progress_lock = threading.Lock()  # Ensure thread-safe progress bar updates
+            with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", ascii=True, unit='file') as pbar:
+                
+                # Thread pool for concurrent downloads
+                with ThreadPoolExecutor(max_workers=8) as executor:
+                    future_to_url = {}
+                    
+                    # Submit download tasks
+                    for tsf in segment_links:
+                        output_temp = os.path.join(base_temp_dir, os.path.basename(tsf.replace("?cfr=4%2F15015", "")))
+                        future = executor.submit(self._download_and_save, tsf, output_temp)
+                        future_to_url[future] = output_temp
     
-                    try:
-                        # Open the output file for writing
-                        with open(outputtemp, 'wb') as outf:
-                            vid = self.session.get(tsf).content  # Download the segment
-                            #vid = self._aes.decrypt(vid.content)  # Decrypt the segment
-                            outf.write(vid)  # Write the content to file
-    
-                    except Exception as err:
-                        print('Problem occurred\nReason: {}'.format(err))
-                        return None  # Exit the function if any error occurs
-    
-                    # Update the progress bar and append the file to the downloaded list
-                    pbar.update()
-                    downloaded_files.append(outputtemp)
+                    # Process completed futures
+                    for future in as_completed(future_to_url):
+                        output_temp = future_to_url[future]
+                        try:
+                            result = future.result()
+                            if result:
+                                downloaded_files.append(output_temp)
+                        except Exception as e:
+                            print(f"Error downloading {output_temp}: {e}")
+                        finally:
+                            with progress_lock:
+                                pbar.update()
     
         except KeyboardInterrupt:
             print('User pressed CTRL+C, cleaning up...')
             return None
     
         return downloaded_files
-
+    
+    def _download_and_save(self, url, output_path):
+        """
+        Helper function to download a segment and save it to a file.
+        """
+        try:
+            with open(output_path, 'wb') as outf:
+                vid = self.session.get(url).content  # Download the segment
+                # vid = self._aes.decrypt(vid.content)  # Uncomment if decryption is needed
+                outf.write(vid)  # Write the content to file
+            return True
+        except Exception as err:
+            print(f"Error saving {output_path}: {err}")
+            return False
+    
+    
     def merge_m4s_files(self, input_files, output_file, service_name="Dmm-TV"):
         """
         m4sファイルを結合して1つの動画ファイルにする関数
