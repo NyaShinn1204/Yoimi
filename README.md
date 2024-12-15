@@ -1,4 +1,4 @@
-![Yoimi](https://socialify.git.ci/NyaShinn1204/Yoimi/image?description=1&descriptionEditable=Abema%E3%82%84U-Next%E3%80%81Dmm-TV%E3%81%AE%E5%8B%95%E7%94%BB%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%80%E3%83%BC%0AA%20Simple%20Abema%20TV%2C%20U-Next%20and%20Dmm-TV%20Downloader&font=Raleway&forks=1&issues=1&language=1&logo=https%3A%2F%2Ffiles.catbox.moe%2Fue535j.png&name=1&stargazers=1&theme=Light)
+![Yoimi](https://socialify.git.ci/NyaShinn1204/Yoimi/image?description=1&descriptionEditable=%E8%A4%87%E6%95%B0%E3%81%AE%E3%82%B5%E3%82%A4%E3%83%88%E3%81%AE%E5%8B%95%E7%94%BB%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%80%E3%83%BC%0AA%20Simple%20Encrypt%20Content%20Downloader&font=Raleway&language=1&logo=https%3A%2F%2Ffiles.catbox.moe%2Fue535j.png&name=1&pattern=Solid&theme=Light)
 
 [![jp](https://img.shields.io/badge/README-jp-red.svg)](README.md)
 [![en](https://img.shields.io/badge/README-en-red.svg)](README.en-us.md)
@@ -93,7 +93,7 @@ Dmm-TVからのダウンロード
    ```bash
    python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb&content=4sqn17vutgo79wc8jugmupy3f" --username あなたのメールアドレス --password あなたのパスワード
    ```
-   ✨ 「ロシア語で出れる隣のアーリャさん」第1話をダウンロードします。
+   ✨ 「ダンダダン」第1話をダウンロードします。
 
    **サンプルビデオ**: [こちらをクリック](https://youtu.be/rOpmUqHd5MM)
 
@@ -101,7 +101,7 @@ Dmm-TVからのダウンロード
    ```bash
    python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb" --username あなたのメールアドレス --password あなたのパスワード
    ```
-   ✨ 「ロシア語で出れる隣のアーリャさん」のシーズン全エピソードをダウンロードします。
+   ✨ 「ダンダダン」のシーズン全エピソードをダウンロードします。
 
    **サンプルビデオ**: [こちらをクリック](https://youtu.be/hVpCYZ2bV88)
 
