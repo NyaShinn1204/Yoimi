@@ -18,7 +18,7 @@ class DMM_TV_decrypt:
         if os.name == 'nt':
             mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
         else:
-            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
+            mp4decrypt_command = ["mp4decrypt"]
         for key in keys:
             if key["type"] == "CONTENT":
                 mp4decrypt_command.extend(
