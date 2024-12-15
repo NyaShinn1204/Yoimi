@@ -219,6 +219,15 @@ class Unext_decrypt:
             mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
         else:
             mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
+        
+        mp4decrypt_path = os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe" if os.name == 'nt' else "mp4decrypt")
+        
+        if not os.access(mp4decrypt_path, os.X_OK):
+            try:
+                os.chmod(mp4decrypt_path, 0o755)
+            except Exception as e:
+                raise PermissionError(f"Failed to set executable permissions on {mp4decrypt_path}: {e}")
+            
         for key in keys:
             if key["type"] == "CONTENT":
                 mp4decrypt_command.extend(
