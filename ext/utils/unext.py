@@ -459,6 +459,8 @@ class Unext_downloader:
         # 18c529a7-04df-41ee-b230-07f95ecd2561 MEZ0000593320
         try:
             metadata_response = self.session.get(f"https://playlist.unext.jp/playlist/v00001/dash/get/{url_code}.mpd/?file_code={url_code}&play_token={playtoken}", headers={"Referer": f"https://unext.jp/{url_code}?playtoken={playtoken}"})
+            if metadata_response.text == "":
+                return False, "他の機器で再生中です。同時に複数機器での再生はできません。（462）"
             return True, metadata_response.text
         except Exception as e:
             print(e)
@@ -580,10 +582,17 @@ class Unext_downloader:
 
         return os.path.join(config["directorys"]["Temp"], "content", unixtime, output_file_name)
     
-    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="U-Next"):
-        # 出力ディレクトリを作成
-        os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)
-    
+    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, title_name_logger, service_name="U-Next"):
+        if os.name != 'nt':
+            os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)
+            output_name = os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4")
+        else:
+            def sanitize_filename(filename):
+                filename = filename.replace(":", "：").replace("?", "？")
+                return re.sub(r'[<>"/\\|*]', "_", filename)
+            os.makedirs(os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name)), exist_ok=True)
+            output_name = os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name), sanitize_filename(title_name_logger+".mp4"))
+        
         # ffmpegコマンド
         compile_command = [
             "ffmpeg",
@@ -607,7 +616,8 @@ class Unext_downloader:
         #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
             with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
-                for line in process.stdout:    
+                for line in process.stdout:   
+                    print(line) 
                     # "time=" の進捗情報を解析
                     match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
                     if match:
