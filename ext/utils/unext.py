@@ -617,7 +617,7 @@ class Unext_downloader:
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
             with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
                 for line in process.stdout:   
-                    print(line) 
+                    #print(line) 
                     # "time=" の進捗情報を解析
                     match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
                     if match:
