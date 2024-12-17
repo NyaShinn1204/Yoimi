@@ -114,6 +114,7 @@ Here is the current supported list
 - [x] [Abema](https://abema.tv)
 - [x] [U-Next](https://video.unext.jp)
 - [x] [Dmm-TV](https://tv.dmm.com/vod)
+- [ ] [Danime](https://animestore.docomo.ne.jp/animestore/tp/)
 
 &nbsp;
 - - -

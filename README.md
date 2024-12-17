@@ -114,6 +114,7 @@ Dmm-TVからのダウンロード
 - [x] [Abema](https://abema.tv)
 - [x] [U-Next](https://video.unext.jp)
 - [x] [Dmm-TV](https://tv.dmm.com/vod)
+- [ ] [Dアニメ](https://animestore.docomo.ne.jp/animestore/tp/)
 
 &nbsp;
 - - -
