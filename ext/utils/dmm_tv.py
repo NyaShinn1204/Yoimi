@@ -35,7 +35,7 @@ class DMM_TV_decrypt:
         mp4decrypt_command.extend([input_file, output_file])
         # 「ｲ」の数を最大100として進捗バーを作成
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
-            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as process:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
                 for line in process.stdout:
                     match = re.search(r"(ｲ+)", line)
                     if match:
