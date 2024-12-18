@@ -30,24 +30,31 @@ class DMM_TV_decrypt:
                     ]
                 )
         return mp4decrypt_command
-    def decrypt_content(keys, input_file, output_file, config, service_name="Dmm-TV"):
+    def decrypt_all_content(video_keys, video_input_file, video_output_file, audio_keys, audio_input_file, audio_output_file, config, service_name="U-Next"):
+        with tqdm(total=2, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ") as outer_pbar:
+            DMM_TV_decrypt.decrypt_content(video_keys, video_input_file, video_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 1つ目の進捗を更新
+    
+            DMM_TV_decrypt.decrypt_content(audio_keys, audio_input_file, audio_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 2つ目の進捗を更新
+    
+    def decrypt_content(keys, input_file, output_file, config, service_name="U-Next"):
         mp4decrypt_command = DMM_TV_decrypt.mp4decrypt(keys, config)
         mp4decrypt_command.extend([input_file, output_file])
-        # 「ｲ」の数を最大100として進捗バーを作成
-        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
-            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
+        
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
                 for line in process.stdout:
-                    match = re.search(r"(ｲ+)", line)
+                    match = re.search(r"(ｲ+)", line)  # 進捗解析
                     if match:
                         progress_count = len(match.group(1))
-                        pbar.n = progress_count
-                        pbar.refresh()
-            
-            process.wait()
-            if process.returncode == 0:  # 正常終了の場合
-                pbar.n = 100
-                pbar.refresh()
-            pbar.close()
+                        inner_pbar.n = progress_count
+                        inner_pbar.refresh()
+                
+                process.wait()
+                if process.returncode == 0:
+                    inner_pbar.n = 100
+                    inner_pbar.refresh()
 
 class Dmm_TV_utils:
     def recaptcha_v3_bypass(anchor_url):

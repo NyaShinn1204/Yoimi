@@ -316,8 +316,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
 
                     logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                     
-                    unext.Unext_decrypt.decrypt_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), config)
-                    unext.Unext_decrypt.decrypt_content(license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
+                    unext.Unext_decrypt.decrypt_all_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
                     
                     logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
                     
@@ -449,9 +448,6 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                 
                 unext.Unext_decrypt.decrypt_all_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
-                
-                #unext.Unext_decrypt.decrypt_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), config)
-                #unext.Unext_decrypt.decrypt_content(license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
                 
                 logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
                                  
