@@ -103,7 +103,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         if os.path.exists("l3.wvd"):
             pass
         else:
-            print("[-] Error: Widevine CDM File (l3,wvd) is not found")
+            print("[-] Error: Widevine CDM File (l3.wvd) is not found")
             sys.exit(1)
                 
         if error_found:

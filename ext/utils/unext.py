@@ -238,26 +238,76 @@ class Unext_decrypt:
                     ]
                 )
         return mp4decrypt_command
+#    def decrypt_all_content(video_keys, video_input_file, video_output_file, audio_keys, audio_input_file, audio_output_file, config, service_name="U-Next"):
+#        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
+#            Unext_decrypt.decrypt_content(video_keys, video_input_file, video_output_file, config)
+#            Unext_decrypt.decrypt_content(audio_keys, audio_input_file, audio_output_file, config)
+#            
+#        #mp4decrypt_command = Unext_decrypt.mp4decrypt(keys, config)
+#        #mp4decrypt_command.extend([input_file, output_file])
+#        ##print(mp4decrypt_command)
+#        ## 「ｲ」の数を最大100として進捗バーを作成
+#        #with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
+#        #    with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
+#        #        for line in process.stdout:
+#        #            #line = line.encode("utf-8", errors="ignore").decode("utf-8")
+#        #            match = re.search(r"(ｲ+)", line)
+#        #            if match:
+#        #                progress_count = len(match.group(1))
+#        #                pbar.n = progress_count
+#        #                pbar.refresh()
+#        #    
+#        #    process.wait()
+#        #    if process.returncode == 0:  # 正常終了の場合
+#        #        pbar.n = 100
+#        #        pbar.refresh()
+#        #    pbar.close()
+#    def decrypt_content(keys, input_file, output_file, config, service_name="U-Next"):
+#        mp4decrypt_command = Unext_decrypt.mp4decrypt(keys, config)
+#        mp4decrypt_command.extend([input_file, output_file])
+#        #print(mp4decrypt_command)
+#        # 「ｲ」の数を最大100として進捗バーを作成
+#        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%", leave=False) as pbar:
+#            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
+#                for line in process.stdout:
+#                    #line = line.encode("utf-8", errors="ignore").decode("utf-8")
+#                    match = re.search(r"(ｲ+)", line)
+#                    if match:
+#                        progress_count = len(match.group(1))
+#                        pbar.n = progress_count
+#                        pbar.refresh()
+#            
+#            process.wait()
+#            if process.returncode == 0:  # 正常終了の場合
+#                pbar.n = 100
+#                pbar.refresh()
+#            pbar.close()
+    def decrypt_all_content(video_keys, video_input_file, video_output_file, audio_keys, audio_input_file, audio_output_file, config, service_name="U-Next"):
+        with tqdm(total=2, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ") as outer_pbar:
+            Unext_decrypt.decrypt_content(video_keys, video_input_file, video_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 1つ目の進捗を更新
+    
+            Unext_decrypt.decrypt_content(audio_keys, audio_input_file, audio_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 2つ目の進捗を更新
+    
     def decrypt_content(keys, input_file, output_file, config, service_name="U-Next"):
         mp4decrypt_command = Unext_decrypt.mp4decrypt(keys, config)
         mp4decrypt_command.extend([input_file, output_file])
-        #print(mp4decrypt_command)
-        # 「ｲ」の数を最大100として進捗バーを作成
-        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
-            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
+        
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
                 for line in process.stdout:
-                    #line = line.encode("utf-8", errors="ignore").decode("utf-8")
-                    match = re.search(r"(ｲ+)", line)
+                    match = re.search(r"(ｲ+)", line)  # 進捗解析
                     if match:
                         progress_count = len(match.group(1))
-                        pbar.n = progress_count
-                        pbar.refresh()
-            
-            process.wait()
-            if process.returncode == 0:  # 正常終了の場合
-                pbar.n = 100
-                pbar.refresh()
-            pbar.close()
+                        inner_pbar.n = progress_count
+                        inner_pbar.refresh()
+                
+                process.wait()
+                if process.returncode == 0:
+                    inner_pbar.n = 100
+                    inner_pbar.refresh()
+
     
 class Unext_downloader:
     def __init__(self, session):

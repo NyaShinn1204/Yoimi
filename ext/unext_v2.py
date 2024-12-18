@@ -343,6 +343,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     
                     session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
                     session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
+            logger.info("Finished download Series: {}".format(title_name), extra={"service_name": "U-Next"})
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": "U-Next"})
             status, message, point = unext_downloader.get_title_parse_single(url)
@@ -447,8 +448,10 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 
                 logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                 
-                unext.Unext_decrypt.decrypt_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), config)
-                unext.Unext_decrypt.decrypt_content(license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
+                unext.Unext_decrypt.decrypt_all_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
+                
+                #unext.Unext_decrypt.decrypt_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), config)
+                #unext.Unext_decrypt.decrypt_content(license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
                 
                 logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
                                  
