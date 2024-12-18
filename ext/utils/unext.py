@@ -241,10 +241,12 @@ class Unext_decrypt:
     def decrypt_content(keys, input_file, output_file, config, service_name="U-Next"):
         mp4decrypt_command = Unext_decrypt.mp4decrypt(keys, config)
         mp4decrypt_command.extend([input_file, output_file])
+        #print(mp4decrypt_command)
         # 「ｲ」の数を最大100として進捗バーを作成
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
             with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
                 for line in process.stdout:
+                    #line = line.encode("utf-8", errors="ignore").decode("utf-8")
                     match = re.search(r"(ｲ+)", line)
                     if match:
                         progress_count = len(match.group(1))
