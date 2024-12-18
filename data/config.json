@@ -1,0 +1,27 @@
+{
+  "global_setting": {
+    "download_directory": "/output",
+    "temp_directory": "/temp",
+    "thumbnail_directory": "/output",
+    "export_style": "%%title%%_%%episode_num%%_%%episode_title%%"
+  },
+  "downloader_setting": {
+    "abema": {
+      "no_account_downloader": "True",
+      "login_method": "email",
+      "login_method_list": "email/token",
+      "token": "",
+      "email": "nyagenv2-5ofj6gsv8e-7030839@eripo.net",
+      "password": "password"
+    },
+    "unext": {
+      "dev_comment": "unextはダウンロードするのにバカみたいなリクエスト送ってるせいで一垢だとうまくいきません",
+      "no_account_downloader": "False",
+      "login_method": "email",
+      "login_method_list": "email/cookie",
+      "cookie_path": "",
+      "email": "nyagenv2-fc9wdads41-156379815@eripo.net",
+      "password": "@asswprd"
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "props": {
+    "pageProps": {}
+  },
+  "page": "/oauth-migration",
+  "query": {
+    "backurl": "https://video.unext.jp/"
+  },
+  "buildId": "7KninD5fzjNHs5T6s-p2u",
+  "runtimeConfig": {
+    "KAFKA_LOG_VERSION": "3.7.7.0",
+    "KAFKA_FRONT_LOG_TOPIC": "frontlog-v3",
+    "KAFKA_API_ENDPOINT": "https://ka.unext.jp/topics",
+    "KAFKA_API_KEY": "A2kXQBT&PgkrnWo7",
+    "IS_OAUTH": false,
+    "OAUTH_COOKIE_TTL": 63072000,
+    "TAPI_ENDPOINT": "https://tapi.unext.jp/passthrough",
+    "OAUTH_ENDPOINT": "https://oauth.unext.jp",
+    "NAPI_ENDPOINT": "https://napi.unext.jp",
+    "VIDEO": "https://video.unext.jp",
+    "ACCOUNT": "https://account.unext.jp",
+    "LOGIN_PAGE": "https://account.unext.jp/login",
+    "COUPON": "https://coupon.unext.jp",
+    "CINEMACOUPON": "https://cinemacoupon.unext.jp",
+    "MYACCOUNT": "https://myaccount.unext.jp",
+    "SUPPORT": "https://support.unext.jp",
+    "REGISTRATION": "https://registration.unext.jp",
+    "HELP": "https://help.unext.jp",
+    "CONTACT": "https://contact.unext.jp",
+    "COMMAND_CENTER": "https://cc.unext.jp",
+    "YUMOBILE_MYPAGE": "https://account.yumobile.jp/mypage",
+    "SIDE_CAR": "https://sidecar.unext.jp",
+    "BOUNCER": "https://bouncer-tower.ca.unext.jp",
+    "TD_BRIDGE_HOST": "in.unext.jp",
+    "TD_HOST": "in.treasuredata.com",
+    "TD_DATABASE": "unext_log_db",
+    "TD_DATABASE_CAMPAIGN": "campaign_db",
+    "TD_WRITEKEY": "5561/009da378c9fb9a70e621669e98a06e16d25041ef",
+    "COOKIE_DOMAIN": "unext.jp",
+    "LOST_AND_FOUND_LOGGER": "https://lostnfounddrain.unext.jp/prod/r",
+    "SBPS_TRANSACTION_URL": "https://fep.sps-system.com/f01/FepBuyInfoReceive.do",
+    "SBPS_SUBSCRIPTION_URL": "https://fep.sps-system.com/f01/FepMrcInfoReceive.do",
+    "SBPS_PAGECON_SIGNUP_URL": "https://napi.unext.jp/1/g/sbps/callback/payment",
+    "SBPS_PAGECON_APPLY_URL": "https://napi.unext.jp/1/g/sbps/callback/upsell",
+    "SBPS_PAGECON_POINT_CHARGE_URL": "https://napi.unext.jp/1/g/sbps/callback/purchase_payment",
+    "CRS_FRONT_ENDPOINT": "http://crs-front.unext.jp",
+    "THREE_D_SECURE_ENDPOINT": "https://www.e-scott.jp/online/tds/OTDS010.do",
+    "WIDEVINE_PROXY_URL": "https://wvproxy.unext.jp",
+    "LPID": {
+      "NSBO_APPLY_VOD": {
+        "NEVER_CONTRACTED": "LPPV2KWX",
+        "CONTRACTED": "LPPFX8VR"
+      },
+      "NSBO_APPLY_USEN": {
+        "NEVER_CONTRACTED": "LPPC9188",
+        "CONTRACTED": "LPP1NK1H"
+      },
+      "BOS_APPLY_VOD": {
+        "NEVER_CONTRACTED": "LP2OLSZXWTAZPJG",
+        "CONTRACTED": "LPBSP391UXJOVLY"
+      },
+      "BOS_APPLY_USEN": {
+        "NEVER_CONTRACTED": "LPPC9188",
+        "CONTRACTED": "LPP1NK1H"
+      }
+    },
+    "ACCOUNT_CREATION": {
+      "LANDING_PAGE_CODE": "LPLGQJKHVA4BRE2",
+      "SALES_AGENCY_CODE": "D30085"
+    },
+    "WITHDRAW": {
+      "RETENTION_FEATURE_CODE": "FET0001836"
+    },
+    "YAMADA": {
+      "AUTH_API": {
+        "ENDPOINT": "https://sp.mymd.jp/pc/index.php",
+        "CP": "med0000001",
+        "A": "memberlogin.videologin001"
+      }
+    },
+    "SMS_LOCK_TTL": {
+      "CINEMA_COUPON": 2592000
+    },
+    "RE_CAPTCHA": {
+      "ENTERPRISE_SITE_KEY": "6Lcm7f8fAAAAAL2IZCNE62C2f_RuBIAdhTis_DGg"
+    },
+    "FUTURE": {
+      "LPID_FOR_STRESS_TEST": [
+        "LPF3JIOK"
+      ]
+    },
+    "HOST": "https://myaccount.unext.jp"
+  },
+  "isFallback": false,
+  "isExperimentalCompile": false,
+  "appGip": true,
+  "scriptLoader": []
+}

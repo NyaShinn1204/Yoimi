@@ -1,0 +1,9 @@
+{
+  "runtimeConfig": {
+    "VIDEO_API": "https://api.p-c3-e.abema-tv.com/v1/video",
+    "SERIES_META_API": "https://api.p-c3-e.abema-tv.com/v1/contentlist",
+    "USER_API": "",
+    "USER_LOGIN_EMAIL_API": "https://api.abema.io/v1/auth/user/email",
+    "USER_LOGIN_API": "https://api.abema.io/v1/users"
+  }
+}
