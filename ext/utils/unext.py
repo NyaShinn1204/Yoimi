@@ -10,6 +10,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, parse_qs
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
@@ -734,3 +735,59 @@ class Unext_downloader:
                 return False
         except Exception as e:
             return False
+        
+    def get_thumbnail_list(self, title_id, episode_id, id_type, config, unixtime):
+        output_temp_directory = os.path.join(config["directorys"]["Temp"], "thumbnail", unixtime)
+        if not os.path.exists(output_temp_directory):
+            os.makedirs(output_temp_directory, exist_ok=True)
+        if id_type[2] == "劇場":
+            # movie 
+            def download_image(url, index):
+                tries = 3
+                for attempt in range(tries):
+                    try:
+                        response = requests.get("https://"+url)
+                        response.raise_for_status()
+                        filename = os.path.join(output_temp_directory, f"key_image{index + 1}.jpg")
+                        with open(filename, 'wb') as file:
+                            file.write(response.content)
+                        return url, True
+                    except requests.RequestException:
+                        print(f"[-] Error downloading {url}, attempt {attempt + 1} of {tries}")
+                        if attempt == tries - 1:
+                            return url, False
+            
+            meta_json = {
+                "operationName":"cosmo_getVideoTitle",
+                "variables":{
+                    "code":title_id
+                },
+                "query": "query cosmo_getVideoTitle($code: ID!) {\n  webfront_title_stage(id: $code) {\n    id\n    titleName\n    rate\n    userRate\n    productionYear\n    country\n    catchphrase\n    attractions\n    story\n    check\n    seriesCode\n    seriesName\n    publicStartDate\n    displayPublicEndDate\n    restrictedCode\n    copyright\n    mainGenreId\n    bookmarkStatus\n    thumbnail {\n      standard\n      secondary\n      __typename\n    }\n    mainGenreName\n    isNew\n    exclusive {\n      typeCode\n      isOnlyOn\n      __typename\n    }\n    isOriginal\n    lastEpisode\n    updateOfWeek\n    nextUpdateDateTime\n    productLineupCodeList\n    hasMultiprice\n    minimumPrice\n    country\n    productionYear\n    paymentBadgeList {\n      id\n      name\n      code\n      __typename\n    }\n    nfreeBadge\n    hasDub\n    hasSubtitle\n    saleText\n    currentEpisode {\n      id\n      interruption\n      duration\n      completeFlag\n      displayDurationText\n      existsRelatedEpisode\n      playButtonName\n      purchaseEpisodeLimitday\n      __typename\n    }\n    publicMainEpisodeCount\n    comingSoonMainEpisodeCount\n    missingAlertText\n    sakuhinNotices\n    hasPackRights\n    __typename\n  }\n}\n"
+            }
+            try:   
+                metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+                return_json = metadata_response.json()
+                if return_json["data"]["webfront_title_stage"] != None:
+                    if return_json["data"]["webfront_title_stage"]["thumbnail"]["standard"]:
+                        get_url = return_json["data"]["webfront_title_stage"]["thumbnail"]
+                    else:
+                        return False 
+                else:
+                    return False
+            except Exception as e:
+                print(e)
+            
+            with ThreadPoolExecutor() as executor:
+                futures = [
+                    executor.submit(download_image, get_url[key], index)
+                    for index, key in enumerate(get_url.keys())
+                    if get_url[key]
+                    if get_url[key].__contains__('imgc.nxtv.jp')
+                ]
+                for future in tqdm(as_completed(futures), total=len(futures), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{"U=Next"}{COLOR_RESET} : ", unit="file"):
+                    url, success = future.result()
+                    if not success:
+                        print(f"[-] Failed to download {url}")
+        else:
+            # episode
+            print("a")

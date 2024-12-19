@@ -440,6 +440,10 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
                 title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
                 
+                logger.info("Downloading All Episode Thumbnails...", extra={"service_name": "U-Next"})
+                
+                unext_downloader.get_thumbnail_list(meta_response["id"], message["id"], id_type, config, unixtime)
+                
                 logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                 
                 video_downloaded = unext_downloader.aria2c(video_url, title_name_logger_video, config, unixtime)
