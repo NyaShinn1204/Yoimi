@@ -470,10 +470,11 @@ class Unext_downloader:
             metadata_response = self.session.get(f"https://playlist.unext.jp/playlist/v00001/dash/get/{url_code}.mpd/?file_code={url_code}&play_token={playtoken}", headers={"Referer": f"https://unext.jp/{url_code}?playtoken={playtoken}"})
             if metadata_response.text == "":
                 return False, "他の機器で再生中です。同時に複数機器での再生はできません。（462）"
-            return True, metadata_response.text
+            else:
+                return True, metadata_response.text
         except Exception as e:
-            print(e)
-            return False, None
+            #print(e)
+            return False, e
         
     def update_progress(self, process, service_name="U-Next"):
         total_size = None
