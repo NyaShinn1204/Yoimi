@@ -748,7 +748,7 @@ class Unext_downloader:
                     try:
                         response = requests.get("https://"+url)
                         response.raise_for_status()
-                        filename = os.path.join(output_temp_directory, f"key_image{index + 1}.jpg")
+                        filename = os.path.join(output_temp_directory, f"{title_id}_key_image_{index + 1}.jpg")
                         with open(filename, 'wb') as file:
                             file.write(response.content)
                         return url, True
@@ -790,4 +790,100 @@ class Unext_downloader:
                         print(f"[-] Failed to download {url}")
         else:
             # episode
-            print("a")
+            
+            ## download key image
+            def download_image(url, index):
+                tries = 3
+                for attempt in range(tries):
+                    try:
+                        response = requests.get("https://"+url)
+                        response.raise_for_status()
+                        filename = os.path.join(output_temp_directory, f"{title_id}_key_image{index + 1}.jpg")
+                        with open(filename, 'wb') as file:
+                            file.write(response.content)
+                        return url, True
+                    except requests.RequestException:
+                        print(f"[-] Error downloading {url}, attempt {attempt + 1} of {tries}")
+                        if attempt == tries - 1:
+                            return url, False
+            
+            meta_json = {
+                "operationName":"cosmo_getVideoTitle",
+                "variables":{
+                    "code":title_id
+                },
+                "query": "query cosmo_getVideoTitle($code: ID!) {\n  webfront_title_stage(id: $code) {\n    id\n    titleName\n    rate\n    userRate\n    productionYear\n    country\n    catchphrase\n    attractions\n    story\n    check\n    seriesCode\n    seriesName\n    publicStartDate\n    displayPublicEndDate\n    restrictedCode\n    copyright\n    mainGenreId\n    bookmarkStatus\n    thumbnail {\n      standard\n      secondary\n      __typename\n    }\n    mainGenreName\n    isNew\n    exclusive {\n      typeCode\n      isOnlyOn\n      __typename\n    }\n    isOriginal\n    lastEpisode\n    updateOfWeek\n    nextUpdateDateTime\n    productLineupCodeList\n    hasMultiprice\n    minimumPrice\n    country\n    productionYear\n    paymentBadgeList {\n      id\n      name\n      code\n      __typename\n    }\n    nfreeBadge\n    hasDub\n    hasSubtitle\n    saleText\n    currentEpisode {\n      id\n      interruption\n      duration\n      completeFlag\n      displayDurationText\n      existsRelatedEpisode\n      playButtonName\n      purchaseEpisodeLimitday\n      __typename\n    }\n    publicMainEpisodeCount\n    comingSoonMainEpisodeCount\n    missingAlertText\n    sakuhinNotices\n    hasPackRights\n    __typename\n  }\n}\n"
+            }
+            try:   
+                metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+                return_json = metadata_response.json()
+                if return_json["data"]["webfront_title_stage"] != None:
+                    if return_json["data"]["webfront_title_stage"]["thumbnail"]["standard"]:
+                        get_url = return_json["data"]["webfront_title_stage"]["thumbnail"]
+                    else:
+                        return False 
+                else:
+                    return False
+            except Exception as e:
+                print(e)
+            
+            with ThreadPoolExecutor() as executor:
+                futures = [
+                    executor.submit(download_image, get_url[key], index)
+                    for index, key in enumerate(get_url.keys())
+                    if get_url[key]
+                    if get_url[key].__contains__('imgc.nxtv.jp')
+                ]
+                for future in tqdm(as_completed(futures), total=len(futures), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{"U=Next"}{COLOR_RESET} : "):
+                    url, success = future.result()
+                    if not success:
+                        print(f"[-] Failed to download {url}")
+                        
+            # ダウンロード関数
+            def download_image(url, title_id, index, special=None):
+                tries = 3
+                filename = f"{title_id}_episode_image_special_{index + 1}.jpg" if special else f"{title_id}_episode_image{index + 1}.jpg"
+                filename = os.path.join(output_temp_directory, filename)
+                for attempt in range(tries):
+                    try:
+                        response = requests.get("https://" + url)
+                        response.raise_for_status()
+                        with open(filename, 'wb') as file:
+                            file.write(response.content)
+                        return url, True
+                    except requests.RequestException:
+                        if attempt == tries - 1:
+                            return url, False
+            
+            # メイン処理
+            meta_json = {
+                "operationName": "cosmo_getVideoTitleEpisodes",
+                "variables": {
+                    "code": title_id,
+                    "page": 1,
+                    "pageSize": 100
+                },
+                "query": "query cosmo_getVideoTitleEpisodes($code: ID!, $page: Int, $pageSize: Int) {\n  webfront_title_titleEpisodes(id: $code, page: $page, pageSize: $pageSize) {\n    episodes {\n      id\n      episodeName\n      purchaseEpisodeLimitday\n      thumbnail {\n        standard\n        __typename\n      }\n      duration\n      displayNo\n      interruption\n      completeFlag\n      saleTypeCode\n      introduction\n      saleText\n      episodeNotices\n      isNew\n      hasPackRights\n      minimumPrice\n      hasMultiplePrices\n      productLineupCodeList\n      isPurchased\n      purchaseEpisodeLimitday\n      __typename\n    }\n    pageInfo {\n      results\n      __typename\n    }\n    __typename\n  }\n}\n",
+            }
+            
+            try:
+                metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+                return_json = metadata_response.json()
+                if return_json["data"]["webfront_title_titleEpisodes"] is not None:
+                    episodes = return_json["data"]["webfront_title_titleEpisodes"]["episodes"]
+                    title_id = "SID0104147"  # タイトルIDを指定
+            
+                    # tqdmを使ってプログレスバーを表示
+                    with tqdm(total=len(episodes), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{"U=Next"}{COLOR_RESET} : ") as pbar:
+                        for index, episode in enumerate(episodes):
+                            thumbnails = episode.get("thumbnail", {})
+                            for key, url in thumbnails.items():
+                                if key == "__typename":
+                                    continue
+                                special = key != "standard"
+                                download_image(url, title_id, index, special=special)
+                            pbar.update(1)  # プログレスバーを更新
+                else:
+                    print("No episodes found.")
+            except Exception as e:
+                print(f"Error: {e}")

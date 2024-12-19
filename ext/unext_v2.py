@@ -185,6 +185,11 @@ def main_command(session, url, email, password, LOG_LEVEL):
             if status == False:
                 logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
                 exit(1)
+                
+            logger.info("Downloading All Episode Thumbnails...", extra={"service_name": "U-Next"})
+            
+            unext_downloader.get_thumbnail_list(meta_response["id"], message["id"], id_type, config, unixtime)
+                
             for message in messages:
                 if id_type[2] == "ノーマルアニメ":
                     format_string = config["format"]["anime"]
