@@ -224,22 +224,40 @@ class FOD_downloader:
             
             #print(self.web_headers)
             #print("aaa", self.session.headers)
-            metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false", headers=self.web_headers)
-            print(metadata_response.text)
-            return_json = metadata_response.json()
-            if return_json["detail"] != None:
-                maybe_genre = None
-                
-                if return_json["detail"]["attribute"].__contains__("映画"):
-                    maybe_genre = "劇場"
-                if return_json["detail"]["attribute"].__contains__("エピソード"):
-                    maybe_genre = "ノーマルアニメ"
+            if matches_url.group("episode_id"):
+                metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/episode/detail/?ep_id={matches_url.group("episode_id")}&is_premium=true&dv_type=web&is_kids=false", headers=self.web_headers)
+                #print(metadata_response.text)
+                return_json = metadata_response.json()
+                if return_json["genre"] != None:
+                    maybe_genre = None
+                    
+                    if return_json["genre"]["genre_name"].__contains__("アニメ"):
+                        maybe_genre = "ノーマルアニメ"
+                    if return_json["genre"]["genre_eng_name"].__contains__("anime"):
+                        maybe_genre = "ノーマルアニメ"
+                    else:
+                        maybe_genre = "劇場"
+                    
+                    return True, [return_json["genre"], maybe_genre]
                 else:
-                    maybe_genre = "ノーマルアニメ"
-                
-                return True, [return_json["detail"]["attribute"], maybe_genre]
+                    return False, None
             else:
-                return False, None
+                metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false", headers=self.web_headers)
+                #print(metadata_response.text)
+                return_json = metadata_response.json()
+                if return_json["detail"] != None:
+                    maybe_genre = None
+                    
+                    if return_json["detail"]["attribute"].__contains__("映画"):
+                        maybe_genre = "劇場"
+                    if return_json["detail"]["attribute"].__contains__("エピソード"):
+                        maybe_genre = "ノーマルアニメ"
+                    else:
+                        maybe_genre = "ノーマルアニメ"
+                    
+                    return True, [return_json["detail"]["attribute"], maybe_genre]
+                else:
+                    return False, None
         except Exception as e:
             print(e)
             return False, None
