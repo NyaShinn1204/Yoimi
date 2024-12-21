@@ -188,7 +188,7 @@ class FOD_downloader:
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
             "accept": "application/json, text/plain, */*",
             "sec-ch-ua": "\"Brave\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
-            "x-authorization": "Bearer "+get_temp_token.cookies.get("UT"),
+            "X-Authorization": "Bearer "+get_temp_token.cookies.get("UT"),
             "sec-ch-ua-mobile": "?0",
             "sec-gpc": "1",
             "accept-language": "ja;q=0.9",
@@ -211,7 +211,7 @@ class FOD_downloader:
             self.web_headers["origin"] = "https://fod.fujitv.co.jp"
             self.web_headers["host"] = "i.fod.fujitv.co.jp"
             self.web_headers["sec-fetch-site"] = "same-site"
-            self.web_headers["X-Authorization"] = "Bearer " + get_loginredir.cookies.get("UT")
+            self.web_headers["X-Authorization"] = "Bearer " + get_loginredir.cookies.get("CT")
             return True, user_info_res.json(), user_info_res.cookies.get("uuid")
         else:
             return False, "Authentication Failed: Failed to get user_status_2", None
@@ -222,7 +222,8 @@ class FOD_downloader:
         try:   
             print(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false")
             
-            print(self.web_headers)
+            #print(self.web_headers)
+            #print("aaa", self.session.headers)
             metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false", headers=self.web_headers)
             print(metadata_response.text)
             return_json = metadata_response.json()
