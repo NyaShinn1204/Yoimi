@@ -235,6 +235,10 @@ class FOD_downloader:
                         maybe_genre = "ノーマルアニメ"
                     if return_json["genre"]["genre_eng_name"].__contains__("anime"):
                         maybe_genre = "ノーマルアニメ"
+                    if return_json["genre"]["genre_name"].__contains__("映画"):
+                        maybe_genre = "ノーマルアニメ"
+                    if return_json["genre"]["genre_eng_name"].__contains__("movie"):
+                        maybe_genre = "ノーマルアニメ"
                     else:
                         maybe_genre = "劇場"
                     
