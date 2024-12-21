@@ -230,12 +230,41 @@ class FOD_downloader:
             return True, user_info_res.json(), user_info_res.cookies.get("uuid")
         else:
             return False, "Authentication Failed: Failed to get user_status_2", None
+
+    def get_title_parse_single(self, url):
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+        '''エピソードのタイトルについて取得するコード'''
+        try:
+            metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/episode/detail/?ep_id={matches_url.group("episode_id")}&is_premium=true&dv_type=web&is_kids=false", headers=self.web_headers)
+            return_json = metadata_response.json()
+            if return_json != None:
+                metadata_response_single = return_json
+                return True, metadata_response_single, [metadata_response_single["coin"], metadata_response_single["price"]]
+            else:
+                return False, None, None
+        except Exception as e:
+            print(e)
+            return False, None, None
+        
+    def get_title_parse_all(self, url):
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+        '''エピソードのタイトルについて取得するコード'''
+        try:
+            metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/episode/lineup/?ep_id={matches_url.group("episode_id")}&is_premium=true&dv_type=web&is_kids=false", headers=self.web_headers)
+            return_json = metadata_response.json()
+            if return_json["episodes"] != None:
+                return True, return_json
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False, None
         
     def get_id_type(self, url):
         matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
         '''映像タイプを取得するコード'''
         try:   
-            print(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false")
+            #print(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false")
             
             #print(self.web_headers)
             #print("aaa", self.session.headers)
