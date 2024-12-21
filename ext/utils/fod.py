@@ -34,6 +34,7 @@ class FOD_license:
 class FOD_downloader:
     def __init__(self, session):
         self.session = session
+        self.web_headers = {}
     def authorize(self, email, password):
         _AUTH_MAIN_PAGE = "https://fod.fujitv.co.jp/auth/login/"
         _AUTH_TEST_1 = "https://fod.fujitv.co.jp/loginredir/?r=https%3A%2F%2Ffod.fujitv.co.jp%2Fauth%2Fmail_auth"
@@ -125,6 +126,7 @@ class FOD_downloader:
         if get_loginredir.status_code == 200:
             #print("[+] loginredir headers: ", response.headers)
             #print("[+] loginredir!")
+            #print(get_loginredir.cookies.get("UT"))
             pass
         else:
             return False, "Authentication Failed: Failed to get loginredir", None
@@ -204,6 +206,39 @@ class FOD_downloader:
             #print("[+] GET REAL TOKEN!!!: ", response.cookies.get("UT"))
             #pass
             self.session.headers.update({'X-Authorization': 'Bearer ' + user_info_res.cookies.get("UT")})
+            self.web_headers = headers_xauth
+            self.web_headers["referer"] = "https://fod.fujitv.co.jp/"
+            self.web_headers["origin"] = "https://fod.fujitv.co.jp"
+            self.web_headers["host"] = "i.fod.fujitv.co.jp"
+            self.web_headers["sec-fetch-site"] = "same-site"
+            self.web_headers["X-Authorization"] = "Bearer " + get_loginredir.cookies.get("UT")
             return True, user_info_res.json(), user_info_res.cookies.get("uuid")
         else:
             return False, "Authentication Failed: Failed to get user_status_2", None
+        
+    def get_id_type(self, url):
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+        '''映像タイプを取得するコード'''
+        try:   
+            print(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false")
+            
+            print(self.web_headers)
+            metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false", headers=self.web_headers)
+            print(metadata_response.text)
+            return_json = metadata_response.json()
+            if return_json["detail"] != None:
+                maybe_genre = None
+                
+                if return_json["detail"]["attribute"].__contains__("映画"):
+                    maybe_genre = "劇場"
+                if return_json["detail"]["attribute"].__contains__("エピソード"):
+                    maybe_genre = "ノーマルアニメ"
+                else:
+                    maybe_genre = "ノーマルアニメ"
+                
+                return True, [return_json["detail"]["attribute"], maybe_genre]
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False, None
