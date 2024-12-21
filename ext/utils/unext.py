@@ -264,7 +264,6 @@ class Unext_decrypt:
                 if process.returncode == 0:
                     inner_pbar.n = 100
                     inner_pbar.refresh()
-
     
 class Unext_downloader:
     def __init__(self, session):
