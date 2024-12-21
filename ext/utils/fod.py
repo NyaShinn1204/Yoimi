@@ -1,6 +1,21 @@
 import re
 from bs4 import BeautifulSoup
 
+class FOD_utils:
+    def check_single_episode(url):
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+
+        def contains_repeated_identifier(url, identifier):
+            # identifierが2回連続して現れるか確認
+            pattern = f"({re.escape(identifier)}).*\\1"
+            return bool(re.search(pattern, url))
+                
+        if contains_repeated_identifier(url, matches_url.group("title_id")):
+            #print("True")
+            return True
+        else:
+            #print("False")
+            return False
 class FOD_license:
     def license_vd_ad(all_pssh, custom_data, session):
         _WVPROXY = f"https://cenc.webstream.ne.jp/drmapi/wv/fujitv?custom_data={custom_data}"
@@ -233,12 +248,12 @@ class FOD_downloader:
                     
                     if return_json["genre"]["genre_name"].__contains__("アニメ"):
                         maybe_genre = "ノーマルアニメ"
-                    if return_json["genre"]["genre_eng_name"].__contains__("anime"):
+                    elif return_json["genre"]["genre_eng_name"].__contains__("anime"):
                         maybe_genre = "ノーマルアニメ"
-                    if return_json["genre"]["genre_name"].__contains__("映画"):
-                        maybe_genre = "ノーマルアニメ"
-                    if return_json["genre"]["genre_eng_name"].__contains__("movie"):
-                        maybe_genre = "ノーマルアニメ"
+                    elif return_json["genre"]["genre_name"].__contains__("映画"):
+                        maybe_genre = "劇場"
+                    elif return_json["genre"]["genre_eng_name"].__contains__("movie"):
+                        maybe_genre = "劇場"
                     else:
                         maybe_genre = "劇場"
                     
@@ -254,7 +269,7 @@ class FOD_downloader:
                     
                     if return_json["detail"]["attribute"].__contains__("映画"):
                         maybe_genre = "劇場"
-                    if return_json["detail"]["attribute"].__contains__("エピソード"):
+                    elif return_json["detail"]["attribute"].__contains__("エピソード"):
                         maybe_genre = "ノーマルアニメ"
                     else:
                         maybe_genre = "ノーマルアニメ"

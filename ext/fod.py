@@ -82,11 +82,16 @@ def main_command(session, url, email, password, LOG_LEVEL):
         #uuid_here = uuid_cookie
         #test = session.get(f"https://fod.fujitv.co.jp/apps/api/1/auth/contents/web?site_id=fodapp&ep_id={episode_id}&qa=auto&uuid={uuid_here}&starttime=0&is_pt=false&dt=&_={unixtime}")
         #print(test.json()["ticket"])        
+        status = fod.FOD_utils.check_single_episode(url)
         status_id, id_type = fod_downloader.get_id_type(url)
         if status_id == False:
             logger.error("Failed to Get Episode Json", extra={"service_name": "FOD"})
             exit(1)
         logger.info(f" + Video Type: {id_type}", extra={"service_name": "FOD"})
+        if status == False:
+            print("series")
+        else:
+            print("single")
         
     except Exception as error:
         import traceback
