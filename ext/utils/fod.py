@@ -1,8 +1,16 @@
 import re
+import os
 import time
+import subprocess
+from lxml import etree
+from tqdm import tqdm
 from bs4 import BeautifulSoup
 from datetime import datetime
-from lxml import etree
+
+COLOR_GREEN = "\033[92m"
+COLOR_GRAY = "\033[90m"
+COLOR_RESET = "\033[0m"
+COLOR_BLUE = "\033[94m"
 
 class mpd_parse:
     @staticmethod
@@ -13,9 +21,9 @@ class mpd_parse:
         root = etree.fromstring(content)
     
         for adaptation_set in root.findall('.//AdaptationSet', namespaces):
-            content_type = adaptation_set.get('contentType', '')
+            content_type = adaptation_set.get('mimeType', '')
             
-            if content_type == 'video':  # Ensure we're looking at the video AdaptationSet
+            if content_type == 'video/mp4':  # Ensure we're looking at the video AdaptationSet
                 for representation in adaptation_set.findall('Representation', namespaces):
                     width = representation.get('width')
                     height = representation.get('height')
@@ -47,7 +55,7 @@ class mpd_parse:
         audio_sampling_rate, mime_type, codecs = value.split()
     
         # Find the audio AdaptationSet
-        audio_adaptation_set = root.find(".//AdaptationSet[@contentType='audio']", namespaces)
+        audio_adaptation_set = root.find(".//AdaptationSet[@mimeType='audio/mp4']", namespaces)
     
         if audio_adaptation_set is not None:
             for representation in audio_adaptation_set.findall('Representation', namespaces):
@@ -206,6 +214,7 @@ class FOD_utils:
             raise ValueError(f"Invalid MPD content: {e}")
         except Exception as e:
             raise RuntimeError(f"An unexpected error occurred: {e}")
+
 class FOD_license:
     def license_vd_ad(all_pssh, custom_data, session):
         _WVPROXY = f"https://cenc.webstream.ne.jp/drmapi/wv/fujitv?custom_data={custom_data}"
@@ -235,6 +244,57 @@ class FOD_license:
         }
         
         return keys
+
+class FOD_decrypt:
+    def mp4decrypt(keys, config):
+        if os.name == 'nt':
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
+        else:
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
+        
+        mp4decrypt_path = os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe" if os.name == 'nt' else "mp4decrypt")
+        
+        if not os.access(mp4decrypt_path, os.X_OK):
+            try:
+                os.chmod(mp4decrypt_path, 0o755)
+            except Exception as e:
+                raise PermissionError(f"Failed to set executable permissions on {mp4decrypt_path}: {e}")
+            
+        for key in keys:
+            if key["type"] == "CONTENT":
+                mp4decrypt_command.extend(
+                    [
+                        "--show-progress",
+                        "--key",
+                        "{}:{}".format(key["kid_hex"], key["key_hex"]),
+                    ]
+                )
+        return mp4decrypt_command
+    def decrypt_all_content(video_keys, video_input_file, video_output_file, audio_keys, audio_input_file, audio_output_file, config, service_name="FOD"):
+        with tqdm(total=2, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ") as outer_pbar:
+            FOD_decrypt.decrypt_content(video_keys, video_input_file, video_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 1つ目の進捗を更新
+    
+            FOD_decrypt.decrypt_content(audio_keys, audio_input_file, audio_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 2つ目の進捗を更新
+    
+    def decrypt_content(keys, input_file, output_file, config, service_name="FOD"):
+        mp4decrypt_command = FOD_decrypt.mp4decrypt(keys, config)
+        mp4decrypt_command.extend([input_file, output_file])
+        
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
+                for line in process.stdout:
+                    match = re.search(r"(ｲ+)", line)  # 進捗解析
+                    if match:
+                        progress_count = len(match.group(1))
+                        inner_pbar.n = progress_count
+                        inner_pbar.refresh()
+                
+                process.wait()
+                if process.returncode == 0:
+                    inner_pbar.n = 100
+                    inner_pbar.refresh()
 
 class FOD_downloader:
     def __init__(self, session):
@@ -681,3 +741,121 @@ class FOD_downloader:
         
         #print(response.text)
         pass
+    
+    def update_progress(self, process, service_name="FOD"):
+        total_size = None
+        downloaded_size = 0
+
+        for line in iter(process.stdout.readline, ''):
+            line = line.strip()
+            if line.startswith("[#") and "ETA:" in line:
+                parts = line.split()
+                if len(parts) >= 5:
+                    try:
+                        downloaded_info = parts[1]
+                        downloaded, total = downloaded_info.split('/')
+
+                        # 単位を正規表現で取得
+                        downloaded_match = re.search(r"([\d.]+)\s*(MiB|GiB)", downloaded)
+                        total_match = re.search(r"([\d.]+)\s*(MiB|GiB)", total)
+
+                        if downloaded_match and total_match:
+                            downloaded_value = float(downloaded_match.group(1))
+                            downloaded_unit = downloaded_match.group(2)
+                            total_value = float(total_match.group(1))
+                            total_unit = total_match.group(2)
+
+                            # 単位をMiBに揃える
+                            if downloaded_unit == "GiB":
+                                downloaded_value *= 1024
+                            if total_unit == "GiB":
+                                total_value *= 1024
+
+                            if total_size is None:
+                                total_size = total_value
+
+                            downloaded_size = downloaded_value
+
+                            percentage = (downloaded_size / total_size) * 100
+                            bar = f"{percentage:.0f}%|{'#' * int(percentage // 10)}{'-' * (10 - int(percentage // 10))}|"
+
+                            # GBとMBの判定による表示
+                            if total_size >= 1024:  # GBの場合
+                                size_info = f" {downloaded_size / 1024:.1f}/{total_size / 1024:.1f} GiB"
+                            else:  # MBの場合
+                                size_info = f" {downloaded_size:.1f}/{total_size:.1f} MiB"
+
+                            log_message = (
+                                f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} "
+                                f"[{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : "
+                                f"{bar}{size_info}"
+                            )
+
+                            print(f"\r{log_message}", end="", flush=True)
+
+                    except (IndexError, ValueError, AttributeError) as e:
+                        print(f"Error parsing line: {line} - {e}")
+                else:
+                    print(f"Unexpected format in line: {line}")
+
+        if total_size:
+            if total_size >= 1024:  # GBの場合
+                final_size_info = f" {total_size / 1024:.1f}/{total_size / 1024:.1f} GiB"
+            else:  # MBの場合
+                final_size_info = f" {total_size:.1f}/{total_size:.1f} MiB"
+
+            print(
+                f"\r{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} "
+                f"[{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : "
+                f"100%|{'#' * 10}|{final_size_info}",
+                flush=True
+            )
+
+    def aria2c(self, url, output_file_name, config, unixtime):
+        output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+
+        if not os.path.exists(output_temp_directory):
+            os.makedirs(output_temp_directory, exist_ok=True)
+        if os.name == 'nt':
+            aria2c = os.path.join(config["directorys"]["Binaries"], "aria2c.exe")
+        else:
+            aria2c = "aria2c"
+        
+        if os.name == 'nt':
+            if not os.path.isfile(aria2c) or not os.access(aria2c, os.X_OK):
+                print(f"aria2c binary not found or not executable: {aria2c}")
+            
+        aria2c_command = [
+            aria2c,
+            url,
+            "-d",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime),
+            "-j16",
+            "-o", output_file_name,
+            "-s16",
+            "-x16",
+            "-U", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36",
+            "--allow-overwrite=false",
+            "--async-dns=false",
+            "--auto-file-renaming=false",
+            "--console-log-level=warn",
+            "--retry-wait=5",
+            "--summary-interval=1",
+        ]
+        
+        #print(aria2c_command)
+
+        process = subprocess.Popen(
+            aria2c_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=1,
+            text=True,
+            encoding='utf-8'
+        )
+
+        self.update_progress(process)
+
+        process.wait()
+
+        return os.path.join(config["directorys"]["Temp"], "content", unixtime, output_file_name)

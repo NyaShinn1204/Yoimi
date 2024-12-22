@@ -1,6 +1,9 @@
+import re
+import os
 import yaml
 import time
 import logging
+import shutil
 
 from ext.utils import fod
 
@@ -171,11 +174,48 @@ def main_command(session, url, email, password, LOG_LEVEL):
             logger.debug("+ duration: "+duration, extra={"service_name": "FOD"})
             fod_downloader.sent_start_stop_signal(bandwidth_list[-1], url, duration)
                 
-            logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
+            logger.info("Video, Audio Content Link", extra={"service_name": "FOD"})
             video_url = fod.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
             audio_url = fod.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
-            logger.info(" + Video_URL: "+video_url, extra={"service_name": "U-Next"})
-            logger.info(" + Audio_URL: "+audio_url, extra={"service_name": "U-Next"})
+            logger.info(" + Video_URL: "+video_url, extra={"service_name": "FOD"})
+            logger.info(" + Audio_URL: "+audio_url, extra={"service_name": "FOD"})
+            
+            def sanitize_filename(filename):
+                filename = filename.replace(":", "：").replace("?", "？")
+                return re.sub(r'[<>"/\\|*]', "_", filename)
+            
+            title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
+            title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
+            
+            logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": "FOD"})
+            
+            video_downloaded = fod_downloader.aria2c(video_url, title_name_logger_video, config, unixtime)
+            audio_downloaded = fod_downloader.aria2c(audio_url, title_name_logger_audio, config, unixtime)
+            
+            logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": "FOD"})
+            
+            fod.FOD_decrypt.decrypt_all_content(license_key["key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
+            
+            logger.info("Muxing Episode...", extra={"service_name": "FOD"})
+                             
+            result = fod_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(duration), title_name_logger)
+                
+            dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+            
+            if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                for filename in os.listdir(dir_path):
+                    file_path = os.path.join(dir_path, filename)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                    except Exception as e:
+                        print(f"削除エラー: {e}")
+            else:
+                print(f"指定されたディレクトリは存在しません: {dir_path}")
+            
+            logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "FOD"})
             #session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
             #session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
             #mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
