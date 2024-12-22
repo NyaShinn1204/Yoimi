@@ -1,6 +1,7 @@
 import re
 import time
 from bs4 import BeautifulSoup
+from datetime import datetime
 from xml.etree import ElementTree as ET
 
 class mpd_parse:
@@ -498,6 +499,53 @@ class FOD_downloader:
             "referer": "https://fod.fujitv.co.jp/",
             "accept-encoding": "gzip, deflate, br, zstd",
             "accept-language": "zh,en-US;q=0.9,en;q=0.8,ja;q=0.7"
+        }
+        
+        response = self.session.get(url, headers=headers, params=querystring)
+        
+        print(response.text)
+        
+        uiid_temp = mpd_content_response.json()["viewbeaconurl"]   
+        view_interval = mpd_content_response.json()["viewbeaconinterval"]
+        match = re.search(r"uiid=([^&]+)", uiid_temp)
+        if match:
+            uiid = match.group(1)
+            #print("Extracted uiid:", uiid)
+        
+        url = "https://measure-api.cms.fod.fujitv.co.jp/apps/api/sameview/measure_viewtime"
+        
+        querystring = {
+            "uiid": uiid,
+            "epid": episode_id,
+            "ssid": uuid,
+            "dvid": "WEB_PC",
+            "resume_time": "0",
+            "duration": "1411",
+            "complete": "0",
+            "view_interval": view_interval,
+            "view_start_time": datetime.now().strftime("%Y%m%d%H%M"),
+            "play_status": "2",
+            "isRestriction": "1",
+            "pausecount": "1",
+            "_": str(int(time.time() * 1000))
+        }
+        
+        headers = {
+            "host": "measure-api.cms.fod.fujitv.co.jp",
+            "connection": "keep-alive",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "sec-ch-ua": "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "origin": "https://fod.fujitv.co.jp",
+            "sec-fetch-site": "same-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "https://fod.fujitv.co.jp/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "zh,en-US;q=0.9,en;q=0.8,ja;q=0.7",
+            "cookie": "_wasc=UXYFkZEQ682JQnTS.3; _gcl_au=1.1.1823950804.1734766716; _gid=GA1.3.1658627324.1734766716; _td_ssc_id=01JFM2ESAFXT3TWZ145MK21QAD; __lt__cid=d594b2a7-3ca8-4438-a8ec-683e05833088; _fbp=fb.2.1734766716599.65629728370894571; _ugpid=UXYFkwFInfzriv8K.3; _tt_enable_cookie=1; _ttp=wShh55mem74juyKINNP7kaEvxcS.tt.2; fodid_session_id=fgrrocrdejkioj4h95u969mm11; _yjsu_yjad=1734788414.df8ac0d3-83a4-4005-8625-be6681a3661e; FODCID=92115ef7d92a41f57f60ab281c7d0eb31e82437a30bf32945fab3afe82e0718a6b6d9c845cc8b708ba05947159b57ba6; fod_bu=YKjcTxp01PjqTg%2bHRsX5vuZ2zaGBPRm%2fZOPHZHfyuNdHeHh8qDHwSfSa4KL7UitQQ3nlPBd5TCV6nTWbkLqWMaqibe7mmjKTMTXcftUinlw%3d; plus7_ans=202104; plus7_guid=cdc3a9d6-06be-43e1-b8de-d64c77646055; plus7_attr=1_2003-05-01_1320032; plus7_ct=131237; d6hkt=dfbe3196-c220-4d0d-9101-f91a5f181391; ab.storage.deviceId.595c6e71-7cbd-4ec1-86cf-acff84cdaa9d=g%3A3f1e7888-59d8-7fd1-f0a6-352c1f31cb6c%7Ce%3Aundefined%7Cc%3A1734745601727%7Cl%3A1734827516934; ab.storage.userId.595c6e71-7cbd-4ec1-86cf-acff84cdaa9d=g%3A21988097%7Ce%3Aundefined%7Cc%3A1734745642468%7Cl%3A1734827516934; _clck=167i1xr%7C2%7Cfrx%7C0%7C1816; _ga=GA1.3.1196535851.1734766716; _td=ab92c139-04ca-4f13-b2c2-b20dd72f6048; _ga_3FV4ZRCKNN=GS1.1.1734827516.3.1.1734830779.60.0.0; _uetsid=6d41d070bf3d11efb75981b811c7d3ce; _uetvid=6d41eb80bf3d11efa0c2f3481629beff; _clsk=71y4nk%7C1734830780812%7C5%7C1%7Ct.clarity.ms%2Fcollect; ab.storage.sessionId.595c6e71-7cbd-4ec1-86cf-acff84cdaa9d=g%3A2a68f301-eab4-1b2a-b759-8cefffb0b144%7Ce%3A1734832585098%7Cc%3A1734827516933%7Cl%3A1734830785098"
         }
         
         response = self.session.get(url, headers=headers, params=querystring)
