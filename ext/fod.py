@@ -198,7 +198,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
             
             logger.info("Muxing Episode...", extra={"service_name": "FOD"})
                              
-            result = fod_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(duration), title_name_logger)
+            result = fod_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(duration))
                 
             dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
