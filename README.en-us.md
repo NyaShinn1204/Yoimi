@@ -113,12 +113,18 @@ Download from FOD
    python3 yoimi.py download "https://fod.fujitv.co.jp/title/00d9/00d9110001/" --username EMAIL_HERE --password PASSWORD_HERE
    ```
    ✨ Download an episode of「Frieren」from FOD
-> [!WARNING]
-> FOD is require Email verify code!
 
    **Sample Video**: Please Wait!
 2. **Download one season**  
-   On going... Please Wait!
+   ```bash
+   python3 yoimi.py download "https://fod.fujitv.co.jp/title/00d9/" --username EMAIL_HERE --password PASSWORD_HERE
+   ```
+   ✨ Download the entire one season of「Frieren」from Unext
+
+   **Sample Video**: Please Wait!
+
+> [!WARNING]
+> FOD is require Email verify code!
 
 - - -
 
@@ -130,7 +136,7 @@ Here is the current supported list
 - [x] [U-Next](https://video.unext.jp)
 - [x] [Dmm-TV](https://tv.dmm.com/vod)
 - [ ] [Danime](https://animestore.docomo.ne.jp/animestore/tp/)
-- [x] [FOD](https://fod.fujitv.co.jp) (Now only Support Single Episode)
+- [x] [FOD](https://fod.fujitv.co.jp)
 
 &nbsp;
 - - -

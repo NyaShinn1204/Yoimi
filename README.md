@@ -82,7 +82,7 @@ U-NEXTからのダウンロード
    ```bash
    python3 yoimi.py download "https://video.unext.jp/play/SID0104147" --username あなたのメールアドレス --password あなたのパスワード
    ```
-   ✨ 「ロシア語で出れる隣のアーリャさん」のシーズン全エピソードをダウンロードします。
+   ✨ 「ロシア語で出れる隣のアーリャさん」の1シーズン全エピソードをダウンロードします。
 
    **サンプルビデオ**: [こちらをクリック](https://youtu.be/09vmBKzQMQE)
 
@@ -101,7 +101,7 @@ Dmm-TVからのダウンロード
    ```bash
    python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb" --username あなたのメールアドレス --password あなたのパスワード
    ```
-   ✨ 「ダンダダン」のシーズン全エピソードをダウンロードします。
+   ✨ 「ダンダダン」の1シーズン全エピソードをダウンロードします。
 
    **サンプルビデオ**: [こちらをクリック](https://youtu.be/hVpCYZ2bV88)
 
@@ -113,13 +113,17 @@ FODからのダウンロード
    python3 yoimi.py download "https://fod.fujitv.co.jp/title/00d9/00d9110001/" --username あなたのメールアドレス --password あなたのパスワード
    ```
    ✨ 「葬送のフリーレン」第1話をダウンロードします。
-> [!WARNING]
-> FODはメール認証コードが必要です！
-
    **サンプルビデオ**: お待ちください...!
 
 2. **シーズン全体をダウンロード**  
-   作成中です！
+   ```bash
+   python3 yoimi.py download "https://fod.fujitv.co.jp/title/00d9/" --username あなたのメールアドレス --password あなたのパスワード
+   ```
+   ✨ 「葬送のフリーレン」の1シーズン全エピソードをダウンロードします。
+   **サンプルビデオ**: お待ちください...!
+
+> [!WARNING]
+> FODはメール認証コードが必要です！
 
 - - -
 
@@ -131,7 +135,7 @@ FODからのダウンロード
 - [x] [U-Next](https://video.unext.jp)
 - [x] [Dmm-TV](https://tv.dmm.com/vod)
 - [ ] [Dアニメ](https://animestore.docomo.ne.jp/animestore/tp/)
-- [x] [FOD](https://fod.fujitv.co.jp) 現在シングルエピソードのみサポート
+- [x] [FOD](https://fod.fujitv.co.jp)
 
 &nbsp;
 - - -
