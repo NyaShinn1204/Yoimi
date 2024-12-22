@@ -874,9 +874,7 @@ class FOD_downloader:
             "-c:v",
             "copy",               # 映像はコピー
             "-c:a",
-            "aac",                # 音声をAAC形式に変換
-            "-b:a",
-            "192k",               # 音声ビットレートを設定（192kbpsに調整）
+            "copy",                # 音声をAAC形式に変換             # 音声ビットレートを設定（192kbpsに調整）
             "-strict",
             "experimental",
             "-y",
