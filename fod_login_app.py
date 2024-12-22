@@ -20,7 +20,8 @@ session = requests.Session()
 url = "https://id.fod.fujitv.co.jp/api/member/v2/login_app"
 
 payload = {
-
+    "mail_address": "",
+    "password": ""
 }
 
 class TraceHeader:

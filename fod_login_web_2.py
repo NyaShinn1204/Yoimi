@@ -1,9 +1,23 @@
 import requests
+from bs4 import BeautifulSoup
 
 session = requests.Session()
 
 email = ""
 password = ""
+
+f_headers = {
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "accept-language": "ja;q=0.9",
+    "accept-encoding": "gzip, deflate, br",
+}
+
+response = session.get("https://fod.fujitv.co.jp/auth/login/", headers=f_headers)
+response.raise_for_status()
+soup = BeautifulSoup(response.text, "html.parser")
+viewstate = soup.find("input", {"name": "__VIEWSTATE"})["value"]
+viewstategenerator = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"]
+print(viewstate, viewstategenerator)
 
 _AUTH_MAIN_PAGE = "https://fod.fujitv.co.jp/auth/login/"
 _AUTH_TEST_1 = "https://fod.fujitv.co.jp/loginredir/?r=https%3A%2F%2Ffod.fujitv.co.jp%2Fauth%2Fmail_auth"
@@ -37,8 +51,8 @@ if response.status_code == 200:
     pass
 
 payload = {
-    "__VIEWSTATE": "/wEPDwUKMTg3MDE5MjkwMGRkEfaWBoEUg7eeX65kHUFYgWAdPZo=",
-    "__VIEWSTATEGENERATOR": "89E00937",
+    "__VIEWSTATE": viewstate,
+    "__VIEWSTATEGENERATOR": viewstategenerator,
     "email": email,
     "password": password,
     "ctl00$ContentMain$hdnServerEnv": "",
