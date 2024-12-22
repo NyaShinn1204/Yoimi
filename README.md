@@ -113,8 +113,8 @@ FODからのダウンロード
    python3 yoimi.py download "https://fod.fujitv.co.jp/title/00d9/00d9110001/" --username あなたのメールアドレス --password あなたのパスワード
    ```
    ✨ 「葬送のフリーレン」第1話をダウンロードします。
-   > [!WARNING]
-   > FODはメール認証コードが必要です！
+> [!WARNING]
+> FODはメール認証コードが必要です！
 
    **サンプルビデオ**: お待ちください...!
 
