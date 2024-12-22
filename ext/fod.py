@@ -142,6 +142,32 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     logger.info(f" ! {title_name_logger} require BUY or RENTAL", extra={"service_name": "FOD"})
                     
             ep_id = message["ep_id"]
+            logger.info(f"Get License for 1 Episode", extra={"service_name": "FOD"})
+            uuid = session.cookies.get("uuid")
+            ut = session.cookies.get("UT")
+            print(ut)
+            print(uuid)
+            print(ep_id)
+            status, custom_data, mpd_content = fod_downloader.get_mpd_content(uuid, url, ut)
+            if status == False:
+                logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "FOD"})
+            print(custom_data, mpd_content)
+            logger.info("Checking resolution...", extra={"service_name": "FOD"})
+            resolution_s, bandwidth_list = fod.mpd_parse.get_resolutions(mpd_content)
+            logger.info("Found resolution", extra={"service_name": "FOD"})
+            for resolution_one in resolution_s:
+                logger.info(" + "+resolution_one, extra={"service_name": "FOD"})
+            for bandwidth_one in bandwidth_list:
+                logger.debug(" + "+bandwidth_one, extra={"service_name": "FOD"})
+            fod_downloader.sent_start_stop_signal(bandwidth_list[-1], url)
+                #session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
+                #session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
+            #mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
+#
+            #logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})
+            #logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": "U-Next"})
+            #
+            #license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
         
     except Exception as error:
         import traceback

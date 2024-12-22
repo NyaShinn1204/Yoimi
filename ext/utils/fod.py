@@ -1,5 +1,44 @@
 import re
+import time
 from bs4 import BeautifulSoup
+from xml.etree import ElementTree as ET
+
+class mpd_parse:
+    @staticmethod
+    def get_resolutions(mpd_content):
+        # 名前空間の定義
+        namespace = {'ns': 'urn:mpeg:dash:schema:mpd:2011'}
+        
+        # MPDテキストを解析
+        try:
+            root = ET.fromstring(mpd_content)
+        except ET.ParseError as e:
+            print(f"XML Parse Error: {e}")
+            return []
+        
+        # 結果を格納するリスト
+        video_representations = []
+        bandwidth_list = []
+        
+        # 映像の AdaptationSet をフィルタリング
+        for adaptation_set in root.findall(".//ns:AdaptationSet", namespace):
+            mime_type = adaptation_set.get("mimeType")
+            if mime_type == "video/mp4":  # 映像のみ
+                for representation in adaptation_set.findall("ns:Representation", namespace):
+                    # 幅、高さ、コーデックを取得
+                    width = representation.get("width")
+                    height = representation.get("height")
+                    codecs = representation.get("codecs")
+                    bandwidth = representation.get("bandwidth")
+                    
+                    # 映像の情報をリストに追加
+                    if width and height and codecs:
+                        info = f"{width}x{height} {mime_type.split('/')[-1]} {codecs}"
+                        info_b = bandwidth
+                        video_representations.append(info)
+                        bandwidth_list.append(info_b)
+        
+        return video_representations, bandwidth_list
 
 class FOD_utils:
     def check_single_episode(url):
@@ -51,6 +90,7 @@ class FOD_downloader:
         self.session = session
         self.web_headers = {}
     def authorize(self, email, password):
+        global user_info_res
         _AUTH_MAIN_PAGE = "https://fod.fujitv.co.jp/auth/login/"
         _AUTH_TEST_1 = "https://fod.fujitv.co.jp/loginredir/?r=https%3A%2F%2Ffod.fujitv.co.jp%2Fauth%2Fmail_auth"
         _AUTH_USER_STATUS = "https://fod.fujitv.co.jp/apps/api/1/user/status"
@@ -309,3 +349,158 @@ class FOD_downloader:
         except Exception as e:
             print(e)
             return False, None
+        
+    def get_mpd_content(self, uuid, url, ut):
+        global mpd_content_response
+        tries = 3
+        for attempt in range(tries):
+            try:
+                unixtime = str(int(time.time() * 1000))
+                matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+                self.web_headers["X-Authorization"] = "Bearer "+ut
+                self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
+                self.web_headers["host"] = "fod.fujitv.co.jp"
+                self.web_headers["sec-fetch-site"] = "same-origin"
+                print(self.web_headers)
+                mpd_content_response = self.session.get(f"https://fod.fujitv.co.jp/apps/api/1/auth/contents/web?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
+                print(mpd_content_response.text)
+                if mpd_content_response.json():
+                    if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
+                        self.web_headers["X-Authorization"] = "Bearer "+mpd_content_response.cookies.get("UT")
+                        self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
+                        self.web_headers["host"] = "fod.fujitv.co.jp"
+                        self.web_headers["sec-fetch-site"] = "same-origin"
+                        unixtime = str(int(time.time() * 1000))
+                        mpd_content_response = self.session.get(f"https://fod.fujitv.co.jp/apps/api/1/auth/contents/web?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
+                        if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
+                            pass
+                        else:
+                            ticket = mpd_content_response.json()["ticket"]
+                            mpd_url = mpd_content_response.json()["url"]
+                            mpd_content_res = self.session.get(mpd_url)
+                            self.session.get(f"https://fod.fujitv.co.jp/api/premium/view_log_pc/?epid={matches_url.group("episode_id")}&_={str(int(time.time() * 1000))}")
+                            return True, ticket, mpd_content_res.text
+                    else:
+                        ticket = mpd_content_response.json()["ticket"]
+                        mpd_url = mpd_content_response.json()["url"]
+                        mpd_content_res = self.session.get(mpd_url)
+                        self.session.get(f"https://fod.fujitv.co.jp/api/premium/view_log_pc/?epid={matches_url.group("episode_id")}&_={str(int(time.time() * 1000))}")
+                        return True, ticket, mpd_content_res.text
+            except Exception as e:
+                import traceback
+                import sys
+                t, v, tb = sys.exc_info()
+                print(traceback.format_exception(t,v,tb))
+                print(traceback.format_tb(e.__traceback__))
+                if attempt == tries -1:
+                    return False, None
+                
+    def sent_start_stop_signal(self, bandwidth, video_url):
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', video_url)
+        uuid = self.session.cookies.get("uuid")
+        series_id = matches_url.group("title_id")
+        episode_id = matches_url.group("episode_id")
+        enq_id = self.session.cookies.get("plus7_guid")
+        episode_id_for_web = mpd_content_response.json()["samba"]
+        foduser_id = user_info_res.json()["member_id"]
+        td_write_key = "257/1dbef148fc11ca71d992972db31166af2b5dba41"
+        mpd_video_play_band = bandwidth
+        
+        # Start Playing
+        
+        url = "https://tokyo.in.treasuredata.com/postback/v3/event/010_fod_dl_tdtracking_video_play/video_play_log/"
+        
+        querystring = {
+            "foduser_id": foduser_id,
+            "enq_id": enq_id,
+            "season_id": series_id,
+            "fod_episode_id": episode_id,
+            "episode_id": episode_id_for_web,
+            "refer": "fodapp",
+            "device_category": "pc",
+            "session_id": uuid,
+            "td_write_key": td_write_key,
+            "subpronum": "0",
+            "player_status": "play",
+            "current_time": "1",
+            "buffering": "60",
+            "play_band": mpd_video_play_band,
+            "internet_speed": "0",
+            "play_speed": "1",
+            "error_id": "",
+            "stream_type": "urn:mpeg:dash:mp4protection:2011",
+            "contents_type": "SVOD-TVOD",
+            "device_ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "device_os_version": "Chrome",
+            "device_os_sdk_version": "131.0.0.0"
+        }
+        
+        headers = {
+            "host": "tokyo.in.treasuredata.com",
+            "connection": "keep-alive",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "sec-fetch-site": "cross-site",
+            "sec-fetch-mode": "no-cors",
+            "sec-fetch-dest": "empty",
+            "referer": "https://fod.fujitv.co.jp/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "zh,en-US;q=0.9,en;q=0.8,ja;q=0.7"
+        }
+        
+        response = self.session.get(url, headers=headers, params=querystring)
+        
+        print(response.text)
+        
+        # Stop Playing
+        
+        url = "https://tokyo.in.treasuredata.com/postback/v3/event/010_fod_dl_tdtracking_video_play/video_play_log/"
+        
+        querystring = {
+            "foduser_id": foduser_id,
+            "enq_id": enq_id,
+            "season_id": series_id,
+            "fod_episode_id": episode_id,
+            "episode_id": episode_id_for_web,
+            "refer": "fodapp",
+            "device_category": "pc",
+            "session_id": uuid,
+            "td_write_key": td_write_key,
+            "subpronum": "0",
+            "player_status": "pause",
+            "current_time": "3",
+            "buffering": "63",
+            "play_band": mpd_video_play_band,
+            "internet_speed": "0",
+            "play_speed": "1",
+            "error_id": "",
+            "stream_type": "urn:mpeg:dash:mp4protection:2011",
+            "contents_type": "SVOD-TVOD",
+            "device_ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "device_os_version": "Chrome",
+            "device_os_sdk_version": "131.0.0.0"
+        }
+        
+        headers = {
+            "host": "tokyo.in.treasuredata.com",
+            "connection": "keep-alive",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "sec-fetch-site": "cross-site",
+            "sec-fetch-mode": "no-cors",
+            "sec-fetch-dest": "empty",
+            "referer": "https://fod.fujitv.co.jp/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "zh,en-US;q=0.9,en;q=0.8,ja;q=0.7"
+        }
+        
+        response = self.session.get(url, headers=headers, params=querystring)
+        
+        print(response.text)
+        pass
