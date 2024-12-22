@@ -133,6 +133,38 @@ def main_command(session, url, email, password, LOG_LEVEL):
                         title_name_logger = format_string.format(**values)
                 logger.info(f" + {title_name_logger}", extra={"service_name": "FOD"})
             for message in messages:
+                if id_type[1] == "ノーマルアニメ":
+                    format_string = config["format"]["anime"]
+                    values = {
+                        "seriesname": title_name,
+                        "titlename": message.get("disp_ep_no", ""),
+                        "episodename": message.get("ep_title", "").replace(message.get("disp_ep_no", "")+" ", "")
+                    }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
+                if id_type[1] == "劇場":
+                    format_string = config["format"]["movie"]
+                    if message.get("disp_ep_no", "") == "":
+                        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                        values = {
+                            "seriesname": title_name,
+                        }
+                    else:
+                        values = {
+                            "seriesname": title_name,
+                            "titlename": message.get("disp_ep_no", ""),
+                            "episodename": message.get("ep_title", "").replace(message.get("disp_ep_no", "")+" ", "")
+                        }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
                 if message["price"] != 0:
                     logger.info(f" ! {title_name_logger} require {message["price"]}", extra={"service_name": "FOD"})
                     if int(message["price"]) > int(account_point):
