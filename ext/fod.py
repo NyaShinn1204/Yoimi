@@ -145,13 +145,21 @@ def main_command(session, url, email, password, LOG_LEVEL):
             logger.info(f"Get License for 1 Episode", extra={"service_name": "FOD"})
             uuid = session.cookies.get("uuid")
             ut = session.cookies.get("UT")
-            print(ut)
-            print(uuid)
-            print(ep_id)
+            #print(ut)
+            #print(uuid)
+            #print(ep_id)
             status, custom_data, mpd_content = fod_downloader.get_mpd_content(uuid, url, ut)
             if status == False:
                 logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "FOD"})
-            print(custom_data, mpd_content)
+            #print(custom_data, mpd_content)
+            mpd_lic = fod.FOD_utils.parse_mpd_logic(mpd_content)
+
+            logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": "FOD"})
+                   
+            license_key = fod.FOD_license.license_vd_ad(mpd_lic["pssh"][1], custom_data, session)
+                
+            logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": "Dmm-TV"})
+                   
             logger.info("Checking resolution...", extra={"service_name": "FOD"})
             resolution_s, bandwidth_list = fod.mpd_parse.get_resolutions(mpd_content)
             logger.info("Found resolution", extra={"service_name": "FOD"})

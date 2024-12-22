@@ -2,7 +2,7 @@ import re
 import time
 from bs4 import BeautifulSoup
 from datetime import datetime
-from xml.etree import ElementTree as ET
+from lxml import etree
 
 class mpd_parse:
     @staticmethod
@@ -12,8 +12,8 @@ class mpd_parse:
         
         # MPDテキストを解析
         try:
-            root = ET.fromstring(mpd_content)
-        except ET.ParseError as e:
+            root = etree.fromstring(mpd_content)
+        except etree.ParseError as e:
             print(f"XML Parse Error: {e}")
             return []
         
@@ -44,8 +44,8 @@ class mpd_parse:
     def get_duration(mpd_content):
         # MPDテキストを解析
         try:
-            root = ET.fromstring(mpd_content)
-        except ET.ParseError as e:
+            root = etree.fromstring(mpd_content)
+        except etree.ParseError as e:
             print(f"XML Parse Error: {e}")
             return None
         
@@ -86,6 +86,58 @@ class FOD_utils:
         else:
             #print("False")
             return False
+    def parse_mpd_logic(content):
+        try:
+            # Ensure the content is in bytes
+            if isinstance(content, str):
+                content = content.encode('utf-8')
+    
+            # Parse XML
+            root = etree.fromstring(content)
+            namespaces = {
+                'mpd': 'urn:mpeg:dash:schema:mpd:2011',
+                'cenc': 'urn:mpeg:cenc:2013'
+            }
+    
+            # Extract video information
+            videos = []
+            for adaptation_set in root.findall('.//mpd:AdaptationSet[@contentType="video"]', namespaces):
+                for representation in adaptation_set.findall('mpd:Representation', namespaces):
+                    videos.append({
+                        'resolution': f"{representation.get('width')}x{representation.get('height')}",
+                        'codec': representation.get('codecs'),
+                        'mimetype': representation.get('mimeType')
+                    })
+    
+            # Extract audio information
+            audios = []
+            for adaptation_set in root.findall('.//mpd:AdaptationSet[@contentType="audio"]', namespaces):
+                for representation in adaptation_set.findall('mpd:Representation', namespaces):
+                    audios.append({
+                        'audioSamplingRate': representation.get('audioSamplingRate'),
+                        'codec': representation.get('codecs'),
+                        'mimetype': representation.get('mimeType')
+                    })
+    
+            # Extract PSSH values
+            pssh_list = []
+            for content_protection in root.findall('.//mpd:ContentProtection', namespaces):
+                pssh_element = content_protection.find('cenc:pssh', namespaces)
+                if pssh_element is not None:
+                    pssh_list.append(pssh_element.text)
+    
+            # Build the result
+            result = {
+                "main_content": content.decode('utf-8'),
+                "pssh": pssh_list
+            }
+    
+            return result
+    
+        except etree.XMLSyntaxError as e:
+            raise ValueError(f"Invalid MPD content: {e}")
+        except Exception as e:
+            raise RuntimeError(f"An unexpected error occurred: {e}")
 class FOD_license:
     def license_vd_ad(all_pssh, custom_data, session):
         _WVPROXY = f"https://cenc.webstream.ne.jp/drmapi/wv/fujitv?custom_data={custom_data}"
@@ -534,31 +586,9 @@ class FOD_downloader:
         response = self.session.get(url, headers=headers, params=querystring)
         
         print(response.text)
-        
-        uiid_temp = mpd_content_response.json()["viewbeaconurl"]   
-        view_interval = mpd_content_response.json()["viewbeaconinterval"]
-        match = re.search(r"uiid=([^&]+)", uiid_temp)
-        if match:
-            uiid = match.group(1)
-            #print("Extracted uiid:", uiid)
-        
+                
         url = "https://measure-api.cms.fod.fujitv.co.jp/apps/api/sameview/measure_viewtime"
-        
-        querystring = {
-            "uiid": uiid,
-            "epid": episode_id,
-            "ssid": uuid,
-            "dvid": "WEB_PC",
-            "resume_time": "0",
-            "duration": duration,
-            "complete": "0",
-            "view_interval": view_interval,
-            "view_start_time": datetime.now().strftime("%Y%m%d%H%M"),
-            "play_status": "2",
-            "isRestriction": "1",
-            "pausecount": "1",
-            "_": str(int(time.time() * 1000))
-        }
+
         url_2 = mpd_content_response.json()["viewbeaconurl"].replace("@resume_time", "0").replace("@duration", duration).replace("@complete", "0").replace("@play_status", "2").replace("@pausecount", "1")+f"&_={str(int(time.time() * 1000))}"
         
         headers = {
