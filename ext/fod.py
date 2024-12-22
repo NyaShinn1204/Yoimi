@@ -93,6 +93,12 @@ def main_command(session, url, email, password, LOG_LEVEL):
         logger.info(f" + Video Type: {id_type}", extra={"service_name": "FOD"})
         if status == False:
             logger.info("Get Title for Season", extra={"service_name": "FOD"})
+            status, messages = fod_downloader.get_title_parse_all(url)
+            if status == False:
+                logger.error("Failed to Get Episode Json", extra={"service_name": "FOD"})
+                exit(1)
+            for message in messages:
+                print(messages)
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": "FOD"})
             status, message, point = fod_downloader.get_title_parse_single(url)
