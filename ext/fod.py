@@ -132,6 +132,89 @@ def main_command(session, url, email, password, LOG_LEVEL):
                         values[missing_key] = ""
                         title_name_logger = format_string.format(**values)
                 logger.info(f" + {title_name_logger}", extra={"service_name": "FOD"})
+            for message in messages:
+                if message["price"] != 0:
+                    logger.info(f" ! {title_name_logger} require {message["price"]}", extra={"service_name": "FOD"})
+                    if int(message["price"]) > int(account_point):
+                        logger.info(f" ! ポイントが足りません", extra={"service_name": "FOD"})
+                        pass
+                    else:
+                        logger.info(f" ! {title_name_logger} require BUY or RENTAL", extra={"service_name": "FOD"})
+                        
+                logger.info(f"Get License for 1 Episode", extra={"service_name": "FOD"})
+                uuid = session.cookies.get("uuid")
+                ut = session.cookies.get("UT")
+                #print(ut)
+                #print(uuid)
+                url = f"https://fod.fujitv.co.jp/title/{detail["lu_id"]}/{message["ep_id"]}/"
+                #print(ep_id)
+                status, custom_data, mpd_content = fod_downloader.get_mpd_content(uuid, url, ut)
+                if status == False:
+                    logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "FOD"})
+                #print(custom_data, mpd_content)
+                mpd_lic = fod.FOD_utils.parse_mpd_logic(mpd_content)
+    
+                logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": "FOD"})
+                       
+                license_key = fod.FOD_license.license_vd_ad(mpd_lic["pssh"][1], custom_data, session)
+                    
+                logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": "FOD"})
+                       
+                logger.info("Checking resolution...", extra={"service_name": "FOD"})
+                resolution_s, bandwidth_list = fod.mpd_parse.get_resolutions(mpd_content)
+                logger.info("Found resolution", extra={"service_name": "FOD"})
+                for resolution_one in resolution_s:
+                    logger.info(" + "+resolution_one, extra={"service_name": "FOD"})
+                for bandwidth_one in bandwidth_list:
+                    logger.debug(" + "+bandwidth_one, extra={"service_name": "FOD"})
+                duration = fod.mpd_parse.get_duration(mpd_content)
+                logger.debug("+ duration: "+duration, extra={"service_name": "FOD"})
+                fod_downloader.sent_start_stop_signal(bandwidth_list[-1], url, duration)
+                    
+                logger.info("Video, Audio Content Link", extra={"service_name": "FOD"})
+                video_url = fod.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
+                audio_url = fod.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
+                logger.info(" + Video_URL: "+video_url, extra={"service_name": "FOD"})
+                logger.info(" + Audio_URL: "+audio_url, extra={"service_name": "FOD"})
+                
+                def sanitize_filename(filename):
+                    filename = filename.replace(":", "：").replace("?", "？")
+                    return re.sub(r'[<>"/\\|*]', "_", filename)
+                
+                title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
+                title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
+                
+                logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": "FOD"})
+                
+                video_downloaded = fod_downloader.aria2c(video_url, title_name_logger_video, config, unixtime)
+                audio_downloaded = fod_downloader.aria2c(audio_url, title_name_logger_audio, config, unixtime)
+                
+                logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": "FOD"})
+                
+                fod.FOD_decrypt.decrypt_all_content(license_key["key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
+                
+                logger.info("Muxing Episode...", extra={"service_name": "FOD"})
+                                 
+                result = fod_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(duration))
+                    
+                dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                
+                if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                    for filename in os.listdir(dir_path):
+                        file_path = os.path.join(dir_path, filename)
+                        try:
+                            if os.path.isfile(file_path):
+                                os.remove(file_path)
+                            elif os.path.isdir(file_path):
+                                shutil.rmtree(file_path)
+                        except Exception as e:
+                            print(f"削除エラー: {e}")
+                else:
+                    print(f"指定されたディレクトリは存在しません: {dir_path}")
+                
+                logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "FOD"})
+                fod_downloader.sent_start_stop_signal(bandwidth_list[-1], url, duration)
+            logger.info("Finished download Series: {}".format(title_name), extra={"service_name": "FOD"})
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": "FOD"})
             status, message, point = fod_downloader.get_title_parse_single(url)
@@ -183,7 +266,6 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 else:
                     logger.info(f" ! {title_name_logger} require BUY or RENTAL", extra={"service_name": "FOD"})
                     
-            ep_id = message["ep_id"]
             logger.info(f"Get License for 1 Episode", extra={"service_name": "FOD"})
             uuid = session.cookies.get("uuid")
             ut = session.cookies.get("UT")
@@ -200,7 +282,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                    
             license_key = fod.FOD_license.license_vd_ad(mpd_lic["pssh"][1], custom_data, session)
                 
-            logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": "Dmm-TV"})
+            logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": "FOD"})
                    
             logger.info("Checking resolution...", extra={"service_name": "FOD"})
             resolution_s, bandwidth_list = fod.mpd_parse.get_resolutions(mpd_content)
@@ -255,6 +337,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 print(f"指定されたディレクトリは存在しません: {dir_path}")
             
             logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "FOD"})
+            fod_downloader.sent_start_stop_signal(bandwidth_list[-1], url, duration)
             #session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
             #session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
             #mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
