@@ -40,6 +40,36 @@ class mpd_parse:
                         bandwidth_list.append(info_b)
         
         return video_representations, bandwidth_list
+    @staticmethod
+    def get_duration(mpd_content):
+        # MPDテキストを解析
+        try:
+            root = ET.fromstring(mpd_content)
+        except ET.ParseError as e:
+            print(f"XML Parse Error: {e}")
+            return None
+        
+        # `mediaPresentationDuration` を取得
+        duration = root.get("mediaPresentationDuration")
+        if not duration:
+            print("Duration attribute not found.")
+            return None
+        
+        # ISO 8601 形式の時間を解析
+        import re
+        pattern = re.compile(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?')
+        match = pattern.match(duration)
+        if not match:
+            print("Invalid duration format.")
+            return None
+        
+        hours = int(match.group(1)) if match.group(1) else 0
+        minutes = int(match.group(2)) if match.group(2) else 0
+        seconds = float(match.group(3)) if match.group(3) else 0.0
+        
+        # 総秒数を計算
+        total_seconds = hours * 3600 + minutes * 60 + seconds
+        return str(int(total_seconds))
 
 class FOD_utils:
     def check_single_episode(url):
@@ -396,7 +426,7 @@ class FOD_downloader:
                 if attempt == tries -1:
                     return False, None
                 
-    def sent_start_stop_signal(self, bandwidth, video_url):
+    def sent_start_stop_signal(self, bandwidth, video_url, duration):
         matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', video_url)
         uuid = self.session.cookies.get("uuid")
         series_id = matches_url.group("title_id")
@@ -520,7 +550,7 @@ class FOD_downloader:
             "ssid": uuid,
             "dvid": "WEB_PC",
             "resume_time": "0",
-            "duration": "1411",
+            "duration": duration,
             "complete": "0",
             "view_interval": view_interval,
             "view_start_time": datetime.now().strftime("%Y%m%d%H%M"),
@@ -545,7 +575,6 @@ class FOD_downloader:
             "referer": "https://fod.fujitv.co.jp/",
             "accept-encoding": "gzip, deflate, br, zstd",
             "accept-language": "zh,en-US;q=0.9,en;q=0.8,ja;q=0.7",
-            "cookie": "_wasc=UXYFkZEQ682JQnTS.3; _gcl_au=1.1.1823950804.1734766716; _gid=GA1.3.1658627324.1734766716; _td_ssc_id=01JFM2ESAFXT3TWZ145MK21QAD; __lt__cid=d594b2a7-3ca8-4438-a8ec-683e05833088; _fbp=fb.2.1734766716599.65629728370894571; _ugpid=UXYFkwFInfzriv8K.3; _tt_enable_cookie=1; _ttp=wShh55mem74juyKINNP7kaEvxcS.tt.2; fodid_session_id=fgrrocrdejkioj4h95u969mm11; _yjsu_yjad=1734788414.df8ac0d3-83a4-4005-8625-be6681a3661e; FODCID=92115ef7d92a41f57f60ab281c7d0eb31e82437a30bf32945fab3afe82e0718a6b6d9c845cc8b708ba05947159b57ba6; fod_bu=YKjcTxp01PjqTg%2bHRsX5vuZ2zaGBPRm%2fZOPHZHfyuNdHeHh8qDHwSfSa4KL7UitQQ3nlPBd5TCV6nTWbkLqWMaqibe7mmjKTMTXcftUinlw%3d; plus7_ans=202104; plus7_guid=cdc3a9d6-06be-43e1-b8de-d64c77646055; plus7_attr=1_2003-05-01_1320032; plus7_ct=131237; d6hkt=dfbe3196-c220-4d0d-9101-f91a5f181391; ab.storage.deviceId.595c6e71-7cbd-4ec1-86cf-acff84cdaa9d=g%3A3f1e7888-59d8-7fd1-f0a6-352c1f31cb6c%7Ce%3Aundefined%7Cc%3A1734745601727%7Cl%3A1734827516934; ab.storage.userId.595c6e71-7cbd-4ec1-86cf-acff84cdaa9d=g%3A21988097%7Ce%3Aundefined%7Cc%3A1734745642468%7Cl%3A1734827516934; _clck=167i1xr%7C2%7Cfrx%7C0%7C1816; _ga=GA1.3.1196535851.1734766716; _td=ab92c139-04ca-4f13-b2c2-b20dd72f6048; _ga_3FV4ZRCKNN=GS1.1.1734827516.3.1.1734830779.60.0.0; _uetsid=6d41d070bf3d11efb75981b811c7d3ce; _uetvid=6d41eb80bf3d11efa0c2f3481629beff; _clsk=71y4nk%7C1734830780812%7C5%7C1%7Ct.clarity.ms%2Fcollect; ab.storage.sessionId.595c6e71-7cbd-4ec1-86cf-acff84cdaa9d=g%3A2a68f301-eab4-1b2a-b759-8cefffb0b144%7Ce%3A1734832585098%7Cc%3A1734827516933%7Cl%3A1734830785098"
         }
         
         response = self.session.get(url, headers=headers, params=querystring)

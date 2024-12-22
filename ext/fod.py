@@ -159,7 +159,9 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 logger.info(" + "+resolution_one, extra={"service_name": "FOD"})
             for bandwidth_one in bandwidth_list:
                 logger.debug(" + "+bandwidth_one, extra={"service_name": "FOD"})
-            fod_downloader.sent_start_stop_signal(bandwidth_list[-1], url)
+            duration = fod.mpd_parse.get_duration(mpd_content)
+            logger.debug("+ duration: "+duration, extra={"service_name": "FOD"})
+            fod_downloader.sent_start_stop_signal(bandwidth_list[-1], url, duration)
                 #session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
                 #session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
             #mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
