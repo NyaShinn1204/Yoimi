@@ -107,6 +107,22 @@ Dmm-TVからのダウンロード
 
 - - -
 
+FODからのダウンロード
+1. **特定エピソードをダウンロード**  
+   ```bash
+   python3 yoimi.py download "https://fod.fujitv.co.jp/title/00d9/00d9110001/" --username あなたのメールアドレス --password あなたのパスワード
+   ```
+   ✨ 「葬送のフリーレン」第1話をダウンロードします。
+   > [!WARNING]
+   > FODはメール認証コードが必要です！
+
+   **サンプルビデオ**: お待ちください...!
+
+2. **シーズン全体をダウンロード**  
+   作成中です！
+
+- - -
+
 ### サポートリスト
 
 現在サポートされているリストです
@@ -115,6 +131,7 @@ Dmm-TVからのダウンロード
 - [x] [U-Next](https://video.unext.jp)
 - [x] [Dmm-TV](https://tv.dmm.com/vod)
 - [ ] [Dアニメ](https://animestore.docomo.ne.jp/animestore/tp/)
+- [x] [FOD](https://fod.fujitv.co.jp) 現在シングルエピソードのみサポート
 
 &nbsp;
 - - -
@@ -127,4 +144,5 @@ Dmm-TVからのダウンロード
 - discord: nyanyakko005
 
 > [!WARNING]
-> Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパッケージの約95％をコピーして圧縮するコードを改良されたものです。
+> Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパッケージのベース部分をもとに開発されています。コードが似ている部分が多くあります
+> またYoimiは、教育目的のみの使用を推奨しています。
