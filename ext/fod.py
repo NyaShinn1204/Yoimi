@@ -170,8 +170,14 @@ def main_command(session, url, email, password, LOG_LEVEL):
             duration = fod.mpd_parse.get_duration(mpd_content)
             logger.debug("+ duration: "+duration, extra={"service_name": "FOD"})
             fod_downloader.sent_start_stop_signal(bandwidth_list[-1], url, duration)
-                #session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
-                #session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
+                
+            logger.info("Video, Audio Content Link", extra={"service_name": "U-Next"})
+            video_url = fod.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
+            audio_url = fod.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
+            logger.info(" + Video_URL: "+video_url, extra={"service_name": "U-Next"})
+            logger.info(" + Audio_URL: "+audio_url, extra={"service_name": "U-Next"})
+            #session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
+            #session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
             #mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
 #
             #logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})

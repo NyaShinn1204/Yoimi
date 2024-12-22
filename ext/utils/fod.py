@@ -6,13 +6,79 @@ from lxml import etree
 
 class mpd_parse:
     @staticmethod
+    def extract_video_info(mpd_content, value):
+        if isinstance(mpd_content, str):
+            content = mpd_content.encode('utf-8')
+        namespaces = {'': 'urn:mpeg:dash:schema:mpd:2011', 'cenc': 'urn:mpeg:cenc:2013'}
+        root = etree.fromstring(content)
+    
+        for adaptation_set in root.findall('.//AdaptationSet', namespaces):
+            content_type = adaptation_set.get('contentType', '')
+            
+            if content_type == 'video':  # Ensure we're looking at the video AdaptationSet
+                for representation in adaptation_set.findall('Representation', namespaces):
+                    width = representation.get('width')
+                    height = representation.get('height')
+                    codecs = representation.get('codecs')
+                    resolution = f"{width}x{height} mp4 {codecs}"
+                    
+                    if resolution == value:  # Matching the resolution
+                        base_url_element = representation.find('BaseURL', namespaces)
+                        base_url = base_url_element.text if base_url_element is not None else None
+                        
+                        # Find the pssh for the current AdaptationSet
+                        pssh_elements = adaptation_set.findall('ContentProtection', namespaces)
+                        pssh_list = []
+                        for pssh_element in pssh_elements:
+                            pssh = pssh_element.find('cenc:pssh', namespaces)
+                            if pssh is not None:
+                                pssh_list.append(pssh.text)
+                        return {"pssh": pssh_list, "base_url": base_url}
+        return None
+
+    @staticmethod
+    def extract_audio_info(mpd_content, value):
+        if isinstance(mpd_content, str):
+            content = mpd_content.encode('utf-8')
+        namespaces = {'': 'urn:mpeg:dash:schema:mpd:2011', 'cenc': 'urn:mpeg:cenc:2013'}
+        root = etree.fromstring(content)
+    
+        # Split the value into separate components (audio_sampling_rate, mimeType, and codecs)
+        audio_sampling_rate, mime_type, codecs = value.split()
+    
+        # Find the audio AdaptationSet
+        audio_adaptation_set = root.find(".//AdaptationSet[@contentType='audio']", namespaces)
+    
+        if audio_adaptation_set is not None:
+            for representation in audio_adaptation_set.findall('Representation', namespaces):
+                # Check if the audioSamplingRate and codecs match
+                if (representation.get('audioSamplingRate') == audio_sampling_rate and 
+                    representation.get('codecs') == codecs):
+                    
+                    base_url_element = representation.find('BaseURL', namespaces)
+                    base_url = base_url_element.text if base_url_element is not None else None
+                    
+                    # Find the pssh for the current AdaptationSet
+                    pssh_elements = audio_adaptation_set.findall('ContentProtection', namespaces)
+                    pssh_list = []
+                    for pssh_element in pssh_elements:
+                        pssh = pssh_element.find('cenc:pssh', namespaces)
+                        if pssh is not None:
+                            pssh_list.append(pssh.text)
+                    return {"pssh": pssh_list, "base_url": base_url}
+    
+        return None
+    
+    @staticmethod
     def get_resolutions(mpd_content):
+        if isinstance(mpd_content, str):
+            content = mpd_content.encode('utf-8')
         # 名前空間の定義
         namespace = {'ns': 'urn:mpeg:dash:schema:mpd:2011'}
         
         # MPDテキストを解析
         try:
-            root = etree.fromstring(mpd_content)
+            root = etree.fromstring(content)
         except etree.ParseError as e:
             print(f"XML Parse Error: {e}")
             return []
@@ -42,9 +108,11 @@ class mpd_parse:
         return video_representations, bandwidth_list
     @staticmethod
     def get_duration(mpd_content):
+        if isinstance(mpd_content, str):
+            content = mpd_content.encode('utf-8')
         # MPDテキストを解析
         try:
-            root = etree.fromstring(mpd_content)
+            root = etree.fromstring(content)
         except etree.ParseError as e:
             print(f"XML Parse Error: {e}")
             return None
@@ -444,9 +512,9 @@ class FOD_downloader:
                 self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
                 self.web_headers["host"] = "fod.fujitv.co.jp"
                 self.web_headers["sec-fetch-site"] = "same-origin"
-                print(self.web_headers)
+                #print(self.web_headers)
                 mpd_content_response = self.session.get(f"https://fod.fujitv.co.jp/apps/api/1/auth/contents/web?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
-                print(mpd_content_response.text)
+                #print(mpd_content_response.text)
                 if mpd_content_response.json():
                     if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
                         self.web_headers["X-Authorization"] = "Bearer "+mpd_content_response.cookies.get("UT")
@@ -536,8 +604,8 @@ class FOD_downloader:
         
         response = self.session.get(url, headers=headers, params=querystring)
         
-        print(response.text)
-        
+        #print(response.text)
+        #
         # Stop Playing
         
         url = "https://tokyo.in.treasuredata.com/postback/v3/event/010_fod_dl_tdtracking_video_play/video_play_log/"
@@ -585,7 +653,7 @@ class FOD_downloader:
         
         response = self.session.get(url, headers=headers, params=querystring)
         
-        print(response.text)
+        #print(response.text)
                 
         url = "https://measure-api.cms.fod.fujitv.co.jp/apps/api/sameview/measure_viewtime"
 
@@ -611,5 +679,5 @@ class FOD_downloader:
         #response = self.session.get(url, headers=headers, params=querystring)
         response = self.session.get(url_2, headers=headers)
         
-        print(response.text)
+        #print(response.text)
         pass
