@@ -559,6 +559,7 @@ class FOD_downloader:
             "pausecount": "1",
             "_": str(int(time.time() * 1000))
         }
+        url_2 = mpd_content_response.json()["viewbeaconurl"].replace("@resume_time", "0").replace("@duration", duration).replace("@complete", "0").replace("@play_status", "2").replace("@pausecount", "1")+f"&_={str(int(time.time() * 1000))}"
         
         headers = {
             "host": "measure-api.cms.fod.fujitv.co.jp",
@@ -577,7 +578,8 @@ class FOD_downloader:
             "accept-language": "zh,en-US;q=0.9,en;q=0.8,ja;q=0.7",
         }
         
-        response = self.session.get(url, headers=headers, params=querystring)
+        #response = self.session.get(url, headers=headers, params=querystring)
+        response = self.session.get(url_2, headers=headers)
         
         print(response.text)
         pass
