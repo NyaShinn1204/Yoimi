@@ -93,12 +93,45 @@ def main_command(session, url, email, password, LOG_LEVEL):
         logger.info(f" + Video Type: {id_type}", extra={"service_name": "FOD"})
         if status == False:
             logger.info("Get Title for Season", extra={"service_name": "FOD"})
-            status, messages = fod_downloader.get_title_parse_all(url)
+            status, messages, detail = fod_downloader.get_title_parse_all(url)
             if status == False:
                 logger.error("Failed to Get Episode Json", extra={"service_name": "FOD"})
                 exit(1)
+            title_name = detail["lu_title"]
             for message in messages:
-                print(messages)
+                if id_type[1] == "ノーマルアニメ":
+                    format_string = config["format"]["anime"]
+                    values = {
+                        "seriesname": title_name,
+                        "titlename": message.get("disp_ep_no", ""),
+                        "episodename": message.get("ep_title", "").replace(message.get("disp_ep_no", "")+" ", "")
+                    }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
+                if id_type[1] == "劇場":
+                    format_string = config["format"]["movie"]
+                    if message.get("disp_ep_no", "") == "":
+                        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                        values = {
+                            "seriesname": title_name,
+                        }
+                    else:
+                        values = {
+                            "seriesname": title_name,
+                            "titlename": message.get("disp_ep_no", ""),
+                            "episodename": message.get("ep_title", "").replace(message.get("disp_ep_no", "")+" ", "")
+                        }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
+                logger.info(f" + {title_name_logger}", extra={"service_name": "FOD"})
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": "FOD"})
             status, message, point = fod_downloader.get_title_parse_single(url)

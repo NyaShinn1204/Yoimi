@@ -502,17 +502,14 @@ class FOD_downloader:
         '''エピソードのタイトルについて取得するコード'''
         try:
             metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false", headers=self.web_headers)
-            print(metadata_response.text)
-            print(matches_url.group("title_id"))
-            print(self.web_headers)
             return_json = metadata_response.json()
             if return_json["episodes"] != None:
-                return True, return_json
+                return True, return_json["episodes"], return_json["detail"]
             else:
-                return False, None
+                return False, None, None
         except Exception as e:
             print(e)
-            return False, None
+            return False, None, None
         
     def get_id_type(self, url):
         matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
