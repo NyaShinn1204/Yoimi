@@ -11,4 +11,5 @@ Other Vod Todo:
 
 Other Todo:
 - Add Download thumbnail
+- Add Save Session function
 - Fix config.yml
