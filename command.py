@@ -82,7 +82,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         exit(1)
         
     sesi = requests.Session()
-    if site_text == "unext" or "dmm_tv" or "brainshark":
+    if site_text in ["unext","dmm_tv","brainshark"]:
         
         if proxy:
             sesi.proxies = {'http': proxy, 'https': proxy}
