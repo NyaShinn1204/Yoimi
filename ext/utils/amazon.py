@@ -413,8 +413,6 @@ class Amazon_downloader:
 
         titles = filtered_titles
 
-        print(titles)
-
         return titles
 
     def get_manifest(

@@ -185,10 +185,18 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         meta_response = amazon_downloader.get_titles(session, title, single, vcodec, bitrate, vquality)
         #title_name = meta_response["titleName"]
         logger.info("Get Title for Season", extra={"service_name": "Amazon"})
+        logger.debug(f"Titles_json: {meta_response}", extra={"service_name": "Amazon"})
+        logger.debug(f"Episode_count: {len(meta_response)}", extra={"service_name": "Amazon"})
         for title in meta_response:
             if title["type"] == "TV":
-                logger.info(" + {tv_title}_S{season:02}{episode_name}".format(tv_title=title["name"],season=title["season"] or 0, episode=title["episode"] or 0, episode_name=f" - {title["episode_name"]}" if title["episode_name"] else ""), extra={"service_name": "Amazon"})
-    
+                #logger.info(" + {tv_title}_S{season:02}{episode_name}".format(tv_title=title["name"],season=title["season"] or 0, episode=title["episode"] or 0, episode_name=f" - {title["episode_name"]}" if title["episode_name"] else ""), extra={"service_name": "Amazon"})
+                logger.info(" + {title} S{season:02}E{episode:02}{name} [{id}]".format(
+                    title=title["name"],
+                    season=title["season"] or 0,
+                    episode=title["episode"] or 0,
+                    name=f" - {title["episode_name"]}" if title["episode_name"] else "",
+                    id=title["id"],
+                ), extra={"service_name": "Amazon"})
     except Exception as error:
         import traceback
         import sys
