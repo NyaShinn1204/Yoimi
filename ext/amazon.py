@@ -53,9 +53,7 @@ def set_variable(session, LOG_LEVEL):
     
     with open('config.yml', 'r') as yml:
         config = yaml.safe_load(yml)
-        
-    session.headers.update({"User-Agent": config["headers"]["User-Agent"]})
-
+    
 def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
     try:
         #global media_code, playtoken
@@ -99,7 +97,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
             logger.debug(f"Get cookies: {len(cookies)}", extra={"service_name": "Amazon"})
             
         logger.info("Getting Account Region", extra={"service_name": "Amazon"})
-        get_region, error_msg = amazon_downloader.get_region()
+        get_region, error_msg, cookie = amazon_downloader.get_region()
         if not get_region:
             logger.error("Failed to get Amazon Account Region", extra={"service_name": "Amazon"})
             logger.error(error_msg, extra={"service_name": "Amazon"})
@@ -107,9 +105,13 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         
         logger.info(f" + Region: {get_region['code']}", extra={"service_name": "Amazon"})
         
+        logger.info("Update Session", extra={"service_name": "Amazon"})
+        session.headers.update({"User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0'})
+        session.cookies.update(cookies or {})
+                
         # Update Region, Endpoints
         endpoints = amazon_downloader.prepare_endpoints(get_region)
-        
+                
         session.headers.update({
             "Origin": f"https://{get_region['base']}"
         })

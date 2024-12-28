@@ -173,7 +173,7 @@ class Amazon_downloader:
             region["base_manifest"] = f"{pv_region}.primevideo.com"
             region["base"] = "www.primevideo.com"
 
-        return region, None
+        return region, None, self.cookies
     def prepare_endpoint(self, name: str, uri: str, region: dict) -> str:
         if name in ("browse", "playback", "licence", "xray"):
             return f"https://{(region['base_manifest'])}{uri}"
@@ -343,6 +343,7 @@ class Amazon_downloader:
                 prop = prop.get("props", {}).get("codeEntry", {}).get("token")
                 if prop:
                     return prop
+            #print(response)
             raise self.log.error("Unable to get ontv CSRF token", extra={"service_name": "Amazon"})  ## OK FUCKING ERROR;        ... why not match..??? Fucking Amazon
 
         def get_code_pair(self, device: dict) -> dict:
