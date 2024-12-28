@@ -2,7 +2,8 @@ import os
 import yaml
 import time
 import logging
-from datetime import datetime
+import hashlib
+from enum import Enum
 
 from ext.utils import amazon
 
@@ -55,7 +56,7 @@ def set_variable(session, LOG_LEVEL):
         
     session.headers.update({"User-Agent": config["headers"]["User-Agent"]})
 
-def main_command(session, url, email, password, LOG_LEVEL):
+def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
     try:
         #global media_code, playtoken
         set_variable(session, LOG_LEVEL)
@@ -64,6 +65,19 @@ def main_command(session, url, email, password, LOG_LEVEL):
         amazon_downloader = amazon.Amazon_downloader(session)
         
         profile = "default"
+        vcodec = "H265"
+        vrange = vrange
+        vquality = ""
+        
+        if 0 < quality <= 576 and vrange == "SDR":
+            logger.info(f"Setting manifest quality to SD", extra={"service_name": "Amazon"})
+            vquality = "SD"
+            
+        if quality > 1080:
+            logger.info(f"Setting manifest quality to UHD to be able to get 2160p video track", extra={"service_name": "Amazon"})
+            vquality = "UHD"
+            
+        vquality = vquality or "HD"
                         
         cookies = amazon_downloader.parse_cookie(profile)
         if not cookies:
@@ -90,9 +104,38 @@ def main_command(session, url, email, password, LOG_LEVEL):
         })
         
         device = amazon_downloader.get_device(profile)
+        #if not device:
+        #    logger.debug("Device not set. using other option...", extra={"service_name": "Amazon"})
+        #logger.debug(f"Device: {device}", extra={"service_name": "Amazon"})
+
+        from pywidevine.cdm import Cdm
+        from pywidevine.device import Device
+        device = Device.load(
+            "./l3.wvd"
+        )
+        cdm = Cdm.from_device(device)
+        #print(cdm.device_type)
         
-        logger.debug(f"Device: {device}", extra={"service_name": "Amazon"})
-                        
+        class Types(Enum):
+            CHROME = 1
+            ANDROID = 2
+            PLAYREADY = 3
+        
+        if (quality > 1080 or vrange != "SDR") and vcodec == "H265" and cdm.device_type == Types.CHROME:
+            logger.info(f"Using device to Get UHD manifests", extra={"service_name": "Amazon"})
+            amazon_downloader.register_device()
+        elif not device or cdm.device_type == Types.CHROME or vquality == "SD":
+            # falling back to browser-based device ID
+            if not device:
+                logger.warning(f"No Device information was provided for {profile}, using browser device...", extra={"service_name": "Amazon"})
+            device_id = hashlib.sha224(
+                ("CustomerID" + session.headers["User-Agent"]).encode("utf-8")
+            ).hexdigest()
+            device = {"device_type": "AOAGZA014O5RE"}
+        else:
+            logger.debug("Device not set. using other option...", extra={"service_name": "Amazon"})
+            amazon_downloader.register_device()
+    
     except Exception as error:
         import traceback
         import sys
