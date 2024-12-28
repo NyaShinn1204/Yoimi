@@ -75,6 +75,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         profile = "default"
         vcodec = "H265" # default
         bitrate = "CBR" # default
+        single = False # Force single episode/season instead of getting series ASIN,
         vrange = vrange
         vquality = None
         device_id = None
@@ -181,12 +182,12 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         logger.debug(f"Device_token: {device_token}", extra={"service_name": "Amazon"})
         #logger.error("Failed to get Title Metadata, Episode Type Data | Reason: Authorization is invalid", extra={"service_name": "Amazon"})
     
-        status, meta_response = amazon_downloader.get_titles(session)
-        if status == False:
-            logger.error("Failed to Get Series Json", extra={"service_name": "Amazon"})
-            exit(1)
-        else:
-            title_name = meta_response["titleName"]
+        meta_response = amazon_downloader.get_titles(session, title, single, vcodec, bitrate, vquality)
+        #title_name = meta_response["titleName"]
+        logger.info("Get Title for Season", extra={"service_name": "Amazon"})
+        for title in meta_response:
+            if title["type"] == "TV":
+                logger.info(" + {tv_title}_S{season:02}{episode_name}".format(tv_title=title["name"],season=title["season"] or 0, episode=title["episode"] or 0, episode_name=f" - {title["episode_name"]}" if title["episode_name"] else ""), extra={"service_name": "Amazon"})
     
     except Exception as error:
         import traceback
