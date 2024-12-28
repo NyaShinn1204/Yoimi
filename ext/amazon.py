@@ -197,6 +197,16 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                     name=f" - {title["episode_name"]}" if title["episode_name"] else "",
                     id=title["id"],
                 ), extra={"service_name": "Amazon"})
+            else:
+                # ここにmovie typeのloggerを書く
+                logger.info("coming soon")
+                
+            try:
+                # ここにtracksとchapterを取得するコードを書く
+                amazon_downloader.get_tracks(title)
+                amazon_downloader.get_chapters(title)
+            except Exception as error:
+                print(error)
     except Exception as error:
         import traceback
         import sys
