@@ -14,10 +14,10 @@ from http.cookiejar import MozillaCookieJar
 
 
 class Amazon_downloader:
-    def __init__(self, session):
+    def __init__(self, session, pv_status):
         self.session = session
         self.service = "Amazon"
-        self.pv = True # if url is primevideo
+        self.pv = pv_status # if url is primevideo
         self.region = {
             "us": {
               "base": "www.amazon.com",
@@ -117,8 +117,15 @@ class Amazon_downloader:
           }
         }
 
+    def get_cache(self, key):
+        """
+        Get path object for an item from service Cache. The path object can then be
+        used to read or write to the cache under the item's key.
 
-
+        Parameters:
+            key: A string similar to a relative path to an item.
+        """
+        return os.path.join("cache", "AMZN", key)
     def parse_cookie(self, profile):
         """Get the profile's cookies if available."""
         cookie_file = os.path.join("cookies", self.service.lower(), f"{profile}.txt")
@@ -182,7 +189,8 @@ class Amazon_downloader:
 
     def prepare_endpoints(self, region: dict) -> dict:
         return {k: self.prepare_endpoint(k, v, region) for k, v in self.endpoints.items()}
-    def get_device(self, profile):
+    def get_device(self, profile, endpoints):
+        self.endpoints = endpoints
         return (self.device or {}).get(profile, {})
 
     def register_device(self, session, profile, logger):
@@ -200,7 +208,7 @@ class Amazon_downloader:
         ).bearer
         self.device_id = self.device.get("device_serial")
         if not self.device_id:
-            raise self.log.exit(f" - A device serial is required in the config, perhaps use: {os.urandom(8).hex()}")
+            raise self.log.error(f" - A device serial is required in the config, perhaps use: {os.urandom(8).hex()}")
         return self.device_id, self.device_token
     
     class DeviceRegistration:
@@ -221,11 +229,11 @@ class Amazon_downloader:
                 #self.device["device_serial"] = cache["device_serial"]
                 if cache.get("expires_in", 0) > int(time.time()):
                     # not expired, lets use
-                    self.log.info(" + Using cached device bearer")
+                    self.log.info(" + Using cached device bearer", extra={"service_name": "Amazon"})
                     self.bearer = cache["access_token"]
                 else:
                     # expired, refresh
-                    self.log.info("Cached device bearer expired, refreshing...")
+                    self.log.info("Cached device bearer expired, refreshing...", extra={"service_name": "Amazon"})
                     refreshed_tokens = self.refresh(self.device, cache["refresh_token"])
                     refreshed_tokens["refresh_token"] = cache["refresh_token"]
                     # expires_in seems to be in minutes, create a unix timestamp and add the minutes in seconds
@@ -234,7 +242,7 @@ class Amazon_downloader:
                         fd.write(jsonpickle.encode(refreshed_tokens))
                     self.bearer = refreshed_tokens["access_token"]
             else:
-                self.log.info(" + Registering new device bearer")
+                self.log.info(" + Registering new device bearer", extra={"service_name": "Amazon"})
                 self.bearer = self.register(self.device)
 
         def register(self, device: dict) -> dict:
@@ -266,7 +274,7 @@ class Amazon_downloader:
                 })
             )
             if response.status_code != 200:
-                raise self.log.exit(f"Unexpected response with the codeBasedLinking request: {response.text} [{response.status_code}]")
+                raise self.log.error(f"Unexpected response with the codeBasedLinking request: {response.text} [{response.status_code}]", extra={"service_name": "Amazon"})
 
             # Register
             response = self.session.post(
@@ -286,7 +294,7 @@ class Amazon_downloader:
                 cookies=None  # for some reason, may fail if cookies are present. Odd.
             )
             if response.status_code != 200:
-                raise self.log.exit(f"Unable to register: {response.text} [{response.status_code}]")
+                raise self.log.error(f"Unable to register: {response.text} [{response.status_code}]", extra={"service_name": "Amazon"})
             bearer = response.json()["response"]["success"]["tokens"]["bearer"]
             bearer["expires_in"] = int(time.time()) + int(bearer["expires_in"])
 
@@ -310,11 +318,11 @@ class Amazon_downloader:
             ).json()
             if "error" in response:
                 self.cache_path.unlink(missing_ok=True)  # Remove the cached device as its tokens have expired
-                raise self.log.exit(
+                raise self.log.error(
                     f"Failed to refresh device token: {response['error_description']} [{response['error']}]"
-                )
+                , extra={"service_name": "Amazon"})
             if response["token_type"] != "bearer":
-                raise self.log.exit("Unexpected returned refreshed token type")
+                raise self.log.error("Unexpected returned refreshed token type", extra={"service_name": "Amazon"})
             return response
 
         def get_csrf_token(self) -> str:
@@ -326,16 +334,16 @@ class Amazon_downloader:
             res = self.session.get(self.endpoints["ontv"])
             response = res.text
             if 'input type="hidden" name="appAction" value="SIGNIN"' in response:
-                raise self.log.exit(
+                raise self.log.error(
                     "Cookies are signed out, cannot get ontv CSRF token. "
                     f"Expecting profile to have cookies for: {self.endpoints['ontv']}"
-                )
+                , extra={"service_name": "Amazon"})
             for match in re.finditer(r"<script type=\"text/template\">(.+)</script>", response):
                 prop = json.loads(match.group(1))
                 prop = prop.get("props", {}).get("codeEntry", {}).get("token")
                 if prop:
                     return prop
-            raise self.log.exit("Unable to get ontv CSRF token")
+            raise self.log.error("Unable to get ontv CSRF token", extra={"service_name": "Amazon"})  ## OK FUCKING ERROR;        ... why not match..??? Fucking Amazon
 
         def get_code_pair(self, device: dict) -> dict:
             """
@@ -351,5 +359,5 @@ class Amazon_downloader:
                 json={"code_data": device}
             ).json()
             if "error" in res:
-                raise self.log.exit(f"Unable to get code pair: {res['error_description']} [{res['error']}]")
+                raise self.log.error(f"Unable to get code pair: {res['error_description']} [{res['error']}]", extra={"service_name": "Amazon"})
             return res

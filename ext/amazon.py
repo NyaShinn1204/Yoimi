@@ -1,4 +1,4 @@
-import os
+import re
 import yaml
 import time
 import logging
@@ -62,7 +62,16 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt Content for Everyone", extra={"service_name": "Yoimi"})
         
-        amazon_downloader = amazon.Amazon_downloader(session)
+        match = re.search(r"/detail/([^/]+)/", url)
+        if match:
+            title = match.group(1)
+            #print(title)
+            if len(title) > 10:
+                pv = True
+            else:
+                pv = False
+        
+        amazon_downloader = amazon.Amazon_downloader(session, pv)
         
         profile = "default"
         vcodec = "H265"
@@ -105,7 +114,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
             "Origin": f"https://{get_region['base']}"
         })
         
-        device = amazon_downloader.get_device(profile)
+        device = amazon_downloader.get_device(profile, endpoints)
         #if not device:
         #    logger.debug("Device not set. using other option...", extra={"service_name": "Amazon"})
         #logger.debug(f"Device: {device}", extra={"service_name": "Amazon"})
@@ -137,6 +146,8 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         else:
             logger.debug("Device not set. using other option...", extra={"service_name": "Amazon"})
             device_id, device_token = amazon_downloader.register_device(session, profile, logger)
+            
+        print(device_id, device_token)
     
     except Exception as error:
         import traceback
