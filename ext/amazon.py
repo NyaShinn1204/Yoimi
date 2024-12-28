@@ -183,7 +183,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
     
         status, meta_response = amazon_downloader.get_titles(session)
         if status == False:
-            logger.error("Failed to Get Series Json", extra={"service_name": "Dmm-tv"})
+            logger.error("Failed to Get Series Json", extra={"service_name": "Amazon"})
             exit(1)
         else:
             title_name = meta_response["titleName"]
