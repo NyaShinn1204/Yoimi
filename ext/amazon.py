@@ -81,6 +81,17 @@ def main_command(session, url, email, password, LOG_LEVEL):
             raise
         
         logger.info(f" + Region: {get_region['code']}", extra={"service_name": "Amazon"})
+        
+        # Update Region, Endpoints
+        endpoints = amazon_downloader.prepare_endpoints(get_region)
+        
+        session.headers.update({
+            "Origin": f"https://{get_region['base']}"
+        })
+        
+        device = amazon_downloader.get_device(profile)
+        
+        logger.debug(f"Device: {device}", extra={"service_name": "Amazon"})
                         
     except Exception as error:
         import traceback

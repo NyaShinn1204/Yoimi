@@ -54,6 +54,62 @@ class Amazon_downloader:
               "marketplace_id": "A3K6Y4MI8GDYMT"
             }
           }
+        self.endpoints = {
+          "browse": "/cdp/catalog/Browse",
+          "details": "/gp/video/api/getDetailPage",
+          "playback": "/cdp/catalog/GetPlaybackResources",
+          "licence": "/cdp/catalog/GetPlaybackResources",
+          "xray": "/swift/page/xray",
+          "ontv": "/gp/video/ontv/code",
+          "devicelink": "/gp/video/api/codeBasedLinking",
+          "codepair": "/auth/create/codepair",
+          "register": "/auth/register",
+          "token": "/auth/token"
+        }
+        self.device = {
+          "default": {
+            "domain": "Device",
+            "app_name": "com.amazon.amazonvideo.livingroom",
+            "app_version": "1.1",
+            "device_model": "Hisense",
+            "os_version": "6.0.1",
+            "device_type": "A3REWRVYBYPKUM",
+            "device_name": "%FIRST_NAME%'s%DUPE_STRATEGY_1ST% Hisense",
+            "device_serial": "3cc61028646759e273"
+          },
+          "snowman8585": {
+            "domain": "Device",
+            "app_name": "com.amazon.amazonvideo.livingroom",
+            "app_version": "1.1",
+            "device_model": "Hisense",
+            "os_version": "6.0.1",
+            "device_type": "A3REWRVYBYPKUM",
+            "device_name": "%FIRST_NAME%'s%DUPE_STRATEGY_1ST% Hisense",
+            "device_serial": "12a95b33987e83ae51"
+          },
+          "snowmanuk": {
+            "domain": "Device",
+            "app_name": "com.amazon.amazonvideo.livingroom",
+            "app_version": "1.1",
+            "device_model": "Hisense",
+            "os_version": "6.0.1",
+            "device_type": "A3REWRVYBYPKUM",
+            "device_name": "%FIRST_NAME%'s%DUPE_STRATEGY_1ST% Hisense",
+            "device_serial": "12a95b33989e83ae51"
+          },
+          "us": {
+            "domain": "Device",
+            "app_name": "com.amazon.amazonvideo.livingroom",
+            "app_version": "1.1",
+            "device_model": "Hisense",
+            "os_version": "6.0.1",
+            "device_type": "A3REWRVYBYPKUM",
+            "device_name": "%FIRST_NAME%'s%DUPE_STRATEGY_1ST% Hisense",
+            "device_serial": "12a95b3312fb2013d9"
+          }
+        }
+
+
 
     def parse_cookie(self, profile):
         """Get the profile's cookies if available."""
@@ -103,3 +159,20 @@ class Amazon_downloader:
             region["base"] = "www.primevideo.com"
 
         return region, None
+    def prepare_endpoint(self, name: str, uri: str, region: dict) -> str:
+        if name in ("browse", "playback", "licence", "xray"):
+            return f"https://{(region['base_manifest'])}{uri}"
+        if name in ("ontv", "devicelink", "details"):
+            if self.pv:
+                host = "www.primevideo.com"
+            else:
+                host = region["base"]
+            return f"https://{host}{uri}"
+        if name in ("codepair", "register", "token"):
+            return f"https://{self.region['us']['base_api']}{uri}"
+        raise ValueError(f"Unknown endpoint: {name}")
+
+    def prepare_endpoints(self, region: dict) -> dict:
+        return {k: self.prepare_endpoint(k, v, region) for k, v in self.endpoints.items()}
+    def get_device(self, profile):
+        return (self.device or {}).get(profile, {})
