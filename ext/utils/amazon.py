@@ -7,7 +7,11 @@ import hashlib
 import requests
 import logging
 import jsonpickle
+import unicodedata
+from enum import Enum
 from pathlib import Path
+from langcodes import Language
+from unidecode import unidecode
 from tldextract import tldextract
 from urllib.parse import urlencode
 from http.cookiejar import MozillaCookieJar
@@ -210,7 +214,107 @@ class Amazon_downloader:
         if not self.device_id:
             raise logger.error(f" - A device serial is required in the config, perhaps use: {os.urandom(8).hex()}", extra={"service_name": "Amazon"})
         return self.device_id, self.device_token
-    
+
+    def get_titles(self):
+        res = self.session.get(
+            url=self.endpoints["details"],
+            params={
+                "titleID": self.title,
+                "isElcano": "1",
+                "sections": ["Atf", "Btf"]
+            },
+            headers={
+                "Accept": "application/json"
+            }
+        )
+
+        if not res.ok:
+            raise self.log.exit(f"Unable to get title: {res.text} [{res.status_code}]")
+
+        data = res.json()["widgets"]
+        product_details = data.get("productDetails", {}).get("detail")
+
+        if not product_details:
+            error = res.json()["degradations"][0]
+            raise self.log.exit(f"Unable to get title: {error['message']} [{error['code']}]")
+
+        titles = []
+
+        if data["pageContext"]["subPageType"] == "Movie":
+            card = data["productDetails"]["detail"]
+            titles.append(Title(
+                id_=card["catalogId"],
+                type_=Title.Types.MOVIE,
+                name=product_details["title"],
+                #year=card["releaseYear"],
+                year=card.get("releaseYear", ""),
+                # language is obtained afterward
+                original_lang=None,
+                source=self.ALIASES[0],
+                service_data=card
+            ))
+        else:
+            cards = [
+                x["detail"]
+                for x in data["titleContent"][0]["cards"]
+                    if not self.single or
+                       (self.single and self.title in data["self"]["asins"]) or
+                       (self.single and self.title in x["self"]["asins"])
+            ]
+            for card in cards:
+                episode_number = card.get("episodeNumber", 0)
+                if episode_number != 0:
+                    titles.append(Title(
+                        id_=card["catalogId"],
+                        type_=Title.Types.TV,
+                        name=product_details["parentTitle"],
+                        season=product_details["seasonNumber"],
+                        episode=episode_number,
+                        episode_name=card["title"],
+                        # language is obtained afterward
+                        original_lang=None,
+                        source=self.ALIASES[0],
+                        service_data=card
+                    ))
+
+            if not self.single:
+                temp_title = self.title
+                temp_single = self.single
+
+                self.single = True
+                for season in data["seasonSelector"]:
+                    try:
+                        if data["self"]["asins"][0] in season["self"]["asins"]:
+                            continue
+                        self.title = season["self"]["asins"][0]
+                    except:
+                        if data["self"]["asins"][0] in season["titleID"]:
+                            continue
+                        self.title = season["titleID"]
+                    for title in self.get_titles():
+                        titles.append(title)
+
+                self.title = temp_title
+                self.single = temp_single
+
+        if titles:
+            # TODO: Needs playback permission on first title, title needs to be available
+            original_lang = self.get_original_language(self.get_manifest(
+                next((x for x in titles if x.type == Title.Types.MOVIE or x.episode > 0), titles[0]),
+                video_codec=self.vcodec,
+                bitrate_mode=self.bitrate,
+                quality=self.vquality,
+                ignore_errors=True
+            ))
+            if original_lang:
+                for title in titles:
+                    title.original_lang = Language.get(original_lang)
+            else:
+                #self.log.warning(" - Unable to obtain the title's original language, setting 'en' default...")
+                for title in titles:
+                    title.original_lang = Language.get("en")
+        return titles
+
     class DeviceRegistration:
 
         def __init__(self, device: dict, endpoints: dict, cache_path: Path, session: requests.Session, log: logging.Logger):

@@ -179,6 +179,14 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         logger.debug("Logined", extra={"service_name": "Amazon"})
         logger.debug(f"Device_id: {device_id}", extra={"service_name": "Amazon"})
         logger.debug(f"Device_token: {device_token}", extra={"service_name": "Amazon"})
+        #logger.error("Failed to get Title Metadata, Episode Type Data | Reason: Authorization is invalid", extra={"service_name": "Amazon"})
+    
+        status, meta_response = amazon_downloader.get_titles(session)
+        if status == False:
+            logger.error("Failed to Get Series Json", extra={"service_name": "Dmm-tv"})
+            exit(1)
+        else:
+            title_name = meta_response["titleName"]
     
     except Exception as error:
         import traceback
