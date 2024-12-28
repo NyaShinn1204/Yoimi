@@ -4,6 +4,7 @@ import time
 import logging
 import hashlib
 from enum import Enum
+from click.core import ParameterSource
 
 from ext.utils import amazon
 
@@ -72,21 +73,46 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         amazon_downloader = amazon.Amazon_downloader(session, pv)
         
         profile = "default"
-        vcodec = "H265"
+        vcodec = "H265" # default
+        bitrate = "CBR" # default
         vrange = vrange
-        vquality = ""
+        vquality = None
         device_id = None
         device_token = None
         
-        if 0 < quality <= 576 and vrange == "SDR":
-            logger.info(f"Setting manifest quality to SD", extra={"service_name": "Amazon"})
-            vquality = "SD"
-            
-        if quality > 1080:
-            logger.info(f"Setting manifest quality to UHD to be able to get 2160p video track", extra={"service_name": "Amazon"})
-            vquality = "UHD"
-            
+        vquality_source = ParameterSource.DEFAULT
+        bitrate_source = ParameterSource.DEFAULT
+        
+        #if 0 < quality <= 576 and vrange == "SDR":
+        #    logger.info(f"Setting manifest quality to SD", extra={"service_name": "Amazon"})
+        #    vquality = "SD"
+        #    
+        #if quality > 1080:
+        #    logger.info(f"Setting manifest quality to UHD to be able to get 2160p video track", extra={"service_name": "Amazon"})
+        #    vquality = "UHD"
+        #    
+        #vquality = vquality or "HD"
+        if vquality_source != ParameterSource.COMMANDLINE:
+            if 0 < quality <= 576 and vrange == "SDR":
+                logger.info(f" + Setting manifest quality to SD", extra={"service_name": "Amazon"})
+                vquality = "SD"
+
+            if quality > 1080:
+                logger.info(f" + Setting manifest quality to UHD to be able to get 2160p video track", extra={"service_name": "Amazon"})
+                vquality = "UHD"
+
         vquality = vquality or "HD"
+
+        if bitrate_source != ParameterSource.COMMANDLINE:
+            if vcodec == "H265" and vrange == "SDR" and bitrate != "CVBR+CBR":
+                bitrate = "CVBR+CBR"
+                logger.info(" + Changed bitrate mode to CVBR+CBR to be able to get H.265 SDR video track", extra={"service_name": "Amazon"})
+
+            if vquality == "UHD" and vrange != "SDR" and bitrate != "CBR":
+                bitrate = "CBR"
+                logger.info(f" + Changed bitrate mode to CBR to be able to get highest quality UHD {vrange} video track", extra={"service_name": "Amazon"})
+
+        orig_bitrate = bitrate
                         
         cookies = amazon_downloader.parse_cookie(profile)
         if not cookies:
@@ -149,7 +175,10 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
             logger.debug("Device not set. using other option...", extra={"service_name": "Amazon"})
             device_id, device_token = amazon_downloader.register_device(session, profile, logger)
             
-        print(device_id, device_token)
+        #print(device_id, device_token)
+        logger.debug("Logined", extra={"service_name": "Amazon"})
+        logger.debug(f"Device_id: {device_id}", extra={"service_name": "Amazon"})
+        logger.debug(f"Device_token: {device_token}", extra={"service_name": "Amazon"})
     
     except Exception as error:
         import traceback

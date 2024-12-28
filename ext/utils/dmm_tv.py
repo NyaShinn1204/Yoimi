@@ -666,7 +666,7 @@ class Dmm_TV_downloader:
                 if return_json["data"]["tab"]["episodes"]["edges"][0]["node"]["episodeNumberName"].__contains__("第"):
                     maybe_genre = "ノーマルアニメ"
                 else:
-                    maybe_genre = "ノーマル？"
+                    maybe_genre = "ノーマルアニメ"
                 #if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"] == "再生":
                 #    maybe_genre = "劇場"
                 #if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("第") or return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("#"):
@@ -710,7 +710,7 @@ class Dmm_TV_downloader:
         try:   
             metadata_response = self.session.post(_ENDPOINT_CC, json=meta_json)
             return_json = metadata_response.json()
-            #print(return_json)
+            print(return_json)
             if return_json["data"] != None:
                 content_mpd_list = []
                 
@@ -725,6 +725,11 @@ class Dmm_TV_downloader:
                 return False, None
         except Exception as e:
             print(e)
+            import traceback
+            import sys
+            t, v, tb = sys.exc_info()
+            print(traceback.format_exception(t,v,tb))
+            print(traceback.format_tb(e.__traceback__))
             return False, None
         
     def get_mpd_content(self, url):

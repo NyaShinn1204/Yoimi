@@ -168,7 +168,7 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Dmm-TV"})
                 
                 i=i+1
-            for message in messages:
+            for i, message in enumerate(messages):
                 content_id = message["node"]["id"]
                 status, message = dmm_tv_downloader.get_title_parse_single(season_id, content_id)
                 if status == False:
@@ -206,7 +206,13 @@ def main_command(session, url, email, password, LOG_LEVEL):
                         missing_key = e.args[0]
                         values[missing_key] = ""
                         title_name_logger = format_string.format(**values)
-                #"print(status_check)
+                #print(status_check[i])
+                if plan_status == "OTHER":
+                    status_real = status_check[i]
+                    #print(status_check[i])
+                    if status_real["status"] == "false":
+                        logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Dmm-TV"})
+                        continue
                 video_duration = message["node"]["playInfo"]["duration"]
                 
                 #content_type = status_check["status"]

@@ -206,9 +206,9 @@ class Amazon_downloader:
             cache_path=device_cache_path,
             session=session
         ).bearer
-        self.device_id = self.device.get("device_serial")
+        self.device_id = self.register_v_device.get("device_serial")
         if not self.device_id:
-            raise self.log.error(f" - A device serial is required in the config, perhaps use: {os.urandom(8).hex()}")
+            raise logger.error(f" - A device serial is required in the config, perhaps use: {os.urandom(8).hex()}", extra={"service_name": "Amazon"})
         return self.device_id, self.device_token
     
     class DeviceRegistration:
