@@ -1,7 +1,15 @@
 import os
 import re
+import time
 import html
+import json
+import hashlib
+import requests
+import logging
+import jsonpickle
+from pathlib import Path
 from tldextract import tldextract
+from urllib.parse import urlencode
 from http.cookiejar import MozillaCookieJar
 
 
@@ -176,3 +184,172 @@ class Amazon_downloader:
         return {k: self.prepare_endpoint(k, v, region) for k, v in self.endpoints.items()}
     def get_device(self, profile):
         return (self.device or {}).get(profile, {})
+
+    def register_device(self, session, profile, logger):
+        self.register_v_device = (self.device or {}).get(profile, {})
+        device_cache_path = self.get_cache("device_tokens_{profile}_{hash}.json".format(
+            profile=profile,
+            hash=hashlib.md5(json.dumps(self.register_v_device).encode()).hexdigest()[0:6]
+        ))
+        self.device_token = self.DeviceRegistration(
+            device=self.register_v_device,
+            endpoints=self.endpoints,
+            log=logger,
+            cache_path=device_cache_path,
+            session=session
+        ).bearer
+        self.device_id = self.device.get("device_serial")
+        if not self.device_id:
+            raise self.log.exit(f" - A device serial is required in the config, perhaps use: {os.urandom(8).hex()}")
+        return self.device_id, self.device_token
+    
+    class DeviceRegistration:
+
+        def __init__(self, device: dict, endpoints: dict, cache_path: Path, session: requests.Session, log: logging.Logger):
+            self.session = session
+            self.device = device
+            self.endpoints = endpoints
+            self.cache_path = cache_path
+            self.log = log
+
+            self.device = {k: str(v) if not isinstance(v, str) else v for k, v in self.device.items()}
+
+            self.bearer = None
+            if os.path.isfile(self.cache_path):
+                with open(self.cache_path, encoding="utf-8") as fd:
+                    cache = jsonpickle.decode(fd.read())
+                #self.device["device_serial"] = cache["device_serial"]
+                if cache.get("expires_in", 0) > int(time.time()):
+                    # not expired, lets use
+                    self.log.info(" + Using cached device bearer")
+                    self.bearer = cache["access_token"]
+                else:
+                    # expired, refresh
+                    self.log.info("Cached device bearer expired, refreshing...")
+                    refreshed_tokens = self.refresh(self.device, cache["refresh_token"])
+                    refreshed_tokens["refresh_token"] = cache["refresh_token"]
+                    # expires_in seems to be in minutes, create a unix timestamp and add the minutes in seconds
+                    refreshed_tokens["expires_in"] = int(time.time()) + int(refreshed_tokens["expires_in"])
+                    with open(self.cache_path, "w", encoding="utf-8") as fd:
+                        fd.write(jsonpickle.encode(refreshed_tokens))
+                    self.bearer = refreshed_tokens["access_token"]
+            else:
+                self.log.info(" + Registering new device bearer")
+                self.bearer = self.register(self.device)
+
+        def register(self, device: dict) -> dict:
+            """
+            Register device to the account
+            :param device: Device data to register
+            :return: Device bearer tokens
+            """
+            # OnTV csrf
+            csrf_token = self.get_csrf_token()
+
+            # Code pair
+            code_pair = self.get_code_pair(device)
+
+            # Device link
+            response = self.session.post(
+                url=self.endpoints["devicelink"],
+                headers={
+                    "Accept": "*/*",
+                    "Accept-Language": "en-US,en;q=0.9,es-US;q=0.8,es;q=0.7",  # needed?
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Referer": self.endpoints["ontv"]
+                },
+                params=urlencode({
+                    # any reason it urlencodes here? requests can take a param dict...
+                    "ref_": "atv_set_rd_reg",
+                    "publicCode": code_pair["public_code"],  # public code pair
+                    "token": csrf_token  # csrf token
+                })
+            )
+            if response.status_code != 200:
+                raise self.log.exit(f"Unexpected response with the codeBasedLinking request: {response.text} [{response.status_code}]")
+
+            # Register
+            response = self.session.post(
+                url=self.endpoints["register"],
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept-Language": "en-US"
+                },
+                json={
+                    "auth_data": {
+                        "code_pair": code_pair
+                    },
+                    "registration_data": device,
+                    "requested_token_type": ["bearer"],
+                    "requested_extensions": ["device_info", "customer_info"]
+                },
+                cookies=None  # for some reason, may fail if cookies are present. Odd.
+            )
+            if response.status_code != 200:
+                raise self.log.exit(f"Unable to register: {response.text} [{response.status_code}]")
+            bearer = response.json()["response"]["success"]["tokens"]["bearer"]
+            bearer["expires_in"] = int(time.time()) + int(bearer["expires_in"])
+
+            # Cache bearer
+            os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
+            with open(self.cache_path, "w", encoding="utf-8") as fd:
+                fd.write(jsonpickle.encode(bearer))
+
+            return bearer["access_token"]
+
+        def refresh(self, device: dict, refresh_token: str) -> dict:
+            response = self.session.post(
+                url=self.endpoints["token"],
+                json={
+                    "app_name": device["app_name"],
+                    "app_version": device["app_version"],
+                    "source_token_type": "refresh_token",
+                    "source_token": refresh_token,
+                    "requested_token_type": "access_token"
+                }
+            ).json()
+            if "error" in response:
+                self.cache_path.unlink(missing_ok=True)  # Remove the cached device as its tokens have expired
+                raise self.log.exit(
+                    f"Failed to refresh device token: {response['error_description']} [{response['error']}]"
+                )
+            if response["token_type"] != "bearer":
+                raise self.log.exit("Unexpected returned refreshed token type")
+            return response
+
+        def get_csrf_token(self) -> str:
+            """
+            On the amazon website, you need a token that is in the html page,
+            this token is used to register the device
+            :return: OnTV Page's CSRF Token
+            """
+            res = self.session.get(self.endpoints["ontv"])
+            response = res.text
+            if 'input type="hidden" name="appAction" value="SIGNIN"' in response:
+                raise self.log.exit(
+                    "Cookies are signed out, cannot get ontv CSRF token. "
+                    f"Expecting profile to have cookies for: {self.endpoints['ontv']}"
+                )
+            for match in re.finditer(r"<script type=\"text/template\">(.+)</script>", response):
+                prop = json.loads(match.group(1))
+                prop = prop.get("props", {}).get("codeEntry", {}).get("token")
+                if prop:
+                    return prop
+            raise self.log.exit("Unable to get ontv CSRF token")
+
+        def get_code_pair(self, device: dict) -> dict:
+            """
+            Getting code pairs based on the device that you are using
+            :return: public and private code pairs
+            """
+            res = self.session.post(
+                url=self.endpoints["codepair"],
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept-Language": "en-US"
+                },
+                json={"code_data": device}
+            ).json()
+            if "error" in res:
+                raise self.log.exit(f"Unable to get code pair: {res['error_description']} [{res['error']}]")
+            return res

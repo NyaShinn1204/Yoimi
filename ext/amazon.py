@@ -68,6 +68,8 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         vcodec = "H265"
         vrange = vrange
         vquality = ""
+        device_id = None
+        device_token = None
         
         if 0 < quality <= 576 and vrange == "SDR":
             logger.info(f"Setting manifest quality to SD", extra={"service_name": "Amazon"})
@@ -110,10 +112,10 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
 
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
-        device = Device.load(
+        device_cdm = Device.load(
             "./l3.wvd"
         )
-        cdm = Cdm.from_device(device)
+        cdm = Cdm.from_device(device_cdm)
         #print(cdm.device_type)
         
         class Types(Enum):
@@ -123,7 +125,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         
         if (quality > 1080 or vrange != "SDR") and vcodec == "H265" and cdm.device_type == Types.CHROME:
             logger.info(f"Using device to Get UHD manifests", extra={"service_name": "Amazon"})
-            amazon_downloader.register_device()
+            device_id, device_token = amazon_downloader.register_device(session, profile, logger)
         elif not device or cdm.device_type == Types.CHROME or vquality == "SD":
             # falling back to browser-based device ID
             if not device:
@@ -134,7 +136,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
             device = {"device_type": "AOAGZA014O5RE"}
         else:
             logger.debug("Device not set. using other option...", extra={"service_name": "Amazon"})
-            amazon_downloader.register_device()
+            device_id, device_token = amazon_downloader.register_device(session, profile, logger)
     
     except Exception as error:
         import traceback
