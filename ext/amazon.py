@@ -190,17 +190,19 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         for title in meta_response:
             if title["type"] == "TV":
                 #logger.info(" + {tv_title}_S{season:02}{episode_name}".format(tv_title=title["name"],season=title["season"] or 0, episode=title["episode"] or 0, episode_name=f" - {title["episode_name"]}" if title["episode_name"] else ""), extra={"service_name": "Amazon"})
-                logger.info(" + {title} S{season:02}E{episode:02}{name} [{id}]".format(
+                logger.info(" + Allow Download: {allow_download:<3} | {title} S{season:02}E{episode:02}{name} [{id}]".format(
+                    allow_download="Yes" if not title["deny_download"] else "No",
                     title=title["name"],
                     season=title["season"] or 0,
                     episode=title["episode"] or 0,
-                    name=f" - {title["episode_name"]}" if title["episode_name"] else "",
+                    name=f" - {title['episode_name']}" if title["episode_name"] else "",
                     id=title["id"],
                 ), extra={"service_name": "Amazon"})
+                #print(title["deny_download"])
             else:
                 # ここにmovie typeのloggerを書く
                 logger.info("coming soon")
-                
+        for title in meta_response:
             try:
                 # ここにtracksとchapterを取得するコードを書く
                 amazon_downloader.get_tracks(title)

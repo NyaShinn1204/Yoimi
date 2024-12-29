@@ -288,6 +288,7 @@ class Amazon_downloader:
                     temp_json["episode"] = episode["self"]["sequenceNumber"]
                     temp_json["episode_name"] = details["title"]                    
                     temp_json["year"] = details["releaseYear"]
+                    temp_json["deny_download"] = not episode["action"].get("downloadActions")
                     titles.append(temp_json)
                 if len(titles) == 25:
                     page_count = 1
