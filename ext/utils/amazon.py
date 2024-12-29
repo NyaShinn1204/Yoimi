@@ -373,7 +373,6 @@ class Amazon_downloader:
         titles = filtered_titles
 
         return titles
-
     def get_manifest(
         self, title: json, video_codec: str, bitrate_mode: str, quality: str, hdr=None,
             ignore_errors: bool = False
@@ -474,7 +473,6 @@ class Amazon_downloader:
             raise print(f" - Amazon had an error with the A/V Urls: {error['message']} [{error['errorCode']}]")
 
         return manifest
-    
     def get_original_language(self, manifest):
         """Get a title's original language from manifest data."""
         try:

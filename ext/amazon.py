@@ -211,10 +211,19 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                 #print(title["deny_download"])
             else:
                 # ここにmovie typeのloggerを書く
-                logger.info("coming soon")
+                logger.info("coming soon", extra={"service_name": "Amazon"})
         for title in meta_response:
             try:
                 # ここにtracksとchapterを取得するコードを書く
+                if title["deny_download"]:
+                    logger.info("This episode require prime video access | {title} S{season:02}E{episode:02}{name} [{id}]".format(
+                        title=title["name"],
+                        season=title["season"] or 0,
+                        episode=title["episode"] or 0,
+                        name=f" - {title['episode_name']}" if title["episode_name"] else "",
+                        id=title["id"],
+                    ), extra={"service_name": "Amazon"})
+                    continue
                 amazon_downloader.get_tracks(title)
                 amazon_downloader.get_chapters(title)
             except Exception as error:
