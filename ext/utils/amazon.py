@@ -11,6 +11,7 @@ import hashlib
 import requests
 import logging
 import jsonpickle
+from enum import Enum
 from pathlib import Path
 from langcodes import Language
 from tldextract import tldextract
@@ -18,15 +19,25 @@ from collections import defaultdict
 from urllib.parse import urlencode, quote
 from http.cookiejar import MozillaCookieJar
 
+class Types(Enum):
+    CHROME = 1
+    ANDROID = 2
+    PLAYREADY = 3
 
 class Amazon_downloader:
     def __init__(self, session, pv_status):
         self.session = session
         self.service = "Amazon"
+        self.cdn = None
+        self.vcodec = None
+        self.orig_bitrate = None
+        self.vquality = None
+        self.vrange = None
         self.profile = None
         self.domain_region = None
         self.device_id = None
         self.device_token = None
+        self.chapters_only = None
         self.client_id = "f22dbddb-ef2c-48c5-8876-bed0d47594fd"  # browser client id
         self.VIDEO_RANGE_MAP = {
             "SDR": "None",
@@ -218,7 +229,60 @@ class Amazon_downloader:
             raise logger.error(f" - A device serial is required in the config, perhaps use: {os.urandom(8).hex()}", extra={"service_name": "Amazon"})
         return self.device_id, self.device_token
 
+    def choose_manifest(self, manifest: dict, cdn=None):
+        """Get manifest URL for the title based on CDN weight (or specified CDN)."""
+        if cdn:
+            cdn = cdn.lower()
+            manifest = next((x for x in manifest["audioVideoUrls"]["avCdnUrlSets"] if x["cdn"].lower() == cdn), {})
+            if not manifest:
+                raise print(f" - There isn't any DASH manifests available on the CDN \"{cdn}\" for this title")
+        else:
+            manifest = next((x for x in sorted([x for x in manifest["audioVideoUrls"]["avCdnUrlSets"]], key=lambda x: int(x["cdnWeightsRank"]))), {})
+
+        return manifest
+    def clean_mpd_url(mpd_url, optimise=False):
+        """Clean up an Amazon MPD manifest url."""
+        if optimise:
+            return mpd_url.replace("~", "") + "?encoding=segmentBase"
+        if match := re.match(r"(https?://.*/)d.?/.*~/(.*)", mpd_url):
+            mpd_url = "".join(match.groups())
+        else:
+            try:
+                mpd_url = "".join(
+                    re.split(r"(?i)(/)", mpd_url)[:5] + re.split(r"(?i)(/)", mpd_url)[9:]
+                )
+            except IndexError:
+                print("Unable to parse MPD URL")
+
+        return mpd_url
+        
     # ここでいろいろゲッチュ
+    def get_original_language(self, manifest):
+        """Get a title's original language from manifest data."""
+        try:
+            return next(
+                x["language"].replace("_", "-")
+                for x in manifest["catalogMetadata"]["playback"]["audioTracks"]
+                if x["isOriginalLanguage"]
+            )
+        except (KeyError, StopIteration):
+            pass
+
+        if "defaultAudioTrackId" in manifest.get("playbackUrls", {}):
+            try:
+                return manifest["playbackUrls"]["defaultAudioTrackId"].split("_")[0]
+            except IndexError:
+                pass
+
+        try:
+            return sorted(
+                manifest["audioVideoUrls"]["audioTrackMetadata"],
+                key=lambda x: x["index"]
+            )[0]["languageCode"]
+        except (KeyError, IndexError):
+            pass
+
+        return None
     def get_titles(self, session, title_id, single, vcodec, bitrate, vquality):
         self.session = session
         self.title = title_id
@@ -498,32 +562,202 @@ class Amazon_downloader:
             raise print(f" - Amazon had an error with the A/V Urls: {error['message']} [{error['errorCode']}]")
 
         return manifest
-    def get_original_language(self, manifest):
-        """Get a title's original language from manifest data."""
-        try:
-            return next(
-                x["language"].replace("_", "-")
-                for x in manifest["catalogMetadata"]["playback"]["audioTracks"]
-                if x["isOriginalLanguage"]
-            )
-        except (KeyError, StopIteration):
-            pass
+    def get_tracks(self, title, device):
+        self.device[self.profile]["device_type"] = device
+        #tracks = Tracks()
+        #if self.chapters_only:
+        #    return []
+#
+        #manifest, chosen_manifest, tracks = self.get_best_quality(title)
+#
+        manifest = self.get_manifest(
+            title,
+            video_codec=self.vcodec,
+            bitrate_mode=self.orig_bitrate,
+            quality=self.vquality,
+            hdr=self.vrange,
+            ignore_errors=False
+            
+        )
+        #
+        ## Move rightsException termination here so that script can attempt continuing
+        #if "rightsException" in manifest["returnedTitleRendition"]["selectedEntitlement"]:
+        #    self.log.error(" - The profile used does not have the rights to this title.")
+        #    return
+#
+        #self.customer_id = manifest["returnedTitleRendition"]["selectedEntitlement"]["grantedByCustomerId"]
+#
+        #default_url_set = manifest["playbackUrls"]["urlSets"][manifest["playbackUrls"]["defaultUrlSetId"]]
+        #encoding_version = default_url_set["urls"]["manifest"]["encodingVersion"]
+        #self.log.info(f" + Detected encodingVersion={encoding_version}")
+#
+        chosen_manifest = self.choose_manifest(manifest, self.cdn)
 
-        if "defaultAudioTrackId" in manifest.get("playbackUrls", {}):
-            try:
-                return manifest["playbackUrls"]["defaultAudioTrackId"].split("_")[0]
-            except IndexError:
-                pass
-
-        try:
-            return sorted(
-                manifest["audioVideoUrls"]["audioTrackMetadata"],
-                key=lambda x: x["index"]
-            )[0]["languageCode"]
-        except (KeyError, IndexError):
-            pass
-
-        return None
+        if not chosen_manifest:
+            raise print(f"No manifests available")
+#
+        manifest_url = self.clean_mpd_url(chosen_manifest["avUrlInfoList"][0]["url"], False)
+        print(manifest_url)
+        #self.log.info(" + Downloading Manifest")
+#
+        #if chosen_manifest["streamingTechnology"] == "DASH":
+        #    tracks = Tracks([
+        #        x for x in iter(Tracks.from_mpd(
+        #            url=manifest_url,
+        #            session=self.session,
+        #            source=self.ALIASES[0],
+        #        ))
+        #    ])
+        #elif chosen_manifest["streamingTechnology"] == "SmoothStreaming":
+        #    tracks = Tracks([
+        #        x for x in iter(Tracks.from_ism(
+        #            url=manifest_url,
+        #            session=self.session,
+        #            source=self.ALIASES[0],
+        #        ))
+        #    ])
+        #else:
+        #    raise self.log.exit(f"Unsupported manifest type: {chosen_manifest['streamingTechnology']}")
+#
+        #need_separate_audio = ((self.aquality or self.vquality) != self.vquality
+        #                       or self.amanifest == "CVBR" and (self.vcodec, self.bitrate) != ("H264", "CVBR")
+        #                       or self.amanifest == "CBR" and (self.vcodec, self.bitrate) != ("H264", "CBR")
+        #                       or self.amanifest == "H265" and self.vcodec != "H265"
+        #                       or self.amanifest != "H265" and self.vcodec == "H265")
+#
+        #if not need_separate_audio:
+        #    audios = defaultdict(list)
+        #    for audio in tracks.audios:
+        #        audios[audio.language].append(audio)
+#
+        #    for lang in audios:
+        #        if not any((x.bitrate or 0) >= 640000 for x in audios[lang]):
+        #            need_separate_audio = True
+        #            break
+#
+        #if need_separate_audio and not self.atmos:
+        #    manifest_type = self.amanifest or "H265"
+        #    self.log.info(f"Getting audio from {manifest_type} manifest for potential higher bitrate or better codec")
+        #    audio_manifest = self.get_manifest(
+        #        title=title,
+        #        video_codec="H265" if manifest_type == "H265" else "H264",
+        #        bitrate_mode="CVBR" if manifest_type != "CBR" else "CBR",
+        #        quality=self.aquality or self.vquality,
+        #        hdr=None,
+        #        ignore_errors=True
+        #    )
+        #    if not audio_manifest:
+        #        self.log.warning(f" - Unable to get {manifest_type} audio manifests, skipping")
+        #    elif not (chosen_audio_manifest := self.choose_manifest(audio_manifest, self.cdn)):
+        #        self.log.warning(f" - No {manifest_type} audio manifests available, skipping")
+        #    else:
+        #        audio_mpd_url = self.clean_mpd_url(chosen_audio_manifest["avUrlInfoList"][0]["url"], optimise=False)
+        #        self.log.debug(audio_mpd_url)
+        #        self.log.info(" + Downloading HEVC manifest")
+#
+        #        try:
+        #            audio_mpd = Tracks([
+        #                x for x in iter(Tracks.from_mpd(
+        #                    url=audio_mpd_url,
+        #                    session=self.session,
+        #                    source=self.ALIASES[0],
+        #                ))
+        #            ])
+        #        except KeyError:
+        #            self.log.warning(f" - Title has no {self.amanifest} stream, cannot get higher quality audio")
+        #        else:
+        #            tracks.add(audio_mpd.audios, warn_only=True)  # expecting possible dupes, ignore
+#
+        #need_uhd_audio = self.atmos
+#
+        #if not self.amanifest and ((self.aquality == "UHD" and self.vquality != "UHD") or not self.aquality):
+        #    audios = defaultdict(list)
+        #    for audio in tracks.audios:
+        #        audios[audio.language].append(audio)
+        #    for lang in audios:
+        #        if not any((x.bitrate or 0) >= 640000 for x in audios[lang]):
+        #            need_uhd_audio = True
+        #            break
+#
+        #if need_uhd_audio and (self.config.get("device") or {}).get(self.profile, None):
+        #    self.log.info("Getting audio from UHD manifest for potential higher bitrate or better codec")
+        #    temp_device = self.device
+        #    temp_device_token = self.device_token
+        #    temp_device_id = self.device_id
+        #    uhd_audio_manifest = None
+#
+        #    try:
+        #        if self.cdm.device.type == Types.CHROME and self.quality < 2160:
+        #            self.log.info(f" + Switching to device to get UHD manifest")
+        #            self.register_device()
+#
+        #        uhd_audio_manifest = self.get_manifest(
+        #            title=title,
+        #            video_codec="H265",
+        #            bitrate_mode="CVBR+CBR",
+        #            quality="UHD",
+        #            hdr="DV",  # Needed for 576kbps Atmos sometimes
+        #            ignore_errors=True
+        #        )
+        #    except:
+        #        pass
+#
+        #    self.device = temp_device
+        #    self.device_token = temp_device_token
+        #    self.device_id = temp_device_id
+#
+        #    if not uhd_audio_manifest:
+        #        self.log.warning(f" - Unable to get UHD manifests, skipping")
+        #    elif not (chosen_uhd_audio_manifest := self.choose_manifest(uhd_audio_manifest, self.cdn)):
+        #        self.log.warning(f" - No UHD manifests available, skipping")
+        #    else:
+        #        uhd_audio_mpd_url = self.clean_mpd_url(chosen_uhd_audio_manifest["avUrlInfoList"][0]["url"], optimise=False)
+        #        self.log.debug(uhd_audio_mpd_url)
+        #        self.log.info(" + Downloading UHD manifest")
+#
+        #        try:
+        #            uhd_audio_mpd = Tracks([
+        #                x for x in iter(Tracks.from_mpd(
+        #                    url=uhd_audio_mpd_url,
+        #                    session=self.session,
+        #                    source=self.ALIASES[0],
+        #                ))
+        #            ])
+        #        except KeyError:
+        #            self.log.warning(f" - Title has no UHD stream, cannot get higher quality audio")
+        #        else:
+        #            # replace the audio tracks with DV manifest version if atmos is present
+        #            if any(x for x in uhd_audio_mpd.audios if x.atmos):
+        #                tracks.audios = uhd_audio_mpd.audios
+#
+        #for video in tracks.videos:
+        #    video.hdr10 = chosen_manifest["hdrFormat"] == "Hdr10"
+        #    video.dv = chosen_manifest["hdrFormat"] == "DolbyVision"
+#
+        #for audio in tracks.audios:
+        #    audio.descriptive = audio.extra[1].get("audioTrackSubtype") == "descriptive"
+        #    # Amazon @lang is just the lang code, no dialect, @audioTrackId has it.
+        #    audio_track_id = audio.extra[1].get("audioTrackId")
+        #    if audio_track_id:
+        #        audio.language = Language.get(audio_track_id.split("_")[0])  # e.g. es-419_ec3_blabla
+#
+        #for sub in manifest.get("subtitleUrls", []) + manifest.get("forcedNarratives", []):
+        #    tracks.add(TextTrack(
+        #        id_=sub.get(
+        #            "timedTextTrackId",
+        #            f"{sub['languageCode']}_{sub['type']}_{sub['subtype']}_{sub['index']}"
+        #        ),
+        #        source=self.ALIASES[0],
+        #        url=os.path.splitext(sub["url"])[0] + ".srt",  # DFXP -> SRT forcefully seems to work fine
+        #        # metadata
+        #        codec="srt",  # sub["format"].lower(),
+        #        language=sub["languageCode"],
+        #        #is_original_lang=title.original_lang and is_close_match(sub["languageCode"], [title.original_lang]),
+        #        forced="forced" in sub["displayName"],
+        #        sdh=sub["type"].lower() == "sdh"  # TODO: what other sub types? cc? forced?
+        #    ), warn_only=True)  # expecting possible dupes, ignore
+#
+        #return tracks
 
     class DeviceRegistration:
 

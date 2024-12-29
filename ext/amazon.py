@@ -80,19 +80,10 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         vquality = None
         device_id = None
         device_token = None
-        
+                
         vquality_source = ParameterSource.DEFAULT
         bitrate_source = ParameterSource.DEFAULT
         
-        #if 0 < quality <= 576 and vrange == "SDR":
-        #    logger.info(f"Setting manifest quality to SD", extra={"service_name": "Amazon"})
-        #    vquality = "SD"
-        #    
-        #if quality > 1080:
-        #    logger.info(f"Setting manifest quality to UHD to be able to get 2160p video track", extra={"service_name": "Amazon"})
-        #    vquality = "UHD"
-        #    
-        #vquality = vquality or "HD"
         if vquality_source != ParameterSource.COMMANDLINE:
             if 0 < quality <= 576 and vrange == "SDR":
                 logger.info(f" + Setting manifest quality to SD", extra={"service_name": "Amazon"})
@@ -114,7 +105,12 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                 logger.info(f" + Changed bitrate mode to CBR to be able to get highest quality UHD {vrange} video track", extra={"service_name": "Amazon"})
 
         orig_bitrate = bitrate
-                        
+        
+        amazon_downloader.update_variable("vcodec", vcodec)
+        amazon_downloader.update_variable("orig_bitrate", orig_bitrate)
+        amazon_downloader.update_variable("vquality", vquality)
+        amazon_downloader.update_variable("vrange", vrange)
+        
         cookies = amazon_downloader.parse_cookie(profile)
         if not cookies:
             logger.error(f"Profile {profile} has no cookies", extra={"service_name": "Amazon"})
@@ -234,9 +230,9 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                         name=f" - {title['episode_name']}" if title["episode_name"] else "",
                         id=title["id"],
                     ), extra={"service_name": "Amazon"})
-                    continue
-                amazon_downloader.get_tracks(title)
-                amazon_downloader.get_chapters(title)
+                title_tracks = amazon_downloader.get_tracks(title, device)
+                print(title_tracks)
+                #amazon_downloader.get_chapters(title)
             except Exception as error:
                 print(error)
     except Exception as error:
