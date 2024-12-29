@@ -270,6 +270,18 @@ class Amazon_downloader:
                     temp_json["episode_name"] = details["title"]                    
                     temp_json["year"] = details["releaseYear"]
                     temp_json["deny_download"] = not episode["action"].get("downloadActions")
+                    if (
+                        (action := episode.get("action"))
+                        and (download_actions := action.get("downloadActions"))
+                        and (main := download_actions.get("main"))
+                        and (children := main.get("children"))
+                        and isinstance(children, list)
+                        and len(children) > 0
+                        and "entitlementType" in children[0]
+                    ):
+                        temp_json["free"] = children[0]["entitlementType"] == "FREE"
+                    else:
+                        temp_json["free"] = False
                     titles.append(temp_json)
                 if len(titles) == 25:
                     page_count = 1
@@ -300,6 +312,19 @@ class Amazon_downloader:
                             temp_json["episode_name"] = item["detail"]["title"]
                             temp_json["year"] = item["detail"]["releaseYear"]
                             temp_json["deny_download"] = not item["detail"]["action"].get("downloadActions")
+                            if (
+                                (detail := item.get("detail"))
+                                and (action := detail.get("action"))
+                                and (download_actions := action.get("downloadActions"))
+                                and (main := download_actions.get("main"))
+                                and (children := main.get("children"))
+                                and isinstance(children, list)
+                                and len(children) > 0
+                                and "entitlementType" in children[0]
+                            ):
+                                temp_json["free"] = children[0]["entitlementType"] == "FREE"
+                            else:
+                                temp_json["free"] = False
                             titles.append(temp_json)
                         pagination_data = res['widgets'].get('episodeList', {}).get('actions', {}).get('pagination', [])
                         token = next((quote(item.get('token')) for item in pagination_data if item.get('tokenType') == 'NextPage'), None)

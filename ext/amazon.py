@@ -212,11 +212,22 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
             else:
                 # ここにmovie typeのloggerを書く
                 logger.info("coming soon", extra={"service_name": "Amazon"})
+        logger.info("Checking Free or playable Type Video", extra={"service_name": "Amazon"})
         for title in meta_response:
             try:
+                #print(title["free"])
                 # ここにtracksとchapterを取得するコードを書く
                 if title["deny_download"]:
-                    logger.info("This episode require prime video access | {title} S{season:02}E{episode:02}{name} [{id}]".format(
+                    logger.info("This episode can't download | {title} S{season:02}E{episode:02}{name} [{id}]".format(
+                        title=title["name"],
+                        season=title["season"] or 0,
+                        episode=title["episode"] or 0,
+                        name=f" - {title['episode_name']}" if title["episode_name"] else "",
+                        id=title["id"],
+                    ), extra={"service_name": "Amazon"})
+                    continue
+                if title["free"]:
+                    logger.info("This episode is Free! | {title} S{season:02}E{episode:02}{name} [{id}]".format(
                         title=title["name"],
                         season=title["season"] or 0,
                         episode=title["episode"] or 0,
