@@ -1,3 +1,7 @@
+#The following code is partially modified code from DRMLAB-VT1.0.zip distributed within the DRMLab Project and PlayReady-Amazon-Tool-works.zip distributed by mcmasterhit.
+#
+#Most of the code is copied.
+
 import os
 import re
 import time
@@ -21,6 +25,8 @@ class Amazon_downloader:
         self.service = "Amazon"
         self.profile = None
         self.domain_region = None
+        self.device_id = None
+        self.device_token = None
         self.client_id = "f22dbddb-ef2c-48c5-8876-bed0d47594fd"  # browser client id
         self.VIDEO_RANGE_MAP = {
             "SDR": "None",
@@ -87,45 +93,32 @@ class Amazon_downloader:
         self.device = {
           "default": {
             "domain": "Device",
-            "app_name": "com.amazon.amazonvideo.livingroom",
-            "app_version": "1.1",
-            "device_model": "Hisense",
-            "os_version": "6.0.1",
-            "device_type": "A3REWRVYBYPKUM",
-            "device_name": "%FIRST_NAME%'s%DUPE_STRATEGY_1ST% Hisense",
-            "device_serial": "3cc61028646759e273"
-          },
-          "snowman8585": {
-            "domain": "Device",
-            "app_name": "com.amazon.amazonvideo.livingroom",
-            "app_version": "1.1",
-            "device_model": "Hisense",
-            "os_version": "6.0.1",
-            "device_type": "A3REWRVYBYPKUM",
-            "device_name": "%FIRST_NAME%'s%DUPE_STRATEGY_1ST% Hisense",
-            "device_serial": "12a95b33987e83ae51"
-          },
-          "snowmanuk": {
-            "domain": "Device",
-            "app_name": "com.amazon.amazonvideo.livingroom",
-            "app_version": "1.1",
-            "device_model": "Hisense",
-            "os_version": "6.0.1",
-            "device_type": "A3REWRVYBYPKUM",
-            "device_name": "%FIRST_NAME%'s%DUPE_STRATEGY_1ST% Hisense",
-            "device_serial": "12a95b33989e83ae51"
-          },
-          "us": {
-            "domain": "Device",
-            "app_name": "com.amazon.amazonvideo.livingroom",
-            "app_version": "1.1",
-            "device_model": "Hisense",
-            "os_version": "6.0.1",
-            "device_type": "A3REWRVYBYPKUM",
-            "device_name": "%FIRST_NAME%'s%DUPE_STRATEGY_1ST% Hisense",
-            "device_serial": "12a95b3312fb2013d9"
+            "app_name": "AIV",
+            "app_version": '3.12.0',
+            "device_model": 'SHIELD Android TV',
+            "os_version": '28',
+            "device_type": "A1KAXIG6VXSG8Y",
+            "device_serial": '13f5b56b4a17de5d136f0e4c28236109',  # `os.urandom(8).hex()`
+            "device_name": "%FIRST_NAME%'s%DUPE_STRATEGY_1ST% Shield TV",
+            "software_version": '248'
           }
         }
+        
+    def update_variable(self, variable_name, value):
+        """
+        Updates the value of the specified instance variable if it exists.
+
+        Args:
+            variable_name (str): The name of the instance variable to update.
+            value: The new value to assign to the variable.
+
+        Raises:
+            AttributeError: If the variable does not exist.
+        """
+        if hasattr(self, variable_name):
+            setattr(self, variable_name, value)
+        else:
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{variable_name}'")
 
     def get_cache(self, key):
         """
@@ -212,18 +205,20 @@ class Amazon_downloader:
             profile=profile,
             hash=hashlib.md5(json.dumps(self.register_v_device).encode()).hexdigest()[0:6]
         ))
+        self.session = session
         self.device_token = self.DeviceRegistration(
             device=self.register_v_device,
             endpoints=self.endpoints,
             log=logger,
             cache_path=device_cache_path,
-            session=session
+            session=self.session
         ).bearer
         self.device_id = self.register_v_device.get("device_serial")
         if not self.device_id:
             raise logger.error(f" - A device serial is required in the config, perhaps use: {os.urandom(8).hex()}", extra={"service_name": "Amazon"})
         return self.device_id, self.device_token
 
+    # ここでいろいろゲッチュ
     def get_titles(self, session, title_id, single, vcodec, bitrate, vquality):
         self.session = session
         self.title = title_id
@@ -266,20 +261,6 @@ class Amazon_downloader:
                 episodes = data["episodeList"]["episodes"]
                 for episode in episodes:
                     details = episode["detail"]
-                    #titles.append(
-                    #    Title(
-                    #        id_=details["catalogId"],
-                    #        type_=Title.Types.TV,
-                    #        name=product_details["parentTitle"],
-                    #        season=data["productDetails"]["detail"]["seasonNumber"],
-                    #        episode=episode["self"]["sequenceNumber"],
-                    #        episode_name=details["title"],
-                    #        # language is obtained afterward
-                    #        original_lang=None,
-                    #        source=self.ALIASES[0],
-                    #        service_data=details,
-                    #    )
-                    #)
                     temp_json = {}
                     temp_json["id"] = details["catalogId"]
                     temp_json["type"] = "TV"
@@ -310,18 +291,6 @@ class Amazon_downloader:
                         episodeList = res['widgets'].get('episodeList', {})
                         for item in episodeList.get('episodes', []):
                             episode = int(item.get('self', {}).get('sequenceNumber', {}))
-                            #titles.append(Title(
-                            #    id_=item["detail"]["catalogId"],
-                            #    type_=Title.Types.TV,
-                            #    name=product_details["parentTitle"],
-                            #    season=product_details["seasonNumber"],
-                            #    episode=episode,
-                            #    episode_name=item["detail"]["title"],
-                            #    # language is obtained afterward
-                            #    original_lang=None,
-                            #    source=self.ALIASES[0],
-                            #    service_data=item
-                            #))
                             temp_json = {}
                             temp_json["id"] = item["detail"]["catalogId"]
                             temp_json["type"] = "TV"
@@ -330,6 +299,7 @@ class Amazon_downloader:
                             temp_json["episode"] = episode
                             temp_json["episode_name"] = item["detail"]["title"]
                             temp_json["year"] = item["detail"]["releaseYear"]
+                            temp_json["deny_download"] = not item["detail"]["action"].get("downloadActions")
                             titles.append(temp_json)
                         pagination_data = res['widgets'].get('episodeList', {}).get('actions', {}).get('pagination', [])
                         token = next((quote(item.get('token')) for item in pagination_data if item.get('tokenType') == 'NextPage'), None)
@@ -346,18 +316,6 @@ class Amazon_downloader:
                 for card in cards:
                     episode_number = card.get("episodeNumber", 0)
                     if episode_number != 0:
-                        #titles.append(Title(
-                        #    id_=card["catalogId"],
-                        #    type_=Title.Types.TV,
-                        #    name=product_details["parentTitle"],
-                        #    season=product_details["seasonNumber"],
-                        #    episode=episode_number,
-                        #    episode_name=card["title"],
-                        #    # language is obtained afterward
-                        #    original_lang=None,
-                        #    source=self.ALIASES[0],
-                        #    service_data=card
-                        #))
                         temp_json = {}
                         temp_json["id"] = card["catalogId"]
                         temp_json["type"] = "TV"
@@ -627,7 +585,9 @@ class Amazon_downloader:
                 cookies=None  # for some reason, may fail if cookies are present. Odd.
             )
             if response.status_code != 200:
-                raise self.log.error(f"Unable to register: {response.text} [{response.status_code}]", extra={"service_name": "Amazon"})
+                self.log.error(f"Unable to register: {response.text} [{response.status_code}]", extra={"service_name": "Amazon"})
+                self.log.error("Please Update Cookie File", extra={"service_name": "Amazon"})
+                raise
             bearer = response.json()["response"]["success"]["tokens"]["bearer"]
             bearer["expires_in"] = int(time.time()) + int(bearer["expires_in"])
 
@@ -650,6 +610,7 @@ class Amazon_downloader:
                 }
             ).json()
             if "error" in response:
+                #cache_path = Path(self.cache_path) if isinstance(self.cache_path, str) else self.cache_path
                 self.cache_path.unlink(missing_ok=True)  # Remove the cached device as its tokens have expired
                 raise self.log.error(
                     f"Failed to refresh device token: {response['error_description']} [{response['error']}]"

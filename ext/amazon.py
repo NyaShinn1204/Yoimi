@@ -124,7 +124,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
             logger.debug(f"Get cookies: {len(cookies)}", extra={"service_name": "Amazon"})
             
         logger.info("Getting Account Region", extra={"service_name": "Amazon"})
-        get_region, error_msg, cookie = amazon_downloader.get_region()
+        get_region, error_msg, cookies = amazon_downloader.get_region()
         if not get_region:
             logger.error("Failed to get Amazon Account Region", extra={"service_name": "Amazon"})
             logger.error(error_msg, extra={"service_name": "Amazon"})
@@ -146,7 +146,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         device = amazon_downloader.get_device(profile, endpoints)
         #if not device:
         #    logger.debug("Device not set. using other option...", extra={"service_name": "Amazon"})
-        #logger.debug(f"Device: {device}", extra={"service_name": "Amazon"})
+        logger.debug(f"Device: {device}", extra={"service_name": "Amazon"})
 
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
@@ -160,17 +160,22 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
             CHROME = 1
             ANDROID = 2
             PLAYREADY = 3
+            
+        logger.debug(f"DLOG: {device}", extra={"service_name": "Amazon"})
+        logger.debug(f"DLOG: {vquality}", extra={"service_name": "Amazon"})
+        logger.debug(f"DLOG: {cdm.device_type}", extra={"service_name": "Amazon"})
         
         if (quality > 1080 or vrange != "SDR") and vcodec == "H265" and cdm.device_type == Types.CHROME:
             logger.info(f"Using device to Get UHD manifests", extra={"service_name": "Amazon"})
             device_id, device_token = amazon_downloader.register_device(session, profile, logger)
-        elif not device or cdm.device_type == Types.CHROME or vquality == "SD":
+        elif not device or vquality != "UHD" or cdm.device_type == Types.CHROME:
             # falling back to browser-based device ID
             if not device:
                 logger.warning(f"No Device information was provided for {profile}, using browser device...", extra={"service_name": "Amazon"})
             device_id = hashlib.sha224(
                 ("CustomerID" + session.headers["User-Agent"]).encode("utf-8")
             ).hexdigest()
+            amazon_downloader.update_variable("device_id", device_id)
             device = {"device_type": "AOAGZA014O5RE"}
         else:
             logger.debug("Device not set. using other option...", extra={"service_name": "Amazon"})
@@ -187,6 +192,11 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         logger.info("Get Title for Season", extra={"service_name": "Amazon"})
         logger.debug(f"Titles_json: {meta_response}", extra={"service_name": "Amazon"})
         logger.debug(f"Episode_count: {len(meta_response)}", extra={"service_name": "Amazon"})
+        
+        logger.info("Title: {}".format(meta_response[0]["name"]), extra={"service_name": "Amazon"})
+        logger.info("Total Episode: {}".format(str(len(meta_response))), extra={"service_name": "Amazon"})
+        logger.info("By Season: {season} ({len_episode})".format(season=str(meta_response[0]["season"]),len_episode=str(len(meta_response))), extra={"service_name": "Amazon"})
+        
         for title in meta_response:
             if title["type"] == "TV":
                 #logger.info(" + {tv_title}_S{season:02}{episode_name}".format(tv_title=title["name"],season=title["season"] or 0, episode=title["episode"] or 0, episode_name=f" - {title["episode_name"]}" if title["episode_name"] else ""), extra={"service_name": "Amazon"})
