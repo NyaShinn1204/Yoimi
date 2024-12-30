@@ -19,6 +19,7 @@ from tldextract import tldextract
 from collections import defaultdict
 from urllib.parse import urlencode, quote
 from http.cookiejar import MozillaCookieJar
+from langcodes import Language, closest_match
 
 class Types(Enum):
     CHROME = 1
@@ -285,6 +286,7 @@ class Amazon_downloader:
 
         return None
     def get_titles(self, session, title_id, single, vcodec, bitrate, vquality):
+        self.real_value_titles = [vcodec, bitrate, vquality]
         self.session = session
         self.title = title_id
         self.single = single
@@ -461,7 +463,9 @@ class Amazon_downloader:
                 season_episode_count[key] += 1
 
         titles = filtered_titles
-
+        
+        self.real_titles = titles
+        
         return titles
     def get_manifest(
         self, title: json, video_codec: str, bitrate_mode: str, quality: str, hdr=None,
@@ -775,6 +779,53 @@ class Amazon_downloader:
               }  # expecting possible dupes, ignore
 
         return tracks
+    def get_track_name(self, track):
+        TERRITORY_MAP = {
+            "001": "",
+            "150": "European",
+            "419": "Latin American",
+            "AU": "Australian",
+            "BE": "Flemish",
+            "BR": "Brazilian",
+            "CA": "Canadian",
+            "CZ": "",
+            "DK": "",
+            "EG": "Egyptian",
+            "ES": "European",
+            "FR": "European",
+            "GB": "British",
+            "GR": "",
+            "HK": "Hong Kong",
+            "IL": "",
+            "IN": "",
+            "JP": "",
+            "KR": "",
+            "MY": "",
+            "NO": "",
+            "PH": "",
+            "PS": "Palestinian",
+            "PT": "European",
+            "SE": "",
+            "SY": "Syrian",
+            "US": "American",
+        }
+        self.language = Language.get(track["language"] or "en")
+        """Return the base track name. This may be enhanced in subclasses."""
+        if self.language is None:
+            self.language = Language.get("en")
+        if ((self.language.language or "").lower() == (self.language.territory or "").lower()
+                and self.language.territory not in TERRITORY_MAP):
+            self.language.territory = None  # e.g. de-DE
+        if self.language.territory == "US":
+            self.language.territory = None
+        language = self.language.simplify_script()
+        extra_parts = []
+        if language.script is not None:
+            extra_parts.append(language.script_name())
+        if language.territory is not None:
+            territory = language.territory_name()
+            extra_parts.append(TERRITORY_MAP.get(language.territory, territory))
+        return ", ".join(extra_parts) or None
     def get_print_track(self, track):
         text_temp = ""  
         total_duplicates = {"video_track": 0, "audio_track": 0, "text_track": 0}
@@ -871,14 +922,29 @@ class Amazon_downloader:
                 return "5.1"
     
             return channels
-        
+        def is_close_match(language, languages):
+            LANGUAGE_MAX_DISTANCE = 5
+            if not (language and languages and all(languages)):
+                return False
+            languages = list(map(str, [x for x in languages if x]))
+            return closest_match(language, languages)[1] <= LANGUAGE_MAX_DISTANCE
         for audio in track["audio_track"]:
-            text_temp += "├─ AUD | [{acodec}] | [{atmos}] | {channel} | {bitrate} kb/s | {language}\n".format(
+            original_lang = self.get_original_language(self.get_manifest(
+                next((x for x in self.real_titles if x["type"] == "Movie" or x["episode"] > 0), self.real_titles[0]),
+                video_codec=self.real_value_titles[0],
+                bitrate_mode=self.real_value_titles[1],
+                quality=self.real_value_titles[2],
+                ignore_errors=True
+            ))
+            is_original_lang = is_close_match(audio["language"], [original_lang])
+            option = "".join([self.get_track_name(audio) or "", "| [Original]" if is_original_lang else ""])
+            text_temp += "├─ AUD | [{acodec}] | [{atmos}] | {channel} | {bitrate} kb/s | {language} {option}\n".format(
                 acodec = CODEC_MAP[audio["codec"]],
                 atmos = audio["codec"],
                 channel = parse_channels(audio["channels"]),
                 bitrate = str(int(math.ceil(float(audio["bitrate"]))) if audio["bitrate"] else None // 1000 if audio["bitrate"] else "?"),
-                language = Language.get(audio["language"]  or "en")
+                language = Language.get(audio["language"]  or "en"),
+                option = option
             )
             
         #print(text_temp)
