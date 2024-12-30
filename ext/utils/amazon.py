@@ -887,12 +887,11 @@ class Amazon_downloader:
             "tt": "TTML",
         }
         
-        text_temp += f"{len(track["video_track"]) - total_duplicates["video_track"]} Video Tracks:\n"
-        for video in track["video_track"]:
-            #print()
+        text_temp += f"{len(track['video_track']) - total_duplicates['video_track']} Video Tracks:\n"
+        for index, video in enumerate(track["video_track"]):
             vencode = 'HDR10' if video["hdr10"] else 'HLG' if video["hlg"] else 'DV' if video["dv"] else 'SDR'
-            quality = f"{video["width"]}x{video["height"]}"
-            bitrate = f"{str(int(video["bitrate"]) // 1000) if video["bitrate"] else '?'}"
+            quality = f"{video['width']}x{video['height']}"
+            bitrate = f"{str(int(video['bitrate']) // 1000) if video['bitrate'] else '?'}"
             if "/" in str(video["fps"]):
                 num, den = video["fps"].split("/")
                 video["fps"] = int(num) / int(den)
@@ -900,8 +899,17 @@ class Amazon_downloader:
                 video["fps"] = float(video["fps"])
             else:
                 video["fps"] = None
-            encode_fps = f"{video["fps"]:.3f}" if video["fps"] else "Unknown"
-            text_temp += "├─ VID | [{vcodec}, {vencode}] | {quality} @ {bitrate} kb/s, {fps} FPS\n".format(vcodec=CODEC_MAP[video["codec"]], vencode=vencode, quality=quality, bitrate=bitrate, fps=encode_fps)
+            encode_fps = f"{video['fps']:.3f}" if video["fps"] else "Unknown"
+            text_temp += "├─ VID | [{vcodec}, {vencode}] | {quality} @ {bitrate} kb/s, {fps} FPS".format(
+                vcodec=CODEC_MAP[video["codec"]], 
+                vencode=vencode, 
+                quality=quality, 
+                bitrate=bitrate, 
+                fps=encode_fps
+            )
+            if index < len(track["video_track"]) - 1:  # 最後の行以外に改行を追加
+                text_temp += "\n"
+        
         text_temp += f"{len(track["audio_track"]) - total_duplicates["audio_track"]} Audio Tracks:\n"
         def parse_channels(channels):
             """
@@ -929,7 +937,7 @@ class Amazon_downloader:
                 return False
             languages = list(map(str, [x for x in languages if x]))
             return closest_match(language, languages)[1] <= LANGUAGE_MAX_DISTANCE
-        for audio in track["audio_track"]:
+        for index, audio in enumerate(track["audio_track"]):
             original_lang = self.get_original_language(self.get_manifest(
                 next((x for x in self.real_titles if x["type"] == "Movie" or x["episode"] > 0), self.real_titles[0]),
                 video_codec=self.real_value_titles[0],
@@ -939,18 +947,22 @@ class Amazon_downloader:
             ))
             is_original_lang = is_close_match(audio["language"], [original_lang])
             option = "".join([self.get_track_name(audio) or "", "| [Original]" if is_original_lang else ""])
-            text_temp += "├─ AUD | [{acodec}] | [{atmos}] | {channel} | {bitrate} kb/s | {language} {option}\n".format(
-                acodec = CODEC_MAP[audio["codec"]],
-                atmos = audio["codec"],
-                channel = parse_channels(audio["channels"]),
-                bitrate = str(int(math.ceil(float(audio["bitrate"]))) if audio["bitrate"] else None // 1000 if audio["bitrate"] else "?"),
-                language = Language.get(audio["language"]  or "en"),
-                option = option
+            text_temp += "├─ AUD | [{acodec}] | [{atmos}] | {channel} | {bitrate} kb/s | {language} {option}".format(
+                acodec=CODEC_MAP[audio["codec"]],
+                atmos=audio["codec"],
+                channel=parse_channels(audio["channels"]),
+                bitrate=str(int(math.ceil(float(audio["bitrate"]))) // 1000 if audio["bitrate"] else "?"),
+                language=Language.get(audio["language"] or "en"),
+                option=option
             )
-        text_temp += f"{len(track["text_track"]) - total_duplicates["text_track"]} Text Tracks:\n"
-        for text in track["text_track"]:
+            if index < len(track["audio_track"]) - 1:
+                text_temp += "\n"
+
+        # Text Tracks
+        text_temp += f"\n{len(track['text_track']) - total_duplicates['text_track']} Text Tracks:\n"
+        for index, text in enumerate(track["text_track"]):
             track_name = ""
-            flag = text["sdh"] and "SDH" or text["forced"] and "Forced" # TODO:  "text["cc"] and "CC" or "を削除しました。すいません
+            flag = text["sdh"] and "SDH" or text["forced"] and "Forced"
             if flag:
                 if track_name:
                     flag = f" ({flag})"
@@ -964,13 +976,15 @@ class Amazon_downloader:
             ))
             is_original_lang = is_close_match(text["language"], [original_lang])
             option = "".join(["| [Original]" if is_original_lang else ""])
-            text_temp += "├─ SUB | [{codec}] | {language} | {track_name} {option}\n".format(
+            text_temp += "├─ SUB | [{codec}] | {language} | {track_name} {option}".format(
                 codec=CODEC_MAP[text["codec"]],
                 language=text["language"],
                 track_name=track_name,
-                option = option
+                option=option
             )
-        #print(text_temp)
+            if index < len(track["text_track"]) - 1:
+                text_temp += "\n"
+        
         return text_temp
     class Mpd_parse:
         class Descriptor(Enum):

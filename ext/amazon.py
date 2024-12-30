@@ -242,7 +242,8 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                         name=f" - {title['episode_name']}" if title["episode_name"] else "",
                         id=title["id"],
                     ), extra={"service_name": "Amazon"})
-                print("device: ", device)
+               # print("device: ", device)
+                logger.debug("+ Use Device: "+str(device), extra={"service_name": "Amazon"})
                 title_tracks, chosen_manifest, manifest = amazon_downloader.get_tracks(title, device)
                 #print(title_tracks)
                 #print(amazon_downloader.get_print_track(title_tracks))
@@ -253,7 +254,8 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                     amanifest == "H265" and vcodec != "H265" or
                     amanifest != "H265" and vcodec == "H265"
                 )
-                print("nsa: "+str(need_separate_audio))
+                #print("nsa: "+str(need_separate_audio))
+                logger.info("+ Nsa: "+str(need_separate_audio), extra={"service_name": "Amazon"})
                 if not need_separate_audio:
                     language_audio_map = defaultdict(list)
                     
@@ -302,7 +304,8 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                         except KeyError:
                             logger.warning(f" - Title has no {amanifest} stream, cannot get higher quality audio", extra={"service_name": "Amazon"})
                         else:
-                            print("get new version mpd content", title_tracks)
+                            #print("get new version mpd content", title_tracks)
+                            logger.info("Use get new version mpd content to parse", extra={"service_name": "Amazon"})
                 need_uhd_audio = atmos
                 if not amanifest and ((aquality == "UHD" and vquality != "UHD") or not aquality):
                     language_audio_map = defaultdict(list)
@@ -414,6 +417,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         
                 final_title_tracks = title_tracks
                 #print(final_title_tracks)
+                logger.info("Get Episode Tracks:", extra={"service_name": "Amazon"})
                 print_track = amazon_downloader.get_print_track(final_title_tracks)
                 print(print_track)
                 #amazon_downloader.get_chapters(title)
