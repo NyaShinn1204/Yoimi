@@ -74,6 +74,8 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         
         profile = "default"
         vcodec = "H265" # default
+        amanifest = vcodec
+        aquality = "SD"
         bitrate = "CBR" # default
         single = False # Force single episode/season instead of getting series ASIN,
         vrange = vrange
@@ -236,11 +238,20 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                         name=f" - {title['episode_name']}" if title["episode_name"] else "",
                         id=title["id"],
                     ), extra={"service_name": "Amazon"})
-                print("device", device)
+                print("device: ", device)
                 title_tracks = amazon_downloader.get_tracks(title, device)
                 #print(title_tracks)
                 print_track = amazon_downloader.get_print_track(title_tracks)
                 print(print_track)
+                need_separate_audio = (
+                    (aquality or vquality) != vquality or
+                    amanifest == "CVBR" and (vcodec, bitrate) != ("H264", "CVBR") or
+                    amanifest == "CBR" and (vcodec, bitrate) != ("H264", "CBR") or
+                    amanifest == "H265" and vcodec != "H265" or
+                    amanifest != "H265" and vcodec == "H265"
+                )
+                print("nsa: "+str(need_separate_audio))
+                
                 #amazon_downloader.get_chapters(title)
             except Exception as error:
                 print(error)

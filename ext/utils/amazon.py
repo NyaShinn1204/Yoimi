@@ -1260,6 +1260,7 @@ class Amazon_downloader:
                             
                             Amazon_downloader.Mpd_parse.v_a_tracks["audio_track"].append(temp_json)
                         elif content_type == "text":
+                            print("text cxomeGetting auto")
                             if source == 'HMAX':
                                 # HMAX SUBS
                                 segment_template = rep.find("SegmentTemplate")
