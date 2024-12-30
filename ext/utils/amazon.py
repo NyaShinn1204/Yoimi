@@ -632,7 +632,6 @@ class Amazon_downloader:
         else:
             raise print(f"Unsupported manifest type: {chosen_manifest['streamingTechnology']}")
         
-        return tracks
 #
         #need_separate_audio = ((self.aquality or self.vquality) != self.vquality
         #                       or self.amanifest == "CVBR" and (self.vcodec, self.bitrate) != ("H264", "CVBR")
@@ -745,34 +744,36 @@ class Amazon_downloader:
         #            if any(x for x in uhd_audio_mpd.audios if x.atmos):
         #                tracks.audios = uhd_audio_mpd.audios
 #
-        #for video in tracks.videos:
-        #    video.hdr10 = chosen_manifest["hdrFormat"] == "Hdr10"
-        #    video.dv = chosen_manifest["hdrFormat"] == "DolbyVision"
-#
-        #for audio in tracks.audios:
-        #    audio.descriptive = audio.extra[1].get("audioTrackSubtype") == "descriptive"
-        #    # Amazon @lang is just the lang code, no dialect, @audioTrackId has it.
-        #    audio_track_id = audio.extra[1].get("audioTrackId")
-        #    if audio_track_id:
-        #        audio.language = Language.get(audio_track_id.split("_")[0])  # e.g. es-419_ec3_blabla
-#
-        #for sub in manifest.get("subtitleUrls", []) + manifest.get("forcedNarratives", []):
-        #    tracks.add(TextTrack(
-        #        id_=sub.get(
-        #            "timedTextTrackId",
-        #            f"{sub['languageCode']}_{sub['type']}_{sub['subtype']}_{sub['index']}"
-        #        ),
-        #        source=self.ALIASES[0],
-        #        url=os.path.splitext(sub["url"])[0] + ".srt",  # DFXP -> SRT forcefully seems to work fine
-        #        # metadata
-        #        codec="srt",  # sub["format"].lower(),
-        #        language=sub["languageCode"],
-        #        #is_original_lang=title.original_lang and is_close_match(sub["languageCode"], [title.original_lang]),
-        #        forced="forced" in sub["displayName"],
-        #        sdh=sub["type"].lower() == "sdh"  # TODO: what other sub types? cc? forced?
-        #    ), warn_only=True)  # expecting possible dupes, ignore
-#
+        for video in tracks["video_track"]:
+            video["hdr10"] = chosen_manifest["hdrFormat"] == "Hdr10"
+            video["dv"] = chosen_manifest["hdrFormat"] == "DolbyVision"
+
+        for audio in tracks["audio_track"]:
+            audio["descriptive"] = audio["extra"][1].get("audioTrackSubtype") == "descriptive"
+            # Amazon @lang is just the lang code, no dialect, @audioTrackId has it.
+            audio_track_id = audio["extra"][1].get("audioTrackId")
+            if audio_track_id:
+                audio["language"] = Language.get(audio_track_id.split("_")[0])  # e.g. es-419_ec3_blabla
+                
         #return tracks
+#
+        for sub in manifest.get("subtitleUrls", []) + manifest.get("forcedNarratives", []):
+            tracks["text_track"] = {
+                "id_":sub.get(
+                    "timedTextTrackId",
+                    f"{sub['languageCode']}_{sub['type']}_{sub['subtype']}_{sub['index']}"
+                ),
+                "source":"AMZN",
+                "url":os.path.splitext(sub["url"])[0] + ".srt",  # DFXP -> SRT forcefully seems to work fine
+                # metadata
+                "codec":"srt",  # sub["format"].lower(),
+                "language":sub["languageCode"],
+                #is_original_lang:title.original_lang and is_close_match(sub["languageCode"], [title.original_lang]),
+                "forced":"forced" in sub["displayName"],
+                "sdh":sub["type"].lower() == "sdh"  # TODO: what other sub types? cc? forced?
+              }  # expecting possible dupes, ignore
+
+        return tracks
         
     class Mpd_parse:
         v_a_tracks = {"video_track": [], "audio_track": [], "text_track": []}
