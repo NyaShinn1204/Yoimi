@@ -763,7 +763,8 @@ class Amazon_downloader:
         #return tracks
 #
         for sub in manifest.get("subtitleUrls", []) + manifest.get("forcedNarratives", []):
-            tracks["text_track"] = {
+            tracks["text_track"].append({
+                "content_type": "text",
                 "id_":sub.get(
                     "timedTextTrackId",
                     f"{sub['languageCode']}_{sub['type']}_{sub['subtype']}_{sub['index']}"
@@ -776,9 +777,9 @@ class Amazon_downloader:
                 #is_original_lang:title.original_lang and is_close_match(sub["languageCode"], [title.original_lang]),
                 "forced":"forced" in sub["displayName"],
                 "sdh":sub["type"].lower() == "sdh"  # TODO: what other sub types? cc? forced?
-              }  # expecting possible dupes, ignore
+              })  # expecting possible dupes, ignore
 
-        return tracks
+        return tracks, chosen_manifest, manifest
     def get_track_name(self, track):
         TERRITORY_MAP = {
             "001": "",
@@ -900,7 +901,7 @@ class Amazon_downloader:
             else:
                 video["fps"] = None
             encode_fps = f"{video["fps"]:.3f}" if video["fps"] else "Unknown"
-            text_temp += "─ VID | [{vcodec}, {vencode}] | {quality} @ {bitrate} kb/s, {fps} FPS\n".format(vcodec=CODEC_MAP[video["codec"]], vencode=vencode, quality=quality, bitrate=bitrate, fps=encode_fps)
+            text_temp += "├─ VID | [{vcodec}, {vencode}] | {quality} @ {bitrate} kb/s, {fps} FPS\n".format(vcodec=CODEC_MAP[video["codec"]], vencode=vencode, quality=quality, bitrate=bitrate, fps=encode_fps)
         text_temp += f"{len(track["audio_track"]) - total_duplicates["audio_track"]} Audio Tracks:\n"
         def parse_channels(channels):
             """
@@ -946,11 +947,32 @@ class Amazon_downloader:
                 language = Language.get(audio["language"]  or "en"),
                 option = option
             )
-            
+        text_temp += f"{len(track["text_track"]) - total_duplicates["text_track"]} Text Tracks:\n"
+        for text in track["text_track"]:
+            track_name = ""
+            flag = text["sdh"] and "SDH" or text["forced"] and "Forced" # TODO:  "text["cc"] and "CC" or "を削除しました。すいません
+            if flag:
+                if track_name:
+                    flag = f" ({flag})"
+                track_name += flag
+            original_lang = self.get_original_language(self.get_manifest(
+                next((x for x in self.real_titles if x["type"] == "Movie" or x["episode"] > 0), self.real_titles[0]),
+                video_codec=self.real_value_titles[0],
+                bitrate_mode=self.real_value_titles[1],
+                quality=self.real_value_titles[2],
+                ignore_errors=True
+            ))
+            is_original_lang = is_close_match(text["language"], [original_lang])
+            option = "".join(["| [Original]" if is_original_lang else ""])
+            text_temp += "├─ SUB | [{codec}] | {language} | {track_name} {option}\n".format(
+                codec=CODEC_MAP[text["codec"]],
+                language=text["language"],
+                track_name=track_name,
+                option = option
+            )
         #print(text_temp)
         return text_temp
     class Mpd_parse:
-        v_a_tracks = {"video_track": [], "audio_track": [], "text_track": []}
         class Descriptor(Enum):
             URL = 1  # Direct URL, nothing fancy
             M3U = 2  # https://en.wikipedia.org/wiki/M3U (and M3U8)
@@ -981,6 +1003,7 @@ class Amazon_downloader:
                 for x in m
             )
         def get_mpd_content(*, url=None, data=None, source, session=None, downloader=None):
+            v_a_tracks = {"video_track": [], "audio_track": [], "text_track": []}
             import uuid
             import math
             import base64
@@ -1226,7 +1249,7 @@ class Amazon_downloader:
                                 "extra": (rep, adaptation_set)
                             }
                             
-                            Amazon_downloader.Mpd_parse.v_a_tracks["video_track"].append(temp_json)
+                            v_a_tracks["video_track"].append(temp_json)
         
                         elif content_type == "audio":
                             temp_json = {
@@ -1258,7 +1281,7 @@ class Amazon_downloader:
                                 "extra": (rep, adaptation_set)
                             }
                             
-                            Amazon_downloader.Mpd_parse.v_a_tracks["audio_track"].append(temp_json)
+                            v_a_tracks["audio_track"].append(temp_json)
                         elif content_type == "text":
                             print("text cxomeGetting auto")
                             if source == 'HMAX':
@@ -1302,7 +1325,7 @@ class Amazon_downloader:
                                     "extra": (rep, adaptation_set)
                                 }
                                 
-                                tracks.append(temp_json)
+                                v_a_tracks["text_track"].append(temp_json)
                             else:
                                 temp_json = {
                                     "content_type": "text",
@@ -1320,7 +1343,7 @@ class Amazon_downloader:
                                     "extra": (rep, adaptation_set)
                                 }
                                 
-                                Amazon_downloader.Mpd_parse.v_a_tracks["text_track"].append(temp_json)
+                                v_a_tracks["text_track"].append(temp_json)
         
             # Add tracks, but warn only. Assume any duplicate track cannot be handled.
             # Since the custom track id above uses all kinds of data, there realistically would
@@ -1330,49 +1353,60 @@ class Amazon_downloader:
             #print(tracks)
             #tracks_obj.add(tracks, warn_only=True)
         
-            #print("Video tracks:", Amazon_downloader.Mpd_parse.v_a_tracks["video_track"])
-            #print("Audio tracks:", Amazon_downloader.Mpd_parse.v_a_tracks["audio_track"])
-            #print("Text tracks:", Amazon_downloader.Mpd_parse.v_a_tracks["text_track"])
+            #print("Video tracks:", v_a_tracks["video_track"])
+            #print("Audio tracks:", v_a_tracks["audio_track"])
+            #print("Text tracks:", v_a_tracks["text_track"])
             def remove_duplicates_and_count(tracks):
                 # 重複の検出用辞書
                 unique_tracks = {}
                 duplicates_count = 0
             
                 for track in tracks:
+                    #print(track["content_type"])
                     # ハッシュ可能なタプル化（重要な識別可能なフィールドをキーとする）
-                    if track["content_type"] == "video":
-                        track_key = (
-                            track.get("height"),
-                            track.get("widthge"),
-                            track.get("bitrate"),
-                        )
-                    elif track["content_type"] == "audio":
-                        track_key = (
-                            track.get("codec"),
-                            track.get("channels"),
-                            track.get("bitrate"),
-                        )
-            
-                    if track_key in unique_tracks:
-                        duplicates_count += 1  # 重複カウント
-                    else:
-                        unique_tracks[track_key] = track
+                    try:
+                        if track["content_type"] == "video":
+                            track_key = (
+                                track.get("height"),
+                                track.get("widthge"),
+                                track.get("bitrate"),
+                            )
+                        elif track["content_type"] == "audio":
+                            track_key = (
+                                track.get("codec"),
+                                track.get("channels"),
+                                track.get("bitrate"),
+                            )
+                        elif track["content_type"] == "text":
+                            track_key = (
+                                track.get("codec"),
+                                track.get("language"),
+                            )
+                        else:
+                            print("wtf", str(track))
+                
+                        if track_key in unique_tracks:
+                            duplicates_count += 1  # 重複カウント
+                        else:
+                            unique_tracks[track_key] = track
+                    except:
+                        print("wtf", str(track))
             
                 # 重複のないリストを生成
                 unique_track_list = list(unique_tracks.values())
             
                 print(f"- Found and skipped {duplicates_count} duplicate tracks")
                 return unique_track_list
-            Amazon_downloader.Mpd_parse.v_a_tracks["video_track"] = remove_duplicates_and_count(
-                Amazon_downloader.Mpd_parse.v_a_tracks["video_track"]
+            v_a_tracks["video_track"] = remove_duplicates_and_count(
+                v_a_tracks["video_track"]
             )
-            Amazon_downloader.Mpd_parse.v_a_tracks["audio_track"] = remove_duplicates_and_count(
-                Amazon_downloader.Mpd_parse.v_a_tracks["audio_track"]
+            v_a_tracks["audio_track"] = remove_duplicates_and_count(
+                v_a_tracks["audio_track"]
             )
-            Amazon_downloader.Mpd_parse.v_a_tracks["text_track"] = remove_duplicates_and_count(
-                Amazon_downloader.Mpd_parse.v_a_tracks["text_track"]
+            v_a_tracks["text_track"] = remove_duplicates_and_count(
+                v_a_tracks["text_track"]
             )
-            return Amazon_downloader.Mpd_parse.v_a_tracks
+            return v_a_tracks
 
     class DeviceRegistration:
 

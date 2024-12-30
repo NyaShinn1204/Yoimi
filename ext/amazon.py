@@ -1,9 +1,12 @@
 import re
+import os
 import yaml
 import time
 import logging
 import hashlib
 from enum import Enum
+from langcodes import Language
+from collections import defaultdict
 from click.core import ParameterSource
 
 from ext.utils import amazon
@@ -78,6 +81,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
         aquality = "SD"
         bitrate = "CBR" # default
         single = False # Force single episode/season instead of getting series ASIN,
+        atmos = False
         vrange = vrange
         vquality = None
         device_id = None
@@ -239,10 +243,9 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                         id=title["id"],
                     ), extra={"service_name": "Amazon"})
                 print("device: ", device)
-                title_tracks = amazon_downloader.get_tracks(title, device)
+                title_tracks, chosen_manifest, manifest = amazon_downloader.get_tracks(title, device)
                 #print(title_tracks)
-                print_track = amazon_downloader.get_print_track(title_tracks)
-                print(print_track)
+                #print(amazon_downloader.get_print_track(title_tracks))
                 need_separate_audio = (
                     (aquality or vquality) != vquality or
                     amanifest == "CVBR" and (vcodec, bitrate) != ("H264", "CVBR") or
@@ -251,7 +254,168 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                     amanifest != "H265" and vcodec == "H265"
                 )
                 print("nsa: "+str(need_separate_audio))
-                
+                if not need_separate_audio:
+                    language_audio_map = defaultdict(list)
+                    
+                    # 言語ごとにオーディオトラックを分類
+                    for audio_track in title_tracks["audio_tracks"]:
+                        language = audio_track.get("language")  # 辞書から "language" を取得
+                        if language:  # "language" が存在する場合のみ処理
+                            language_audio_map[language].append(audio_track)
+                    
+                    # 言語ごとにビットレートをチェック
+                    for language, audio_tracks in language_audio_map.items():
+                        if all((track.get("bitrate", 0) or 0) < 640000 for track in audio_tracks):
+                            need_separate_audio = True
+                            break
+                        
+                if need_separate_audio and not atmos:
+                    manifest_type = amanifest or "H265"
+                    logger.info(f"Getting audio from {manifest_type} manifest for potential higher bitrate or better codec", extra={"service_name": "Amazon"})
+                    audio_manifest = amazon_downloader.get_manifest(
+                        title=title,
+                        video_codec="H265" if manifest_type == "H265" else "H264",
+                        bitrate_mode="CVBR" if manifest_type != "CBR" else "CBR",
+                        quality=aquality or vquality,
+                        hdr=None,
+                        ignore_errors=True
+                    )
+                    if not audio_manifest:
+                        logger.warning(f" - Unable to get {manifest_type} audio manifests, skipping", extra={"service_name": "Amazon"})
+                    elif not (chosen_audio_manifest := amazon_downloader.choose_manifest(audio_manifest, cdn=None)):
+                        logger.warning(f" - No {manifest_type} audio manifests available, skipping", extra={"service_name": "Amazon"})
+                    else:
+                        audio_mpd_url = amazon_downloader.clean_mpd_url(chosen_audio_manifest["avUrlInfoList"][0]["url"], optimise=False)
+                        logger.debug(audio_mpd_url, extra={"service_name": "Amazon"})
+                        logger.info(" + Downloading HEVC manifest", extra={"service_name": "Amazon"})
+        
+                        try:
+                            title_tracks_temp = amazon_downloader.Mpd_parse.get_mpd_content(
+                                url=audio_mpd_url,
+                                session=session,
+                                source="AMZN"
+                            )
+                            title_tracks["audio_track"] = title_tracks_temp["audio_track"]
+                            #print("\n\n\n\n")
+                            #print(title_tracks_temp)
+                            #print("\n\n\n\n")
+                        except KeyError:
+                            logger.warning(f" - Title has no {amanifest} stream, cannot get higher quality audio", extra={"service_name": "Amazon"})
+                        else:
+                            print("get new version mpd content", title_tracks)
+                need_uhd_audio = atmos
+                if not amanifest and ((aquality == "UHD" and vquality != "UHD") or not aquality):
+                    language_audio_map = defaultdict(list)
+                    
+                    # 言語ごとにオーディオトラックを分類
+                    for audio_track in title_tracks["audio_track"]:
+                        language = audio_track.get("language")  # 辞書から "language" を取得
+                        if language:  # "language" が存在する場合のみ処理
+                            language_audio_map[language].append(audio_track)
+                    
+                    # 言語ごとにビットレートをチェック
+                    for language, audio_tracks in language_audio_map.items():
+                        if all((track.get("bitrate", 0) or 0) < 640000 for track in audio_tracks):
+                            need_separate_audio = True
+                            break
+        
+                if need_uhd_audio:
+                    logger.info("Getting audio from UHD manifest for potential higher bitrate or better codec",extra={"service_name": "Amazon"})
+                    temp_device_json = {
+                      "device": {
+                        "default": {
+                          "domain": "Device",
+                          "app_name": "AIV",
+                          "app_version": "3.12.0",
+                          "device_model": "SHIELD Android TV",
+                          "os_version": "28",
+                          "device_type": "A1KAXIG6VXSG8Y",
+                          "device_serial": "13f5b56b4a17de5d136f0e4c28236109",
+                          "device_name": "%FIRST_NAME%'s%DUPE_STRATEGY_1ST% Shield TV",
+                          "software_version": "248"
+                        }
+                      }
+                    }
+
+                    temp_device = temp_device_json["device"]["default"]
+                    temp_device_token = temp_device_json["device"]["default"]["device_token"]
+                    temp_device_id = temp_device_json["device"]["default"]["device_id"]
+                    uhd_audio_manifest = None
+        
+                    try:
+                        if cdm.device_type == Types.CHROME and quality < 2160:
+                            logger.info(f" + Switching to device to get UHD manifest", extra={"service_name": "Amazon"})
+                            amazon_downloader.register_device(session, profile, logger)
+        
+                        uhd_audio_manifest = amazon_downloader.get_manifest(
+                            title=title,
+                            video_codec="H265",
+                            bitrate_mode="CVBR+CBR",
+                            quality="UHD",
+                            hdr="DV",  # Needed for 576kbps Atmos sometimes
+                            ignore_errors=True
+                        )
+                    except:
+                        pass
+                    
+                    device = temp_device
+                    device_token = temp_device_token
+                    device_id = temp_device_id
+        
+                    if not uhd_audio_manifest:
+                        logger.warning(f" - Unable to get UHD manifests, skipping", extra={"service_name": "Amazon"})
+                    elif not (chosen_uhd_audio_manifest := amazon_downloader.choose_manifest(uhd_audio_manifest, cdn=None)):
+                        logger.warning(f" - No UHD manifests available, skipping", extra={"service_name": "Amazon"})
+                    else:
+                        uhd_audio_mpd_url = amazon_downloader.clean_mpd_url(chosen_uhd_audio_manifest["avUrlInfoList"][0]["url"], optimise=False)
+                        logger.debug(uhd_audio_mpd_url, extra={"service_name": "Amazon"})
+                        logger.info(" + Downloading UHD manifest", extra={"service_name": "Amazon"})
+        
+                        try:
+                            uhd_audio_mpd = amazon_downloader.Mpd_parse.get_mpd_content(
+                                url=uhd_audio_mpd_url,
+                                session=session,
+                                source="AMZN"
+                            )
+                        except KeyError:
+                            logger.warning(f" - Title has no UHD stream, cannot get higher quality audio", extra={"service_name": "Amazon"})
+                        else:
+                            # replace the audio tracks with DV manifest version if atmos is present
+                            if any(x for x in uhd_audio_mpd["audio_track"] if x["atmos"]):
+                                title_tracks["audio_track"] = uhd_audio_mpd["title_tracks"]
+        
+                for video in title_tracks["video_track"]:
+                    video["hdr10"] = chosen_manifest["hdrFormat"] == "Hdr10"
+                    video["dv"] = chosen_manifest["hdrFormat"] == "DolbyVision"
+        
+                for audio in title_tracks["audio_track"]:
+                    audio["descriptive"] = audio["extra"][1].get("audioTrackSubtype") == "descriptive"
+                    # Amazon @lang is just the lang code, no dialect, @audioTrackId has it.
+                    audio_track_id = audio["extra"][1].get("audioTrackId")
+                    if audio_track_id:
+                        audio["language"] = Language.get(audio_track_id.split("_")[0])  # e.g. es-419_ec3_blabla
+        
+                for sub in manifest.get("subtitleUrls", []) + manifest.get("forcedNarratives", []):
+                    temp_json = {
+                        "content_type": "text",
+                        "id_": sub.get(
+                            "timedTextTrackId",
+                            f"{sub['languageCode']}_{sub['type']}_{sub['subtype']}_{sub['index']}"
+                        ),
+                        "source": "AMAZN",
+                        "url": os.path.splitext(sub["url"])[0] + ".srt",  # DFXP -> SRT forcefully seems to work fine
+                        # metadata
+                        "codec": "srt",  # sub["format"].lower(),
+                        "language": sub["languageCode"],
+                        "forced": "forced" in sub["displayName"],
+                        "sdh": sub["type"].lower() == "sdh",  # TODO: what other sub types? cc? forced?
+                    }
+                    title_tracks["text_track"].append(temp_json)
+        
+                final_title_tracks = title_tracks
+                #print(final_title_tracks)
+                print_track = amazon_downloader.get_print_track(final_title_tracks)
+                print(print_track)
                 #amazon_downloader.get_chapters(title)
             except Exception as error:
                 print(error)
