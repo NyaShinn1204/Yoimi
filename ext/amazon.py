@@ -156,6 +156,12 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
             CHROME = 1
             ANDROID = 2
             PLAYREADY = 3
+        
+        device_types = {
+            "default": {
+                "browser": "AOAGZA014O5RE"
+            }
+        }
             
         logger.debug(f"DLOG: {device}", extra={"service_name": "Amazon"})
         logger.debug(f"DLOG: {vquality}", extra={"service_name": "Amazon"})
@@ -172,7 +178,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                 ("CustomerID" + session.headers["User-Agent"]).encode("utf-8")
             ).hexdigest()
             amazon_downloader.update_variable("device_id", device_id)
-            device = {"device_type": "AOAGZA014O5RE"}
+            device = {"device_type": device_types[profile]["browser"]}
         else:
             logger.debug("Device not set. using other option...", extra={"service_name": "Amazon"})
             device_id, device_token = amazon_downloader.register_device(session, profile, logger)
@@ -230,6 +236,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                         name=f" - {title['episode_name']}" if title["episode_name"] else "",
                         id=title["id"],
                     ), extra={"service_name": "Amazon"})
+                print("device", device)
                 title_tracks = amazon_downloader.get_tracks(title, device)
                 print(title_tracks)
                 #amazon_downloader.get_chapters(title)

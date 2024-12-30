@@ -563,7 +563,7 @@ class Amazon_downloader:
 
         return manifest
     def get_tracks(self, title, device):
-        self.device[self.profile]["device_type"] = device
+        self.device[self.profile]["device_type"] = device["device_type"]
         #tracks = Tracks()
         #if self.chapters_only:
         #    return []
