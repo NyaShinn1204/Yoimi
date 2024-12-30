@@ -240,7 +240,7 @@ class Amazon_downloader:
             manifest = next((x for x in sorted([x for x in manifest["audioVideoUrls"]["avCdnUrlSets"]], key=lambda x: int(x["cdnWeightsRank"]))), {})
 
         return manifest
-    def clean_mpd_url(mpd_url, optimise=False):
+    def clean_mpd_url(self, mpd_url, optimise=False):
         """Clean up an Amazon MPD manifest url."""
         if optimise:
             return mpd_url.replace("~", "") + "?encoding=segmentBase"
@@ -598,26 +598,41 @@ class Amazon_downloader:
 #
         manifest_url = self.clean_mpd_url(chosen_manifest["avUrlInfoList"][0]["url"], False)
         print(manifest_url)
-        #self.log.info(" + Downloading Manifest")
-#
-        #if chosen_manifest["streamingTechnology"] == "DASH":
-        #    tracks = Tracks([
-        #        x for x in iter(Tracks.from_mpd(
-        #            url=manifest_url,
-        #            session=self.session,
-        #            source=self.ALIASES[0],
-        #        ))
-        #    ])
-        #elif chosen_manifest["streamingTechnology"] == "SmoothStreaming":
-        #    tracks = Tracks([
-        #        x for x in iter(Tracks.from_ism(
-        #            url=manifest_url,
-        #            session=self.session,
-        #            source=self.ALIASES[0],
-        #        ))
-        #    ])
-        #else:
-        #    raise self.log.exit(f"Unsupported manifest type: {chosen_manifest['streamingTechnology']}")
+        print(chosen_manifest)
+        print(" + Downloading Manifest")
+        
+        # ALIASES = ["AMZN", "amazon"]
+        #v_a_tracks = {"video_track": [], "audio_track": []}        
+
+        if chosen_manifest["streamingTechnology"] == "DASH":
+            print("ここでmpdをparseする。")
+            #tracks = Tracks([
+            #    x for x in iter(Tracks.from_mpd(
+            #        url=manifest_url,
+            #        session=self.session,
+            #        source=self.ALIASES[0],
+            #    ))
+            #])
+            tracks = Amazon_downloader.Mpd_parse.get_mpd_content(
+                url=manifest_url,
+                session=self.session,
+                source="AMZN"
+            )
+            print(tracks)
+
+        elif chosen_manifest["streamingTechnology"] == "SmoothStreaming":
+            print("ok unsupported")
+            #tracks = Tracks([
+            #    x for x in iter(Tracks.c(
+            #        url=manifest_url,
+            #        session=self.session,
+            #        source=self.ALIASES[0],
+            #    ))
+            #])
+        else:
+            raise print(f"Unsupported manifest type: {chosen_manifest['streamingTechnology']}")
+        
+        return tracks
 #
         #need_separate_audio = ((self.aquality or self.vquality) != self.vquality
         #                       or self.amanifest == "CVBR" and (self.vcodec, self.bitrate) != ("H264", "CVBR")
@@ -758,6 +773,393 @@ class Amazon_downloader:
         #    ), warn_only=True)  # expecting possible dupes, ignore
 #
         #return tracks
+        
+    class Mpd_parse:
+        v_a_tracks = {"video_track": [], "audio_track": [], "text_track": []}
+        class Descriptor(Enum):
+            URL = 1  # Direct URL, nothing fancy
+            M3U = 2  # https://en.wikipedia.org/wiki/M3U (and M3U8)
+            MPD = 3  # https://en.wikipedia.org/wiki/Dynamic_Adaptive_Streaming_over_HTTP
+        def load_xml(xml):
+            from lxml import etree
+            if not isinstance(xml, bytes):
+                xml = xml.encode("utf-8")
+            root = etree.fromstring(xml)
+            for elem in root.getiterator():
+                if not hasattr(elem.tag, "find"):
+                    # e.g. comment elements
+                    continue
+                elem.tag = etree.QName(elem).localname
+            etree.cleanup_namespaces(root)
+            return root
+        def pt_to_sec(d):
+            if isinstance(d, float):
+                return d
+            if d[0:2] == "P0":
+                d = d.replace("P0Y0M0DT", "PT")
+            if d[0:2] != "PT":
+                raise ValueError("Input data is not a valid time string.")
+            d = d[2:].upper()  # skip `PT`
+            m = re.findall(r"([\d.]+.)", d)
+            return sum(
+                float(x[0:-1]) * {"H": 60 * 60, "M": 60, "S": 1}[x[-1].upper()]
+                for x in m
+            )
+        def get_mpd_content(*, url=None, data=None, source, session=None, downloader=None):
+            import uuid
+            import math
+            import base64
+            import urllib.parse
+            from copy import copy
+            from hashlib import md5
+            from langcodes import Language
+            from langcodes.tag_parser import LanguageTagError
+            tracks = []
+            if not data:
+                if not url:
+                    raise ValueError("Neither a URL nor a document was provided to Tracks.from_mpd")
+                base_url = url.rsplit('/', 1)[0] + '/'
+                if downloader is None:
+                    data = (session or requests).get(url).text
+                else:
+                    raise ValueError(f"Unsupported downloader: {downloader}")
+        
+            root = Amazon_downloader.Mpd_parse.load_xml(data)  
+            if root.tag != "MPD":
+                raise ValueError("Non-MPD document provided to Tracks.from_mpd")
+            for period in root.findall("Period"):
+                if source == "HULU" and next(iter(period.xpath("SegmentType/@value")), "content") != "content":
+                    continue
+        
+                period_base_url = period.findtext("BaseURL") or root.findtext("BaseURL")
+                if url and not period_base_url or not re.match("^https?://", period_base_url.lower()):
+                    period_base_url = urllib.parse.urljoin(url, period_base_url)
+                    period_base_url = period_base_url.replace('manifests.api.hbo.com', 'cmaf.cf.eu.hbomaxcdn.com')
+        
+                for adaptation_set in period.findall("AdaptationSet"):
+                    if any(x.get("schemeIdUri") == "http://dashif.org/guidelines/trickmode"
+                           for x in adaptation_set.findall("EssentialProperty")
+                           + adaptation_set.findall("SupplementalProperty")):
+                        # Skip trick mode streams (used for fast forward/rewind)
+                        continue
+        
+                    for rep in adaptation_set.findall("Representation"):
+                        # content type
+                        try:
+                            content_type = next(x for x in [
+                                rep.get("contentType"),
+                                rep.get("mimeType"),
+                                adaptation_set.get("contentType"),
+                                adaptation_set.get("mimeType")
+                            ] if bool(x))
+                        except StopIteration:
+                            raise ValueError("No content type value could be found")
+                        else:
+                            content_type = content_type.split("/")[0]
+                        if content_type.startswith("image"):
+                            continue  # most likely seek thumbnails
+                        # codec
+                        codecs = rep.get("codecs") or adaptation_set.get("codecs")
+                        if content_type == "text":
+                            mime = adaptation_set.get("mimeType")
+                            if mime and not mime.endswith("/mp4"):
+                                codecs = mime.split("/")[1]
+                        # language
+                        track_lang = None
+                        for lang in [rep.get("lang"), adaptation_set.get("lang")]:
+                            lang = (lang or "").strip()
+                            if not lang:
+                                continue
+                            try:
+                                t = Language.get(lang.split("-")[0])
+                                if t == Language.get("und") or not t.is_valid():
+                                    raise LanguageTagError()
+                            except LanguageTagError:
+                                continue
+                            else:
+                                track_lang = Language.get(lang)
+                                break
+        
+                        # content protection
+                        protections = rep.findall("ContentProtection") + adaptation_set.findall("ContentProtection")
+                        encrypted = bool(protections)
+                        pssh = None
+                        kid = None
+                        for protection in protections:
+                            # For HMAX, the PSSH has multiple keys but the PlayReady ContentProtection tag
+                            # contains the correct KID
+                            kid = protection.get("default_KID")
+                            if kid:
+                                kid = uuid.UUID(kid).hex
+                            else:
+                                kid = protection.get("kid")
+                                if kid:
+                                    kid = uuid.UUID(bytes_le=base64.b64decode(kid)).hex
+                            if (protection.get("schemeIdUri") or "").lower() != "urn:uuid:9a04f079-9840-4286-ab92-e65be0885f95":
+                                continue
+                            pssh = protection.findtext("pssh")
+        
+                        rep_base_url = rep.findtext("BaseURL")
+                        if rep_base_url and source not in ["DSCP", "DSNY"]:  # TODO: Don't hardcode services
+                            # this mpd allows us to download the entire file in one go, no segmentation necessary!
+                            if not re.match("^https?://", rep_base_url.lower()):
+                                rep_base_url = urllib.parse.urljoin(period_base_url, rep_base_url)
+                            query = urllib.parse.urlparse(url).query
+                            if query and not urllib.parse.urlparse(rep_base_url).query:
+                                rep_base_url += "?" + query
+                            track_url = rep_base_url
+        
+                        else:
+                            # this mpd provides no way to download the entire file in one go :(
+                            segment_template = rep.find("SegmentTemplate")
+                            if segment_template is None:
+                                segment_template = adaptation_set.find("SegmentTemplate")
+                            if segment_template is None:
+                                raise ValueError("Couldn't find a SegmentTemplate for a Representation.")
+                            segment_template = copy(segment_template)
+        
+                            # join value with base url
+                            for item in ("initialization", "media"):
+                                if not segment_template.get(item):
+                                    continue
+                                segment_template.set(
+                                    item, segment_template.get(item).replace("$RepresentationID$", rep.get("id"))
+                                )
+                                query = urllib.parse.urlparse(url).query
+                                if query and not urllib.parse.urlparse(segment_template.get(item)).query:
+                                    segment_template.set(item, segment_template.get(item) + "?" + query)
+                                if not re.match("^https?://", segment_template.get(item).lower()):
+                                    segment_template.set(item, urllib.parse.urljoin(
+                                        period_base_url if not rep_base_url else rep_base_url, segment_template.get(item)
+                                    ))
+        
+                            period_duration = period.get("duration")
+                            if period_duration:
+                                period_duration = Amazon_downloader.Mpd_parse.pt_to_sec(period_duration)
+                            mpd_duration = root.get("mediaPresentationDuration")
+                            if mpd_duration:
+                                mpd_duration = Amazon_downloader.Mpd_parse.pt_to_sec(mpd_duration)
+        
+                            track_url = []
+        
+                            def replace_fields(url, **kwargs):
+                                for field, value in kwargs.items():
+                                    url = url.replace(f"${field}$", str(value))
+                                    m = re.search(fr"\${re.escape(field)}%([a-z0-9]+)\$", url, flags=re.I)
+                                    if m:
+                                        url = url.replace(m.group(), f"{value:{m.group(1)}}")
+                                return url
+        
+                            initialization = segment_template.get("initialization")
+                            if initialization:
+                                # header/init segment
+                                track_url.append(replace_fields(
+                                    initialization,
+                                    Bandwidth=rep.get("bandwidth"),
+                                    RepresentationID=rep.get("id")
+                                ))
+        
+                            start_number = int(segment_template.get("startNumber") or 1)
+        
+                            segment_timeline = segment_template.find("SegmentTimeline")
+                            if segment_timeline is not None:
+                                seg_time_list = []
+                                current_time = 0
+                                for s in segment_timeline.findall("S"):
+                                    if s.get("t"):
+                                        current_time = int(s.get("t"))
+                                    for _ in range(1 + (int(s.get("r") or 0))):
+                                        seg_time_list.append(current_time)
+                                        current_time += int(s.get("d"))
+                                seg_num_list = list(range(start_number, len(seg_time_list) + start_number))
+                                track_url += [
+                                    replace_fields(
+                                        segment_template.get("media"),
+                                        Bandwidth=rep.get("bandwidth"),
+                                        Number=n,
+                                        RepresentationID=rep.get("id"),
+                                        Time=t
+                                    )
+                                    for t, n in zip(seg_time_list, seg_num_list)
+                                ]
+                            else:
+                                period_duration = period_duration or mpd_duration
+                                segment_duration = (
+                                    float(segment_template.get("duration")) / float(segment_template.get("timescale") or 1)
+                                )
+                                total_segments = math.ceil(period_duration / segment_duration)
+                                track_url += [
+                                    replace_fields(
+                                        segment_template.get("media"),
+                                        Bandwidth=rep.get("bandwidth"),
+                                        Number=s,
+                                        RepresentationID=rep.get("id"),
+                                        Time=s
+                                    )
+                                    for s in range(start_number, start_number + total_segments)
+                                ]
+        
+                        # for some reason it's incredibly common for services to not provide
+                        # a good and actually unique track ID, sometimes because of the lang
+                        # dialect not being represented in the id, or the bitrate, or such.
+                        # this combines all of them as one and hashes it to keep it small(ish).
+                        track_id = "{codec}-{lang}-{bitrate}-{extra}".format(
+                            codec=codecs,
+                            lang=track_lang,
+                            bitrate=rep.get("bandwidth") or 0,  # subs may not state bandwidth
+                            extra=(adaptation_set.get("audioTrackId") or "") + (rep.get("id") or ""),
+                        )
+                        track_id = md5(track_id.encode()).hexdigest()
+        
+                        if content_type == "video":
+                            temp_json = {
+                                "note": None,
+                                "size": None,
+                                "content_type": "video",
+                                "id_": track_id,
+                                "source": source,
+                                "url": track_url,
+                                # metadata
+                                "codec": (codecs or "").split(".")[0],
+                                "language": track_lang,
+                                "bitrate": rep.get("bandwidth"),
+                                "width": int(rep.get("width") or 0) or adaptation_set.get("width"),
+                                "height": int(rep.get("height") or 0) or adaptation_set.get("height"),
+                                "fps": rep.get("frameRate") or adaptation_set.get("frameRate"),
+                                "hdr10": any(
+                                    x.get("schemeIdUri") == "urn:mpeg:mpegB:cicp:TransferCharacteristics"
+                                    and x.get("value") == "16"  # PQ
+                                    for x in adaptation_set.findall("SupplementalProperty")
+                                ) or any(
+                                    x.get("schemeIdUri") == "http://dashif.org/metadata/hdr"
+                                    and x.get("value") == "SMPTE2094-40"  # HDR10+
+                                    for x in adaptation_set.findall("SupplementalProperty")
+                                ),
+                                "hlg": any(
+                                    x.get("schemeIdUri") == "urn:mpeg:mpegB:cicp:TransferCharacteristics"
+                                    and x.get("value") == "18"  # HLG
+                                    for x in adaptation_set.findall("SupplementalProperty")
+                                ),
+                                "dv": codecs and codecs.startswith(("dvhe", "dvh1")),
+                                # switches/options
+                                "descriptor": 3,
+                                # decryption
+                                "encrypted": encrypted,
+                                "pssh": pssh,
+                                "kid": kid,
+                                # extra
+                                "extra": (rep, adaptation_set)
+                            }
+                            
+                            Amazon_downloader.Mpd_parse.v_a_tracks["video_track"].append(temp_json)
+        
+                        elif content_type == "audio":
+                            temp_json = {
+                                "note": None,
+                                "size": None,
+                                "content_type": "audio",
+                                "id_": track_id,
+                                "source": source,
+                                "url": track_url,
+                                # metadata
+                                "codec": (codecs or "").split(".")[0],
+                                "language": track_lang,
+                                "bitrate": rep.get("bandwidth"),
+                                "channels": next(iter(
+                                    rep.xpath("AudioChannelConfiguration/@value")
+                                    or adaptation_set.xpath("AudioChannelConfiguration/@value")
+                                ), None),
+                                "descriptive": any(
+                                    x.get("schemeIdUri") == "urn:mpeg:dash:role:2011" and x.get("value") == "description"
+                                    for x in adaptation_set.findall("Accessibility")
+                                ),
+                                # switches/options
+                                "descriptor": 3,
+                                # decryption
+                                "encrypted": encrypted,
+                                "pssh": pssh,
+                                "kid": kid,
+                                # extra
+                                "extra": (rep, adaptation_set)
+                            }
+                            
+                            Amazon_downloader.Mpd_parse.v_a_tracks["audio_track"].append(temp_json)
+                        elif content_type == "text":
+                            if source == 'HMAX':
+                                # HMAX SUBS
+                                segment_template = rep.find("SegmentTemplate")
+        
+                                sub_path_url = rep.findtext("BaseURL")
+                                if not sub_path_url:
+                                    sub_path_url = segment_template.get('media')
+                               
+                                try:
+                                    path = re.search(r'(t\/.+?\/)t', sub_path_url).group(1)
+                                except AttributeError:
+                                    path = 't/sub/'
+                                
+                                is_normal = any(x.get("value") == "subtitle" for x in adaptation_set.findall("Role"))
+                                is_sdh = any(x.get("value") == "caption" for x in adaptation_set.findall("Role"))
+                                is_forced = any(x.get("value") == "forced-subtitle" for x in adaptation_set.findall("Role"))
+        
+                                if is_normal:
+                                    track_url = [base_url + path + adaptation_set.get('lang') + '_sub.vtt']
+                                elif is_sdh:
+                                    track_url = [base_url + path + adaptation_set.get('lang') + '_sdh.vtt']
+                                elif is_forced:
+                                    track_url = [base_url + path + adaptation_set.get('lang') + '_forced.vtt']
+        
+                                temp_json = {
+                                    "content_type": "text",
+                                    "id_": track_id,
+                                    "source": source,
+                                    "url": track_url,
+                                    # metadata
+                                    "codec": (codecs or "").split(".")[0],
+                                    "language": track_lang,
+                                    "forced": is_forced if 'is_forced' in locals() else None,  # 'is_forced' が存在すれば設定
+                                    "sdh": is_sdh if 'is_sdh' in locals() else None,  # 'is_sdh' が存在すれば設定
+                                    "cc": False,
+                                    # switches/options
+                                    "descriptor": Amazon_downloader.Mpd_parse.Descriptor.MPD,
+                                    # extra
+                                    "extra": (rep, adaptation_set)
+                                }
+                                
+                                tracks.append(temp_json)
+                            else:
+                                temp_json = {
+                                    "content_type": "text",
+                                    "id_": track_id,
+                                    "source": source,
+                                    "url": track_url,
+                                    # metadata
+                                    "codec": (codecs or "").split(".")[0],
+                                    "language": track_lang,
+                                    "sdh": is_sdh if 'is_sdh' in locals() else None,
+                                    "cc": False,
+                                    # switches/options
+                                    "descriptor": Amazon_downloader.Mpd_parse.Descriptor.MPD,
+                                    # extra
+                                    "extra": (rep, adaptation_set)
+                                }
+                                
+                                Amazon_downloader.Mpd_parse.v_a_tracks["text_track"].append(temp_json)
+        
+            # Add tracks, but warn only. Assume any duplicate track cannot be handled.
+            # Since the custom track id above uses all kinds of data, there realistically would
+            # be no other workaround.
+            # ここfor分
+            #tracks_obj = Tracks()
+            #print(tracks)
+            #tracks_obj.add(tracks, warn_only=True)
+        
+            #print("Video tracks:", Amazon_downloader.Mpd_parse.v_a_tracks["video_track"])
+            #print("Audio tracks:", Amazon_downloader.Mpd_parse.v_a_tracks["audio_track"])
+            #print("Text tracks:", Amazon_downloader.Mpd_parse.v_a_tracks["text_track"])
+            
+
+            return Amazon_downloader.Mpd_parse.v_a_tracks
 
     class DeviceRegistration:
 
