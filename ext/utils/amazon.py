@@ -5,6 +5,7 @@
 import os
 import re
 import time
+import math
 import html
 import json
 import hashlib
@@ -618,7 +619,7 @@ class Amazon_downloader:
                 session=self.session,
                 source="AMZN"
             )
-            print(tracks)
+           #print(tracks)
 
         elif chosen_manifest["streamingTechnology"] == "SmoothStreaming":
             print("ok unsupported")
@@ -774,7 +775,114 @@ class Amazon_downloader:
               }  # expecting possible dupes, ignore
 
         return tracks
+    def get_print_track(self, track):
+        text_temp = ""  
+        total_duplicates = {"video_track": 0, "audio_track": 0, "text_track": 0}
+    
+        for track_type in ["video_track", "audio_track", "text_track"]:
+            if track_type in track:
+                # 重複を削除
+                unique_tracks = []
+                seen = set()
+                for item in track[track_type]:
+                    if isinstance(item, dict):
+                        # アイテム全体をユニーク化するために内容をタプル化
+                        item_tuple = tuple((key, item[key]) for key in sorted(item.keys()))
+                    else:
+                        # 辞書以外の要素をそのまま比較
+                        item_tuple = item
+    
+                    if item_tuple not in seen:
+                        seen.add(item_tuple)
+                        unique_tracks.append(item)
+                    else:
+                        total_duplicates[track_type] += 1
+    
+                track[track_type] = unique_tracks
+    
+        # 重複スキップログ
+        for track_type, duplicates in total_duplicates.items():
+            if duplicates > 0:
+                print(f"- Found and skipped {duplicates} duplicate tracks in {track_type}")
+
+
+        CODEC_MAP = {
+            # Video
+            "avc1": "H.264",
+            "avc3": "H.264",
+            "hev1": "H.265",
+            "hvc1": "H.265",
+            "dvh1": "H.265",
+            "dvhe": "H.265",
+            # Audio
+            "aac": "AAC",
+            "mp4a": "AAC",
+            "stereo": "AAC",
+            "HE": "HE-AAC",
+            "ac3": "AC3",
+            "ac-3": "AC3",
+            "eac": "E-AC3",
+            "eac-3": "E-AC3",
+            "ec-3": "E-AC3",
+            "atmos": "E-AC3",
+            # Subtitles
+            "srt": "SRT",
+            "vtt": "VTT",
+            "wvtt": "VTT",
+            "dfxp": "TTML",
+            "stpp": "TTML",
+            "ttml": "TTML",
+            "tt": "TTML",
+        }
         
+        text_temp += f"{len(track["video_track"]) - total_duplicates["video_track"]} Video Tracks:\n"
+        for video in track["video_track"]:
+            #print()
+            vencode = 'HDR10' if video["hdr10"] else 'HLG' if video["hlg"] else 'DV' if video["dv"] else 'SDR'
+            quality = f"{video["width"]}x{video["height"]}"
+            bitrate = f"{str(int(video["bitrate"]) // 1000) if video["bitrate"] else '?'}"
+            if "/" in str(video["fps"]):
+                num, den = video["fps"].split("/")
+                video["fps"] = int(num) / int(den)
+            elif video["fps"]:
+                video["fps"] = float(video["fps"])
+            else:
+                video["fps"] = None
+            encode_fps = f"{video["fps"]:.3f}" if video["fps"] else "Unknown"
+            text_temp += "─ VID | [{vcodec}, {vencode}] | {quality} @ {bitrate} kb/s, {fps} FPS\n".format(vcodec=CODEC_MAP[video["codec"]], vencode=vencode, quality=quality, bitrate=bitrate, fps=encode_fps)
+        text_temp += f"{len(track["audio_track"]) - total_duplicates["audio_track"]} Audio Tracks:\n"
+        def parse_channels(channels):
+            """
+            Converts a string to a float-like string which represents audio channels.
+            E.g. "2" -> "2.0", "6" -> "5.1".
+            """
+            # TODO: Support all possible DASH channel configurations (https://datatracker.ietf.org/doc/html/rfc8216)
+            if channels == "A000":
+                return "2.0"
+            if channels == "F801":
+                return "5.1"
+    
+            try:
+                channels = str(float(channels))
+            except ValueError:
+                channels = str(channels)
+    
+            if channels == "6.0":
+                return "5.1"
+    
+            return channels
+        
+        for audio in track["audio_track"]:
+            text_temp += "├─ AUD | [{acodec}] | [{atmos}] | {channel} | {bitrate} kb/s | {language}\n".format(
+                acodec = CODEC_MAP[audio["codec"]],
+                atmos = audio["codec"],
+                channel = parse_channels(audio["channels"]),
+                bitrate = str(int(math.ceil(float(audio["bitrate"]))) if audio["bitrate"] else None // 1000 if audio["bitrate"] else "?"),
+                language = Language.get(audio["language"]  or "en")
+            )
+            
+        #print(text_temp)
+        return text_temp
     class Mpd_parse:
         v_a_tracks = {"video_track": [], "audio_track": [], "text_track": []}
         class Descriptor(Enum):
@@ -1158,8 +1266,45 @@ class Amazon_downloader:
             #print("Video tracks:", Amazon_downloader.Mpd_parse.v_a_tracks["video_track"])
             #print("Audio tracks:", Amazon_downloader.Mpd_parse.v_a_tracks["audio_track"])
             #print("Text tracks:", Amazon_downloader.Mpd_parse.v_a_tracks["text_track"])
+            def remove_duplicates_and_count(tracks):
+                # 重複の検出用辞書
+                unique_tracks = {}
+                duplicates_count = 0
             
-
+                for track in tracks:
+                    # ハッシュ可能なタプル化（重要な識別可能なフィールドをキーとする）
+                    if track["content_type"] == "video":
+                        track_key = (
+                            track.get("height"),
+                            track.get("widthge"),
+                            track.get("bitrate"),
+                        )
+                    elif track["content_type"] == "audio":
+                        track_key = (
+                            track.get("codec"),
+                            track.get("channels"),
+                            track.get("bitrate"),
+                        )
+            
+                    if track_key in unique_tracks:
+                        duplicates_count += 1  # 重複カウント
+                    else:
+                        unique_tracks[track_key] = track
+            
+                # 重複のないリストを生成
+                unique_track_list = list(unique_tracks.values())
+            
+                print(f"- Found and skipped {duplicates_count} duplicate tracks")
+                return unique_track_list
+            Amazon_downloader.Mpd_parse.v_a_tracks["video_track"] = remove_duplicates_and_count(
+                Amazon_downloader.Mpd_parse.v_a_tracks["video_track"]
+            )
+            Amazon_downloader.Mpd_parse.v_a_tracks["audio_track"] = remove_duplicates_and_count(
+                Amazon_downloader.Mpd_parse.v_a_tracks["audio_track"]
+            )
+            Amazon_downloader.Mpd_parse.v_a_tracks["text_track"] = remove_duplicates_and_count(
+                Amazon_downloader.Mpd_parse.v_a_tracks["text_track"]
+            )
             return Amazon_downloader.Mpd_parse.v_a_tracks
 
     class DeviceRegistration:

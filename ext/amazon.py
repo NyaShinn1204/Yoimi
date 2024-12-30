@@ -238,7 +238,9 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                     ), extra={"service_name": "Amazon"})
                 print("device", device)
                 title_tracks = amazon_downloader.get_tracks(title, device)
-                print(title_tracks)
+                #print(title_tracks)
+                print_track = amazon_downloader.get_print_track(title_tracks)
+                print(print_track)
                 #amazon_downloader.get_chapters(title)
             except Exception as error:
                 print(error)
