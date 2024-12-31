@@ -385,7 +385,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                         else:
                             # replace the audio tracks with DV manifest version if atmos is present
                             if any(x for x in uhd_audio_mpd["audio_track"] if x["atmos"]):
-                                title_tracks["audio_track"] = uhd_audio_mpd["title_tracks"]
+                                title_tracks["audio_track"] = uhd_audio_mpd["audio_track"]
         
                 for video in title_tracks["video_track"]:
                     video["hdr10"] = chosen_manifest["hdrFormat"] == "Hdr10"
@@ -414,12 +414,30 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                         "sdh": sub["type"].lower() == "sdh",  # TODO: what other sub types? cc? forced?
                     }
                     title_tracks["text_track"].append(temp_json)
-        
+                title_tracks["text_track"] = amazon.Amazon_downloader.remove_duplicates_and_count(
+                    title_tracks["text_track"]
+                )
                 final_title_tracks = title_tracks
                 #print(final_title_tracks)
-                logger.info("Get Episode Tracks:", extra={"service_name": "Amazon"})
+                if not final_title_tracks:
+                    logger.error("No titles returned! please check account!", extra={"service_name": "Amazon"})
+                    exit()
+                logger.info("Getting Episode Tracks...", extra={"service_name": "Amazon"})
                 print_track = amazon_downloader.get_print_track(final_title_tracks)
+                logger.info("Get Episode Tracks:", extra={"service_name": "Amazon"})
                 print(print_track)
+                select_track = amazon_downloader.select_print_tracks(final_title_tracks)
+                try:
+                    print_track = amazon_downloader.get_print_track(select_track)
+                    logger.info("Select Episode Tracks:", extra={"service_name": "Amazon"})
+                    print(print_track)
+                    logger.debug("Debug Track json: "+str(select_track), extra={"service_name": "Amazon"})
+                except Exception as error:
+                    import traceback
+                    import sys
+                    t, v, tb = sys.exc_info()
+                    print(traceback.format_exception(t,v,tb))
+                    print(traceback.format_tb(error.__traceback__))
                 #amazon_downloader.get_chapters(title)
             except Exception as error:
                 print(error)

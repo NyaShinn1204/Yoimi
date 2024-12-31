@@ -257,7 +257,75 @@ class Amazon_downloader:
                 print("Unable to parse MPD URL")
 
         return mpd_url
+    
+    def remove_duplicates_and_count(tracks):
+        # 重複の検出用辞書
+        unique_tracks = {}
+        duplicates_count = 0
+    
+        for track in tracks:
+            #print(track["content_type"])
+            # ハッシュ可能なタプル化（重要な識別可能なフィールドをキーとする）
+            try:
+                if track["content_type"] == "video":
+                    track_key = (
+                        track.get("height"),
+                        track.get("widthge"),
+                        track.get("bitrate"),
+                    )
+                elif track["content_type"] == "audio":
+                    track_key = (
+                        track.get("codec"),
+                        track.get("channels"),
+                        track.get("bitrate"),
+                    )
+                elif track["content_type"] == "text":
+                    track_key = (
+                        track.get("codec"),
+                        track.get("language"),
+                    )
+                else:
+                    print("wtf", str(track))
         
+                if track_key in unique_tracks:
+                    duplicates_count += 1  # 重複カウント
+                else:
+                    unique_tracks[track_key] = track
+            except:
+                print("wtf", str(track))
+    
+        # 重複のないリストを生成
+        unique_track_list = list(unique_tracks.values())
+    
+        #print(f"- Found and skipped {duplicates_count} duplicate tracks")
+        return unique_track_list
+    def select_print_tracks(self, data):
+        result = {"video_track": [], "audio_track": [], "text_track": []}
+    
+        # Select the best video track
+        if "video_track" in data:
+            best_video = max(
+                data["video_track"],
+                key=lambda x: (int(x["bitrate"]), x["width"], x["height"]),
+                default=None
+            )
+            result["video_track"].append(best_video)
+    
+        # Select the best audio track
+        if "audio_track" in data:
+            best_audio = max(
+                data["audio_track"],
+                key=lambda x: int(x["bitrate"]),
+                default=None
+            )
+            result["audio_track"].append(best_audio)
+    
+        # Select the first text track
+        if "text_track" in data:
+            best_text = data["text_track"][0] if data["text_track"] else None
+            result["text_track"].append(best_text)
+    
+        return result
     # ここでいろいろゲッチュ
     def get_original_language(self, manifest):
         """Get a title's original language from manifest data."""
@@ -778,7 +846,10 @@ class Amazon_downloader:
                 "forced":"forced" in sub["displayName"],
                 "sdh":sub["type"].lower() == "sdh"  # TODO: what other sub types? cc? forced?
               })  # expecting possible dupes, ignore
-
+                
+        tracks["text_track"] = Amazon_downloader.remove_duplicates_and_count(
+            tracks["text_track"]
+        )
         return tracks, chosen_manifest, manifest
     def get_track_name(self, track):
         TERRITORY_MAP = {
@@ -910,7 +981,7 @@ class Amazon_downloader:
             if index < len(track["video_track"]) - 1:  # 最後の行以外に改行を追加
                 text_temp += "\n"
         
-        text_temp += f"{len(track["audio_track"]) - total_duplicates["audio_track"]} Audio Tracks:\n"
+        text_temp += f"\n{len(track["audio_track"]) - total_duplicates["audio_track"]} Audio Tracks:\n"
         def parse_channels(channels):
             """
             Converts a string to a float-like string which represents audio channels.
@@ -1370,54 +1441,13 @@ class Amazon_downloader:
             #print("Video tracks:", v_a_tracks["video_track"])
             #print("Audio tracks:", v_a_tracks["audio_track"])
             #print("Text tracks:", v_a_tracks["text_track"])
-            def remove_duplicates_and_count(tracks):
-                # 重複の検出用辞書
-                unique_tracks = {}
-                duplicates_count = 0
-            
-                for track in tracks:
-                    #print(track["content_type"])
-                    # ハッシュ可能なタプル化（重要な識別可能なフィールドをキーとする）
-                    try:
-                        if track["content_type"] == "video":
-                            track_key = (
-                                track.get("height"),
-                                track.get("widthge"),
-                                track.get("bitrate"),
-                            )
-                        elif track["content_type"] == "audio":
-                            track_key = (
-                                track.get("codec"),
-                                track.get("channels"),
-                                track.get("bitrate"),
-                            )
-                        elif track["content_type"] == "text":
-                            track_key = (
-                                track.get("codec"),
-                                track.get("language"),
-                            )
-                        else:
-                            print("wtf", str(track))
-                
-                        if track_key in unique_tracks:
-                            duplicates_count += 1  # 重複カウント
-                        else:
-                            unique_tracks[track_key] = track
-                    except:
-                        print("wtf", str(track))
-            
-                # 重複のないリストを生成
-                unique_track_list = list(unique_tracks.values())
-            
-                print(f"- Found and skipped {duplicates_count} duplicate tracks")
-                return unique_track_list
-            v_a_tracks["video_track"] = remove_duplicates_and_count(
+            v_a_tracks["video_track"] = Amazon_downloader.remove_duplicates_and_count(
                 v_a_tracks["video_track"]
             )
-            v_a_tracks["audio_track"] = remove_duplicates_and_count(
+            v_a_tracks["audio_track"] = Amazon_downloader.remove_duplicates_and_count(
                 v_a_tracks["audio_track"]
             )
-            v_a_tracks["text_track"] = remove_duplicates_and_count(
+            v_a_tracks["text_track"] = Amazon_downloader.remove_duplicates_and_count(
                 v_a_tracks["text_track"]
             )
             return v_a_tracks
