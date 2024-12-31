@@ -471,7 +471,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                     # free_license_widevine is broken
                     # wait. how to get license...?
                     # oh shit. i suiced ^^
-                    logger.info("how to decrypt license", extra={"servie_name": "Amazon"}) 
+                    logger.info("how to decrypt license", extra={"service_name": "Amazon"}) 
                 
                 logger.warning("DECRYPT LICENSE IS REQUIRE SUBSCRIBED ACCOUNT", extra={"service_name": "Amazon"})
                 #amazon_downloader.get_chapters(title)
