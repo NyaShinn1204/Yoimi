@@ -1,7 +1,10 @@
 import re
 import os
 import yaml
+import uuid
 import time
+import uuid
+import base64
 import logging
 import hashlib
 from enum import Enum
@@ -438,6 +441,27 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                 logger.info(" + Audio Widevine PSSH: "+select_track["audio_track"][0]["widevine_pssh"], extra={"service_name": "Amazon"})
                 logger.info(" + Video Playready PSSH: "+select_track["video_track"][0]["playready_pssh"], extra={"service_name": "Amazon"})
                 logger.info(" + Audio Playready PSSH: "+select_track["audio_track"][0]["playready_pssh"], extra={"service_name": "Amazon"})
+                def get_kid(playready_pssh):
+                    try:
+                        kid = ""
+                        xml_str = base64.b64decode(playready_pssh).decode("utf-16-le", "ignore")
+                        xml_str = xml_str[xml_str.index("<"):]
+            
+                        xml = amazon.Amazon_downloader.Mpd_parse.load_xml(xml_str).find("DATA")  # root: WRMHEADER
+            
+                        kid = xml.findtext("KID")  # v4.0.0.0
+                        if not kid:  # v4.1.0.0
+                            kid = next(iter(xml.xpath("PROTECTINFO/KID/@VALUE")), None)
+                        if not kid:  # v4.3.0.0
+                            kid = next(iter(xml.xpath("PROTECTINFO/KIDS/KID/@VALUE")), None)  # can be multiple?
+            
+                        kid = uuid.UUID(base64.b64decode(kid).hex()).bytes_le.hex()
+                        return kid
+                    except: 
+                        pass
+                logger.info("Get KID for Playready", extra={"service_name": "Amazon"})
+                logger.info(" + Video KID: "+get_kid(select_track["video_track"][0]["playready_pssh"]), extra={"service_name": "Amazon"})
+                logger.info(" + Audio KID: "+get_kid(select_track["audio_track"][0]["playready_pssh"]), extra={"service_name": "Amazon"})
                 #amazon_downloader.get_chapters(title)
             except Exception as error:
                 print(error)
