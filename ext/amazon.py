@@ -465,7 +465,13 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                 
                 if title["free"]:
                     #print(manifest["catalogMetadata"]["catalog"]["id"])
-                    amazon_downloader.free_license_widevine(pssh=select_track["video_track"][0]["widevine_pssh"], challenge=challenge, uxlocale="ja_JP", asin=manifest["catalogMetadata"]["catalog"]["id"])
+                    #amazon_downloader.free_license_widevine(manifest["catalogMetadata"]["catalog"]["id"], select_track["video_track"][0]["widevine_pssh"], device_types[profile]["browser"])
+                    #amazon_downloader.free_license_widevine(pssh=select_track["video_track"][0]["widevine_pssh"], challenge=challenge, uxlocale="ja_JP", asin=manifest["catalogMetadata"]["catalog"]["id"])
+                    
+                    # free_license_widevine is broken
+                    # wait. how to get license...?
+                    # oh shit. i suiced ^^
+                    logger.info("how to decrypt license", extra={"servie_name": "Amazon"}) 
                 
                 logger.warning("DECRYPT LICENSE IS REQUIRE SUBSCRIBED ACCOUNT", extra={"service_name": "Amazon"})
                 #amazon_downloader.get_chapters(title)

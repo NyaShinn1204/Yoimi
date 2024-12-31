@@ -327,6 +327,49 @@ class Amazon_downloader:
     
         return result
 
+    def free_license_widevine(self, id, pssh, device_type):
+        from pywidevine.cdm import Cdm
+        from pywidevine.device import Device
+        from pywidevine.pssh import PSSH
+        device = Device.load(
+            "./l3.wvd"
+        )
+        cdm = Cdm.from_device(device)
+        print(self.region["jp"])
+        print(self.device_token)
+        lic = self.session.post(
+            url=self.endpoints["licence"],
+            params={
+                "asin": id,
+                "consumptionType": "Streaming",
+                "desiredResources": "Widevine2License",
+                "deviceTypeID": device_type,
+                "deviceID": self.device_id,
+                "firmware": 1,
+                "gascEnabled": str(self.pv).lower(),
+                "marketplaceID": self.region["jp"]["marketplace_id"],
+                "resourceUsage": "ImmediateConsumption",
+                "videoMaterialType": "Feature",
+                "operatingSystemName": "Linux" if self.vquality == "SD" else "Windows",
+                "operatingSystemVersion": "unknown" if self.vquality == "SD" else "10.0",
+                "customerID": self.customer_id,
+                "deviceDrmOverride": "CENC",
+                "deviceStreamingTechnologyOverride": "DASH",
+                "deviceVideoQualityOverride": self.vquality,
+                "deviceHdrFormatsOverride": self.VIDEO_RANGE_MAP.get(self.vrange, "None"),
+            },
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Authorization": f"Bearer {self.device_token}"
+            },
+            data={
+                "widevine2Challenge": bytes(cdm.get_license_challenge(cdm.open(), PSSH(pssh))),  # expects base64
+                "includeHdcpTestKeyInLicense": "true"
+            }
+        ).json()
+        print(lic)
+
     # ここでいろいろゲッチュ
     def get_original_language(self, manifest):
         """Get a title's original language from manifest data."""
@@ -685,7 +728,7 @@ class Amazon_downloader:
         #    self.log.error(" - The profile used does not have the rights to this title.")
         #    return
 #
-        #self.customer_id = manifest["returnedTitleRendition"]["selectedEntitlement"]["grantedByCustomerId"]
+        self.customer_id = manifest["returnedTitleRendition"]["selectedEntitlement"]["grantedByCustomerId"]
 #
         #default_url_set = manifest["playbackUrls"]["urlSets"][manifest["playbackUrls"]["defaultUrlSetId"]]
         #encoding_version = default_url_set["urls"]["manifest"]["encodingVersion"]
