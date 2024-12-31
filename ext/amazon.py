@@ -462,6 +462,12 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                 logger.info("Get KID for Playready", extra={"service_name": "Amazon"})
                 logger.info(" + Video KID: "+get_kid(select_track["video_track"][0]["playready_pssh"]), extra={"service_name": "Amazon"})
                 logger.info(" + Audio KID: "+get_kid(select_track["audio_track"][0]["playready_pssh"]), extra={"service_name": "Amazon"})
+                
+                if title["free"]:
+                    #print(manifest["catalogMetadata"]["catalog"]["id"])
+                    amazon_downloader.free_license_widevine(pssh=select_track["video_track"][0]["widevine_pssh"], challenge=challenge, uxlocale="ja_JP", asin=manifest["catalogMetadata"]["catalog"]["id"])
+                
+                logger.warning("DECRYPT LICENSE IS REQUIRE SUBSCRIBED ACCOUNT", extra={"service_name": "Amazon"})
                 #amazon_downloader.get_chapters(title)
             except Exception as error:
                 print(error)

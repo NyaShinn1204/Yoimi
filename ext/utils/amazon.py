@@ -418,6 +418,18 @@ class Amazon_downloader:
                         temp_json["free"] = children[0]["entitlementType"] == "FREE"
                     else:
                         temp_json["free"] = False
+                    #if (
+                    #    (action := episode.get("action"))
+                    #    and (playback_actions := action.get("playbackActions"))
+                    #    and (main := playback_actions.get("main"))
+                    #    and (children := main.get("children"))
+                    #    and isinstance(children, list)
+                    #    and len(children) > 0
+                    #    and "entitlementType" in children[0]
+                    #):
+                    #    temp_json["free_id"] = children[0]["playbackID"]
+                    #else:
+                    #    temp_json["free_id"] = None
                     titles.append(temp_json)
                 if len(titles) == 25:
                     page_count = 1
@@ -461,6 +473,19 @@ class Amazon_downloader:
                                 temp_json["free"] = children[0]["entitlementType"] == "FREE"
                             else:
                                 temp_json["free"] = False
+                            #if (
+                            #    (detail := item.get("detail"))
+                            #    and (action := detail.get("action"))
+                            #    and (playback_actions := action.get("playbackActions"))
+                            #    and (main := playback_actions.get("main"))
+                            #    and (children := main.get("children"))
+                            #    and isinstance(children, list)
+                            #    and len(children) > 0
+                            #    and "entitlementType" in children[0]
+                            #):
+                            #    temp_json["free_id"] = children[0]["playbackID"]
+                            #else:
+                            #    temp_json["free_id"] = None
                             titles.append(temp_json)
                         pagination_data = res['widgets'].get('episodeList', {}).get('actions', {}).get('pagination', [])
                         token = next((quote(item.get('token')) for item in pagination_data if item.get('tokenType') == 'NextPage'), None)
@@ -509,13 +534,14 @@ class Amazon_downloader:
                 
         if titles:
             # TODO: Needs playback permission on first title, title needs to be available
-            original_lang = self.get_original_language(self.get_manifest(
+            manifest_temp = self.get_manifest(
                 next((x for x in titles if x["type"] == "Movie" or x["episode"] > 0), titles[0]),
                 video_codec=vcodec,
                 bitrate_mode=bitrate,
                 quality=vquality,
                 ignore_errors=True
-            ))
+            )
+            original_lang = self.get_original_language(manifest_temp)
             if original_lang:
                 for title in titles:
                     title["original_lang"] = Language.get(original_lang)
