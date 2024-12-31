@@ -427,17 +427,17 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
                 logger.info("Get Episode Tracks:", extra={"service_name": "Amazon"})
                 print(print_track)
                 select_track = amazon_downloader.select_print_tracks(final_title_tracks)
-                try:
-                    print_track = amazon_downloader.get_print_track(select_track)
-                    logger.info("Select Episode Tracks:", extra={"service_name": "Amazon"})
-                    print(print_track)
-                    logger.debug("Debug Track json: "+str(select_track), extra={"service_name": "Amazon"})
-                except Exception as error:
-                    import traceback
-                    import sys
-                    t, v, tb = sys.exc_info()
-                    print(traceback.format_exception(t,v,tb))
-                    print(traceback.format_tb(error.__traceback__))
+                
+                print_track = amazon_downloader.get_print_track(select_track)
+                logger.info("Select Episode Tracks:", extra={"service_name": "Amazon"})
+                print(print_track)
+                logger.debug("Debug Track json: "+str(select_track), extra={"service_name": "Amazon"})
+                
+                logger.info("Get PSSH for This Episode", extra={"service_name": "Amazon"})
+                logger.info(" + Video Widevine PSSH: "+select_track["video_track"][0]["widevine_pssh"], extra={"service_name": "Amazon"})
+                logger.info(" + Audio Widevine PSSH: "+select_track["audio_track"][0]["widevine_pssh"], extra={"service_name": "Amazon"})
+                logger.info(" + Video Playready PSSH: "+select_track["video_track"][0]["playready_pssh"], extra={"service_name": "Amazon"})
+                logger.info(" + Audio Playready PSSH: "+select_track["audio_track"][0]["playready_pssh"], extra={"service_name": "Amazon"})
                 #amazon_downloader.get_chapters(title)
             except Exception as error:
                 print(error)

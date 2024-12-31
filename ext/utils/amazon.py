@@ -326,6 +326,7 @@ class Amazon_downloader:
             result["text_track"].append(best_text)
     
         return result
+
     # ここでいろいろゲッチュ
     def get_original_language(self, manifest):
         """Get a title's original language from manifest data."""
@@ -1166,7 +1167,8 @@ class Amazon_downloader:
                         # content protection
                         protections = rep.findall("ContentProtection") + adaptation_set.findall("ContentProtection")
                         encrypted = bool(protections)
-                        pssh = None
+                        playready_pssh = None
+                        widevine_pssh = None
                         kid = None
                         for protection in protections:
                             # For HMAX, the PSSH has multiple keys but the PlayReady ContentProtection tag
@@ -1178,10 +1180,13 @@ class Amazon_downloader:
                                 kid = protection.get("kid")
                                 if kid:
                                     kid = uuid.UUID(bytes_le=base64.b64decode(kid)).hex
-                            if (protection.get("schemeIdUri") or "").lower() != "urn:uuid:9a04f079-9840-4286-ab92-e65be0885f95":
+                            if (protection.get("schemeIdUri") or "").lower() == "urn:uuid:9a04f079-9840-4286-ab92-e65be0885f95": # playready
+                                playready_pssh = protection.findtext("pssh")
+                            if (protection.get("schemeIdUri") or "").lower() == "urn:uuid:edef8ba9-79d6-4ace-a3c8-27dcd51d21ed": # widevine
+                                widevine_pssh = protection.findtext("pssh")
+                            else:
                                 continue
-                            pssh = protection.findtext("pssh")
-        
+                        
                         rep_base_url = rep.findtext("BaseURL")
                         if rep_base_url and source not in ["DSCP", "DSNY"]:  # TODO: Don't hardcode services
                             # this mpd allows us to download the entire file in one go, no segmentation necessary!
@@ -1328,7 +1333,8 @@ class Amazon_downloader:
                                 "descriptor": 3,
                                 # decryption
                                 "encrypted": encrypted,
-                                "pssh": pssh,
+                                "playready_pssh": playready_pssh,
+                                "widevine_pssh": widevine_pssh,
                                 "kid": kid,
                                 # extra
                                 "extra": (rep, adaptation_set)
@@ -1360,7 +1366,8 @@ class Amazon_downloader:
                                 "descriptor": 3,
                                 # decryption
                                 "encrypted": encrypted,
-                                "pssh": pssh,
+                                "playready_pssh": playready_pssh,
+                                "widevine_pssh": widevine_pssh,
                                 "kid": kid,
                                 # extra
                                 "extra": (rep, adaptation_set)
