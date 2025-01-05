@@ -1,3 +1,5 @@
+#nhk+は正式に却下されました。理由はtempのauthorizationを取得するコードがどうしても見つからず作成できないからです。もしこの部分をどうにかできたらぜひプルリクでも、telegram，discordでもいいので教えてください。
+
 import re
 import base64
 import struct
