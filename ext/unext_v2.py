@@ -107,7 +107,7 @@ def check_proxie(session):
         logger.error(f"Failed Check Proxies of {session.proxies}", extra={"service_name": "Yoimi"})
         exit(1)
 
-def main_command(session, url, email, password, LOG_LEVEL):
+def main_command(session, url, email, password, LOG_LEVEL, use_rd):
     try:
         global media_code, playtoken
         #url = "https://video.unext.jp/title/SID0104147"
@@ -298,8 +298,13 @@ def main_command(session, url, email, password, LOG_LEVEL):
                         filename = filename.replace(":", "：").replace("?", "？")
                         return re.sub(r'[<>"/\\|*]', "_", filename)
                     
-                    title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
-                    title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
+                    if use_rd:
+                        random_string = str(int(time.time() * 1000))
+                        title_name_logger_video = random_string+"_video_encrypted.mp4"
+                        title_name_logger_audio = random_string+"_audio_encrypted.mp4"
+                    else:
+                        title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
+                        title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
                     
                     logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                     
@@ -429,8 +434,13 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     filename = filename.replace(":", "：").replace("?", "？")
                     return re.sub(r'[<>"/\\|*]', "_", filename)
                 
-                title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
-                title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
+                if use_rd:
+                    random_string = str(int(time.time() * 1000))
+                    title_name_logger_video = random_string+"_video_encrypted.mp4"
+                    title_name_logger_audio = random_string+"_audio_encrypted.mp4"
+                else:
+                    title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
+                    title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
                 
                 logger.info("Downloading All Episode Thumbnails...", extra={"service_name": "U-Next"})
                 

@@ -46,7 +46,8 @@ def streams_list():
         "Aniplus Asia": ["Yes", "No", "Yes (SEA)"],
         "GYAO!": ["No", "No", "Yes (JP)"],
         "U-Next": ["Yes", "Yes", "Yes (JP)"],
-        "DMM-tv": ["Yes", "Yes", "Unknown"]
+        "DMM-tv": ["Yes", "Yes", "Unknown"],
+        "FOD": ["Yes", "Yes", "Unknown"]
     }
 
     print('[INFO] Supported website')
@@ -68,7 +69,8 @@ def streams_list():
 @click.option("--keep-fragments", "-keep", "keep_", is_flag=True, help="Keep downloaded fragment and combined fragment (If muxing) (Default: no)")
 @click.option("--output", "-o", required=False, default=None, help="Output filename")
 @click.option('--verbose', '-v', is_flag=True, help="Enable verbosity")
-def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose):
+@click.option('--random-directory', '-rd', 'use_rd', is_flag=True, default=False, help="Make temp a random directory")
+def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd):
     #print(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose)
     """
     Main command to access downloader
@@ -82,7 +84,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         exit(1)
         
     sesi = requests.Session()
-    if site_text in ["unext","dmm_tv","brainshark"]:
+    if site_text not in ["abema", "aniplus", "gyao"]:
         
         if proxy:
             sesi.proxies = {'http': proxy, 'https': proxy}
@@ -112,7 +114,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                 LOG_LEVEL = "DEBUG"
             else:
                 LOG_LEVEL = "INFO"
-            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL)
+            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, use_rd)
         except Exception as error:
             print(error)
     else:

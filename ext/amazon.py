@@ -61,7 +61,7 @@ def set_variable(session, LOG_LEVEL):
     with open('config.yml', 'r') as yml:
         config = yaml.safe_load(yml)
     
-def main_command(session, url, email, password, LOG_LEVEL, quality, vrange):
+def main_command(session, url, email, password, LOG_LEVEL, quality, vrange, use_rd):
     try:
         #global media_code, playtoken
         set_variable(session, LOG_LEVEL)

@@ -56,7 +56,7 @@ def set_variable(session, LOG_LEVEL):
         
     session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"})
     
-def main_command(session, url, email, password, LOG_LEVEL):
+def main_command(session, url, email, password, LOG_LEVEL, use_rd):
     try:
         #url = "https://video.unext.jp/title/SID0104147"
         #url = "https://video.unext.jp/play/SID0104147/ED00570918"
@@ -213,8 +213,13 @@ def main_command(session, url, email, password, LOG_LEVEL):
                     filename = filename.replace(":", "：").replace("?", "？")
                     return re.sub(r'[<>"/\\|*]', "_", filename)
                 
-                title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
-                title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
+                if use_rd:
+                    random_string = str(int(time.time() * 1000))
+                    title_name_logger_video = random_string+"_video_encrypted.mp4"
+                    title_name_logger_audio = random_string+"_audio_encrypted.mp4"
+                else:
+                    title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
+                    title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
                 
                 logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": "FOD"})
                 
@@ -337,8 +342,13 @@ def main_command(session, url, email, password, LOG_LEVEL):
                 filename = filename.replace(":", "：").replace("?", "？")
                 return re.sub(r'[<>"/\\|*]', "_", filename)
             
-            title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
-            title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
+            if use_rd:
+                random_string = str(int(time.time() * 1000))
+                title_name_logger_video = random_string+"_video_encrypted.mp4"
+                title_name_logger_audio = random_string+"_audio_encrypted.mp4"
+            else:
+                title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
+                title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
             
             logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": "FOD"})
             
