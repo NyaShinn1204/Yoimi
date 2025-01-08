@@ -195,12 +195,64 @@ def get_highest_bitrate_manifest(manifests):
 
 session = requests.Session()
 
+def parse_private_key():
+    from Crypto.Cipher import AES
+    from Crypto.Util.Padding import unpad
+    import base64
+    
+    encrypted_data = "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\n9LsiyQ=="
+    
+    iv = base64.b64decode('3vh8IpHEcjJYUYhobRBcsQ==')  # IV
+    key = base64.b64decode('tK1rb8W9cDAVvf1zKDXVYw==')  # Key
+    
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    decrypted = unpad(cipher.decrypt(base64.b64decode(encrypted_data)), AES.block_size)
+    
+    header = "-----BEGIN RSA PRIVATE KEY-----\n"
+    footer = "\n-----END RSA PRIVATE KEY-----"
+    
+    return_dec = decrypted.decode('utf-8')
+    
+    return_dec = header + return_dec + footer
+    
+    return_dec
+    
+    return return_dec
+
+def jwt_gen():
+    import jwt
+    from datetime import datetime, timedelta, timezone
+    
+    private_key = parse_private_key()
+        
+    payload = {
+        "iss": "app.nhkplus",
+        "sub": "AppToken",
+        "aud": "ctl.npd.plus.nhk.jp",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        "iat": datetime.now(timezone.utc)
+    }
+    
+    headers = {
+        "kid": "008b6857-3801-492c-bc50-48531db4b936",
+        "alg": "RS256",
+    }
+    
+    # JWTを生成
+    token = jwt.encode(payload, private_key, algorithm="RS256", headers=headers)
+    
+    # トークンの出力
+    return token
+
 #どーやってもこれだけ取得できなかったからセルフでお願いします。
-temp_authorization_key = "Bearer " + "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImM2MTQ0YTFiLTk5OWQtNDM1YS1hMGUyLTdmYjVjNjFlNTM2MiJ9.eyJpc3MiOiJ3ZWIubmhrcGx1cyIsInN1YiI6IldlYlRva2VuIiwiYXVkIjoiY3RsLm5wZC5wbHVzLm5oay5qcCIsImV4cCI6MTczNTkwMDQ4NiwiaWF0IjoxNzM1ODY0NDc2fQ.D0Zt6O0Vk4pKxwAd6752RXGZknR1gxXZpX5RL7a1CGMhKRRNQ2IOcm8ruaWWN0mcsNfFdwgq701H95tH_4vukw18xktzuY_tspaYcdhdwczKqEqNX_uAyHEoXU7H0hDODaWQC2e6HpG6U3KbWdvvKSXJx2YRiZ20-kj9joWWpWhg_v22BA9nr2UhVzKfEAtI1tfzylmmyyzHnsaLlQnD_IAEwGZjqYdawE_sV8qU-RDJ9MOf7c0muHYz32t78ChJ2TEqa_lyMVsAZyx4gyxiuG2m8jlpcipd2MxyYGw8szUtIBTw_s482psJdNIudFIRldb4dAH_bk25hn5Jviws7Q"
+temp_authorization_key = "Bearer " + jwt_gen()
+
+print("[+] JWT生成成功！ｗｗｗやったね！！！ "+temp_authorization_key)
 
 #アクセスキーをげっちゅ
 access_key_json = session.post("https://ctl.npd.plus.nhk.jp/create-accesskey", json={}, headers={"authorization": temp_authorization_key}).json()
 
+print(access_key_json)
 
 print("[+] Get Aceess Token:",access_key_json["drmToken"])
 

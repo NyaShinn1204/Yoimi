@@ -42,6 +42,7 @@ Options:
                              (If muxing) (Default: no)
   -o, --output TEXT          Output filename
   -v, --verbose              Enable verbosity
+  -rd, --random-directory    Make temp a random directory
   -h, --help                 Show this message and exit.
 ```
 
