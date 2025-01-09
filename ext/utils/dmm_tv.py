@@ -710,7 +710,6 @@ class Dmm_TV_downloader:
         try:   
             metadata_response = self.session.post(_ENDPOINT_CC, json=meta_json)
             return_json = metadata_response.json()
-            print(return_json)
             if return_json["data"] != None:
                 content_mpd_list = []
                 
