@@ -1,26 +1,54 @@
 ![Yoimi](https://socialify.git.ci/NyaShinn1204/Yoimi/image?description=1&descriptionEditable=%E8%A4%87%E6%95%B0%E3%81%AE%E3%82%B5%E3%82%A4%E3%83%88%E3%81%AE%E5%8B%95%E7%94%BB%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%80%E3%83%BC%0AA%20Simple%20Encrypt%20Content%20Downloader&font=Raleway&language=1&logo=https%3A%2F%2Ffiles.catbox.moe%2Fue535j.png&name=1&pattern=Solid&theme=Light)
 
-[![jp](https://img.shields.io/badge/README-jp-red.svg)](README.md)
-[![en](https://img.shields.io/badge/README-en-red.svg)](README.en-us.md)
+日本語: [![jp](https://img.shields.io/badge/README-jp-red.svg)](README.md)
 
-## インストール
+English: [![en](https://img.shields.io/badge/README-en-red.svg)](README.en-us.md)
 
-**※ Pythonのバージョン3.12以上が必要です**
+シンプルな暗号化コンテンツダウンローダーです。
 
-「Yoimi」を使うには、以下のコマンドを実行してください
+現在以下のデバイスでの動作を確認しています。
 
-> [!TIP]
-> これは開発バージョンです！
+- Linux (aarch64, arm64)
+- Windows (10&11)
+- Nintendo Switch(L4T noble)
 
-```bash
-git clone https://github.com/NyaShinn1204/Yoimi
+# 目次
 
-cd Yoimi
+- [インストール](#インストール方法)
+    - [Git Cloneでのダウンロード](#git-cloneでのダウンロード)
+    - [リリースからのダウンロード](#リリースからのダウンロード)
+- [使い方](#使い方)
+    - [コマンド](#基本的なコマンド)
+    - [基本的なダウンロード](#基本的なダウンロード)
+    - [サポートされているサイト](#サポートされているサイト)
+- [既存の問題](#既存の問題)
 
-python3 yoimi.py -h
-```
+
+## インストール方法
+
+### Git cloneでのダウンロード
+
+    git clone https://github.com/nyashinn1204/yoimi
+
+注意: gitからのダウンロードの場合layer3のwidevine cdmが必要となります。(l3.wvd)
+
+もし用意できるのであればできる限りこのオプションを利用してください
+
+
+### リリースからのダウンロード
+
+[こちら](https://github.com/NyaShinn1204/Yoimi/releases/latest) から最新版のYoimiをダウンロードしてください。
+
+このzipにはl3.wvdなどが含まれています。用意がめんどくさいときはこちらを使ってください。
+
+また、たまにですがYoimi-hot-fix-〇.zipという風に修正がされている場合があります。
+
+その際にはできるだけ更新を行ってください。
 
 ## 使い方
+
+### 基本的なコマンド
+
 ```
 >> python yoimi.py download -h
 Usage: yoimi.py download [OPTIONS] <URL site>
@@ -51,102 +79,53 @@ Options:
 - **`--proxies/-p`**: プロキシ
     - 例: `127.0.0.1:1080`, `http://127.0.0.1:1080`, `http://user:pass@127.0.0.1:1080`, `socks5://127.0.0.1:1080`
 - **`--verbose/-v`**: デバッグモードを利用する
+- **`--random-directory/-rd`**: tempフォルダをランダム文字にする [※1](#中国語環境で暗号化解除が失敗する)
 
-**プロキシはまだ完全にはテストされていません**
+### 基本的なダウンロード
 
-### Example command: 
-Abemaからのダウンロード
-1. **オリジナルファイルでダウンロード**  
-   ```bash
-   python3 yoimi.py download "https://abema.tv/video/episode/248-17_s1_p1"
-   ```
-   ✨ 「最弱テイマー、ゴミ拾いの旅に出る」第1話をオリジナル形式でダウンロードします。
+基本的には
 
-2. **MP4形式に変換してダウンロード**  
-   ```bash
-   python3 yoimi.py download "https://abema.tv/video/episode/248-17_s1_p1" --mux
-   ```
-   ✨ 「最弱テイマー、ゴミ拾いの旅に出る」第1話をMP4形式でダウンロードします。
+    python yoimi.py download ここに動画のurl
 
-- - -
+のようにすると、動作します。アカウントが必要な場合には
 
-U-NEXTからのダウンロード
-1. **特定エピソードをダウンロード**  
-   ```bash
-   python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --username あなたのメールアドレス --password あなたのパスワード
-   ```
-   ✨ 「ロシア語で出れる隣のアーリャさん」第1話をダウンロードします。
+    python yoimi.py download ここに動画のurl --username ここにメールアドレス --password ここにパスワード
 
-   **サンプルビデオ**: [こちらをクリック](https://github.com/user-attachments/assets/c98fe42c-ab27-498d-b2e5-b0ba897e2d81)
+のようにすると、アカウントが使われます。一部クッキーが必要なものも出てくるかもしれません。
 
-2. **シーズン全体をダウンロード**  
-   ```bash
-   python3 yoimi.py download "https://video.unext.jp/play/SID0104147" --username あなたのメールアドレス --password あなたのパスワード
-   ```
-   ✨ 「ロシア語で出れる隣のアーリャさん」の1シーズン全エピソードをダウンロードします。
+### サポートされているサイト
 
-   **サンプルビデオ**: [こちらをクリック](https://youtu.be/09vmBKzQMQE)
+現在以下のサイトにサポート、または取り組んでいます。
 
-- - -
+完了: ✅   |   作成中: 🔄️
 
-Dmm-TVからのダウンロード
-1. **特定エピソードをダウンロード**  
-   ```bash
-   python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb&content=4sqn17vutgo79wc8jugmupy3f" --username あなたのメールアドレス --password あなたのパスワード
-   ```
-   ✨ 「ダンダダン」第1話をダウンロードします。
+|                      | Premium  | Free  | 
+| -------------------- | -------- | ----- |
+| Abema                | ✅      | ✅   |
+| U-Next               | ✅      | ｘ    |
+| Dmm-TV               | ✅      | 🔄️   |
+| Dアニメ              | 🔄️      | 🔄️   |
+| FOD                  | ✅      | ｘ    |
+| NHK+                 | 🔄️      | 🔄️   |
 
-   **サンプルビデオ**: [こちらをクリック](https://youtu.be/rOpmUqHd5MM)
+## 既存の問題
 
-2. **シーズン全体をダウンロード**  
-   ```bash
-   python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb" --username あなたのメールアドレス --password あなたのパスワード
-   ```
-   ✨ 「ダンダダン」の1シーズン全エピソードをダウンロードします。
+#### 中国語環境で暗号化解除が失敗する
 
-   **サンプルビデオ**: [こちらをクリック](https://youtu.be/hVpCYZ2bV88)
+この場合は-rdオプション、または--randaom-directoryオプションを利用してください。
 
-- - -
+#### その他
 
-FODからのダウンロード
-1. **特定エピソードをダウンロード**  
-   ```bash
-   python3 yoimi.py download "https://fod.fujitv.co.jp/title/00d9/00d9110001/" --username あなたのメールアドレス --password あなたのパスワード
-   ```
-   ✨ 「葬送のフリーレン」第1話をダウンロードします。
-   **サンプルビデオ**: お待ちください...!
+時々ライセンス取得に失敗し、プログラムが停止してしまう問題
 
-2. **シーズン全体をダウンロード**  
-   ```bash
-   python3 yoimi.py download "https://fod.fujitv.co.jp/title/00d9/" --username あなたのメールアドレス --password あなたのパスワード
-   ```
-   ✨ 「葬送のフリーレン」の1シーズン全エピソードをダウンロードします。
-   **サンプルビデオ**: お待ちください...!
 
-> [!WARNING]
-> FODはメール認証コードが必要です！
+## 問題を発見しましたか？
 
-- - -
+discord: nyanyakko005
+または
+telegmra: skidnyarara
 
-### サポートリスト
-
-現在サポートされているリストです
-
-- [x] [Abema](https://abema.tv)
-- [x] [U-Next](https://video.unext.jp)
-- [x] [Dmm-TV](https://tv.dmm.com/vod)
-- [ ] [Dアニメ](https://animestore.docomo.ne.jp/animestore/tp/)
-- [x] [FOD](https://fod.fujitv.co.jp)
-
-&nbsp;
-- - -
-&nbsp;  
-
-##### 把握している問題:
- * 時々ライセンス取得に失敗し、プログラムが停止してしまう問題がある
-
-##### サポート
-- discord: nyanyakko005
+に連絡をしてください
 
 > [!WARNING]
 > Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパッケージのベース部分をもとに開発されています。コードが似ている部分が多くあります

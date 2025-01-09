@@ -1,26 +1,54 @@
 ![Yoimi](https://socialify.git.ci/NyaShinn1204/Yoimi/image?description=1&descriptionEditable=%E8%A4%87%E6%95%B0%E3%81%AE%E3%82%B5%E3%82%A4%E3%83%88%E3%81%AE%E5%8B%95%E7%94%BB%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%80%E3%83%BC%0AA%20Simple%20Encrypt%20Content%20Downloader&font=Raleway&language=1&logo=https%3A%2F%2Ffiles.catbox.moe%2Fue535j.png&name=1&pattern=Solid&theme=Light)
 
-[![jp](https://img.shields.io/badge/README-jp-red.svg)](README.md)
-[![en](https://img.shields.io/badge/README-en-red.svg)](README.en-us.md)
+日本語: [![jp](https://img.shields.io/badge/README-jp-red.svg)](README.md)
 
-## Installation
+English: [![en](https://img.shields.io/badge/README-en-red.svg)](README.en-us.md)
 
-**※ Python version 3.12 or higher is required**
+A simple encrypted content downloader.
 
-To use 「Yoimi」, execute the following command
+Currently, we have confirmed operation with the following devices
 
-> [!TIP]
-> This is the development version!
+- Linux (aarch64, arm64)
+- Windows (10&11)
+- Nintendo Switch(L4T Ubuntu noble)
 
-```bash
-git clone https://github.com/NyaShinn1204/Yoimi
+# Table of contents
 
-cd Yoimi
+- [Installation](#how-to-install)
+    - [Download with Git Clone](#download-with-git-clone)
+    - [Downlaod with Release](#download-with-release)
+- [How to use](#how-to-use)
+    - [Commands](#basic-commands)
+    - [Download](#basic-download)
+    - [Supported Sites](#supported-sites)
+- [Existing Issues](#exsiting-issues)
 
-python3 yoimi.py -h
-```
 
-## Usage
+## How to Install
+
+### Download with Git Clone
+
+    git clone https://github.com/nyashinn1204/yoimi
+
+Note: you will need layer3 widevine cdm if downloading from git. (l3.wvd)
+
+If you are able to prepare it, please use this option if at all possible!
+
+
+### Downlaod with Release
+
+Download the latest version of Yoimi from [here](https://github.com/NyaShinn1204/Yoimi/releases/latest).
+
+This zip contains l3.wvd and other files. If you are having trouble preparing it, use this one.
+
+Also, sometimes there are modifications to the Yoimi-hot-fix-0.zip.
+
+In that case, please update the file as much as possible.
+
+## How to use
+
+### Basic Commands
+
 ```
 >> python yoimi.py download -h
 Usage: yoimi.py download [OPTIONS] <URL site>
@@ -42,111 +70,62 @@ Options:
                              (If muxing) (Default: no)
   -o, --output TEXT          Output filename
   -v, --verbose              Enable verbosity
+  -rd, --random-directory    Make temp a random directory
   -h, --help                 Show this message and exit.
 ```
 
-- **`--username/-U`**: Username or email
+- **`--username/-U`**: Username or Email
 - **`--password/-P`**: Password
-- **`--proxies/-p`**: Proxie
+- **`--proxies/-p`**: Proxy
     - Example: `127.0.0.1:1080`, `http://127.0.0.1:1080`, `http://user:pass@127.0.0.1:1080`, `socks5://127.0.0.1:1080`
-- **`--verbose/-v`**: Enable debug mode
+- **`--verbose/-v`**: Use debug mode
+- **`--random-directory/-rd`**: Temp folder to random characters [※1](#decryption-fails-in-chinese-environment)
 
-**Proxy has not yet been fully tested**
+### Basic Download
 
-### Example command: 
-Download from Abema
-1. **Download original file**  
-   ```bash
-   python3 yoimi.py download "https://abema.tv/video/episode/19-171_s1_p1"
-   ```
-   ✨ Download the first episode of「Frieren: Beyond Journey's End」from Abema（.ts file）
+Basically
 
-2. **Download convert mp4 file**  
-   ```bash
-   python3 yoimi.py download "https://abema.tv/video/episode/19-171_s1_p1" --mux
-   ```
-   ✨ Download the first episode of「Frieren: Beyond Journey's End」from Abema（Conver to mp4）
+    python yoimi.py download Here is the url of the video
 
-- - -
+and it will work. If you need an account
 
-Download from U-Next
-1. **Download specific episodes**  
-   ```bash
-   python3 yoimi.py download "https://video.unext.jp/play/SID0104147/ED00570917" --username EMAIL_HERE --password PASSWORD_HERE
-   ```
-   ✨ Download an episode of「Alya Sometimes Hides Her Feelings in Russian」from Unext
+    python yoimi.py download here url of video --username here email address --password here password
 
-   **Sample Video**: [Click Here](https://github.com/user-attachments/assets/c98fe42c-ab27-498d-b2e5-b0ba897e2d81)
+If you want to use your account, you can use your account as follows. Some cookies may be required.
 
-2. **Download one season**  
-   ```bash
-   python3 yoimi.py download "https://video.unext.jp/play/SID0104147" --username EMAIL_HERE --password PASSWORD_HERE
-   ```
-   ✨ Download the entire one season of「Alya Sometimes Hides Her Feelings in Russian」from Unext
+### Supported Sites
 
-   **Sample Video**: [Click Here](https://youtu.be/09vmBKzQMQE)
+We currently support or are working on the following sites
 
-- - -
+Completed: ✅ | Under construction: 🔄️
 
-Download from Dmm-TV
-1. **Download specific episodes**  
-   ```bash
-   python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb&content=4sqn17vutgo79wc8jugmupy3f" --username EMAIL_HERE --password PASSWORD_HERE
-   ```
-   ✨ Download an episode of「Dandadan」from Unext
+|                      | Premium  | Free  | 
+| -------------------- | -------- | ----- |
+| Abema                | ✅      | ✅   |
+| U-Next               | ✅      | ｘ    |
+| Dmm-TV               | ✅      | 🔄️   |
+| Danime               | 🔄️      | 🔄️   |
+| FOD                  | ✅      | ｘ    |
+| NHK+                 | 🔄️      | 🔄️   |
 
-   **Sample Video**: [Click Here](https://youtu.be/rOpmUqHd5MM)
+## Existing Issues
 
-2. **Download one season**  
-   ```bash
-   python3 yoimi.py download "https://tv.dmm.com/vod/playback/?season=i4ub9mtfsaqk6zyvgw7wz17yb" --username EMAIL_HERE --password PASSWORD_HERE
-   ```
-   ✨ Download the entire one season of「Dandadan」from Unext
+#### Decryption fails in Chinese environment
 
-   **Sample Video**: [Click Here](https://youtu.be/hVpCYZ2bV88)
+In this case, use the -rd option or the --randaom-directory option.
 
-- - -
+#### Other
 
-Download from FOD
-1. **Download specific episodes**  
-   ```bash
-   python3 yoimi.py download "https://fod.fujitv.co.jp/title/00d9/00d9110001/" --username EMAIL_HERE --password PASSWORD_HERE
-   ```
-   ✨ Download an episode of「Frieren」from FOD
+Problem with occasional licensing failures and program stoppage
 
-   **Sample Video**: Please Wait!
-2. **Download one season**  
-   ```bash
-   python3 yoimi.py download "https://fod.fujitv.co.jp/title/00d9/" --username EMAIL_HERE --password PASSWORD_HERE
-   ```
-   ✨ Download the entire one season of「Frieren」from Unext
 
-   **Sample Video**: Please Wait!
+## Have you found a problem?
 
-> [!WARNING]
-> FOD is require Email verify code!
+discord: nyanyakko005
+or
+telegmra: skidnyarara
 
-- - -
-
-### Support List
-
-Here is the current supported list
-
-- [x] [Abema](https://abema.tv)
-- [x] [U-Next](https://video.unext.jp)
-- [x] [Dmm-TV](https://tv.dmm.com/vod)
-- [ ] [Danime](https://animestore.docomo.ne.jp/animestore/tp/)
-- [x] [FOD](https://fod.fujitv.co.jp)
-
-&nbsp;
-- - -
-&nbsp;  
-
-##### Known issues:
- * Sometimes licensing fails and the program stops.
-
-##### Contact us:
-- discord: nyanyakko005
+Please contact us at
 
 > [!WARNING]
 > Yoimi is developed from the base part of a package called [Yuu](https://github.com/noaione/yuu). There are many similarities in the code
