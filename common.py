@@ -11,6 +11,8 @@ from ext import dmm_tv as Dmm_tv
 from ext import brainshark as Brainshark
 from ext import fod as FOD
 
+__version__ = "0.9.0"
+
 def get_parser(url):
     """
     Function that is called first time to check if it's a valid supported link

@@ -107,7 +107,7 @@ def check_proxie(session):
         logger.error(f"Failed Check Proxies of {session.proxies}", extra={"service_name": "Yoimi"})
         exit(1)
 
-def main_command(session, url, email, password, LOG_LEVEL, use_rd):
+def main_command(session, url, email, password, LOG_LEVEL, additional_info):
     try:
         global media_code, playtoken
         #url = "https://video.unext.jp/title/SID0104147"
@@ -298,7 +298,7 @@ def main_command(session, url, email, password, LOG_LEVEL, use_rd):
                         filename = filename.replace(":", "：").replace("?", "？")
                         return re.sub(r'[<>"/\\|*]', "_", filename)
                     
-                    if use_rd:
+                    if additional_info[0]:
                         random_string = str(int(time.time() * 1000))
                         title_name_logger_video = random_string+"_video_encrypted.mp4"
                         title_name_logger_audio = random_string+"_audio_encrypted.mp4"
@@ -434,7 +434,7 @@ def main_command(session, url, email, password, LOG_LEVEL, use_rd):
                     filename = filename.replace(":", "：").replace("?", "？")
                     return re.sub(r'[<>"/\\|*]', "_", filename)
                 
-                if use_rd:
+                if additional_info[0]:
                     random_string = str(int(time.time() * 1000))
                     title_name_logger_video = random_string+"_video_encrypted.mp4"
                     title_name_logger_audio = random_string+"_audio_encrypted.mp4"
@@ -483,6 +483,7 @@ def main_command(session, url, email, password, LOG_LEVEL, use_rd):
         import traceback
         import sys
         t, v, tb = sys.exc_info()
+        print(v)
         print(traceback.format_exception(t,v,tb))
         print(traceback.format_tb(error.__traceback__))
         session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")

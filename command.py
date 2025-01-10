@@ -8,8 +8,7 @@ import click
 import requests
 import subprocess
 
-from common import (_prepare_yuu_data, get_parser,
-                     get_yuu_folder, merge_video, mux_video)
+from common import (__version__, _prepare_yuu_data, get_parser, get_yuu_folder, merge_video, mux_video)
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], ignore_unknown_options=True)
 
@@ -34,10 +33,14 @@ def delete_folder_contents(folder):
             shutil.rmtree(file_path)
 
 @click.group(context_settings=CONTEXT_SETTINGS, invoke_without_command=True)
-def cli():
+@click.option('--version', is_flag=True, help="Show current version")
+def cli(version=False):
     """
     A simple AbemaTV and other we(e)bsite video downloader
     """
+    if version:
+        print('Yoimi v{} - Created by NoAiOne and NyaShinn1204'.format(__version__))
+        exit(0)
 
 @cli.command("streams", short_help="Check supported website")
 def streams_list():
@@ -114,7 +117,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                 LOG_LEVEL = "DEBUG"
             else:
                 LOG_LEVEL = "INFO"
-            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, use_rd)
+            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, [use_rd, __version__])
         except Exception as error:
             print(error)
     else:

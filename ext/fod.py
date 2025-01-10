@@ -56,7 +56,7 @@ def set_variable(session, LOG_LEVEL):
         
     session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"})
     
-def main_command(session, url, email, password, LOG_LEVEL, use_rd):
+def main_command(session, url, email, password, LOG_LEVEL, additional_info):
     try:
         #url = "https://video.unext.jp/title/SID0104147"
         #url = "https://video.unext.jp/play/SID0104147/ED00570918"
@@ -213,7 +213,7 @@ def main_command(session, url, email, password, LOG_LEVEL, use_rd):
                     filename = filename.replace(":", "：").replace("?", "？")
                     return re.sub(r'[<>"/\\|*]', "_", filename)
                 
-                if use_rd:
+                if additional_info[0]:
                     random_string = str(int(time.time() * 1000))
                     title_name_logger_video = random_string+"_video_encrypted.mp4"
                     title_name_logger_audio = random_string+"_audio_encrypted.mp4"
@@ -342,7 +342,7 @@ def main_command(session, url, email, password, LOG_LEVEL, use_rd):
                 filename = filename.replace(":", "：").replace("?", "？")
                 return re.sub(r'[<>"/\\|*]', "_", filename)
             
-            if use_rd:
+            if additional_info[0]:
                 random_string = str(int(time.time() * 1000))
                 title_name_logger_video = random_string+"_video_encrypted.mp4"
                 title_name_logger_audio = random_string+"_audio_encrypted.mp4"
