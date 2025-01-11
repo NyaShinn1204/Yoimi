@@ -29,7 +29,6 @@ def is_webgl_supported():
         print(f"Error initializing GLUT: {e}")
         return False
 
-
 def get_max_anisotropy():
     """Check for anisotropic filtering support and get the maximum value."""
     extension_name = b"GL_EXT_texture_filter_anisotropic"
@@ -84,6 +83,12 @@ def execute_webgl():
         glEnable(GL_DEPTH_TEST)
         glDepthFunc(GL_LEQUAL)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        
+        buffer = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, buffer)
+        glBufferData(GL_ARRAY_BUFFER, buffer_data, GL_STATIC_DRAW)
+
+        results.append(get_canvas_data_url()) #実行するところが違う。これだと真っ黒になっちゃう
 
         # Simulate fetching extensions
         extensions = glGetString(GL_EXTENSIONS).decode()
@@ -160,9 +165,6 @@ def execute_webgl():
 
     # Collect precision info and add to the list
     results.extend(collect_shader_precision())
-    
-    results.append(get_canvas_data_url())
-
     return results
 
 if __name__ == "__main__":

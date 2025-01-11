@@ -235,7 +235,7 @@ def get_time_zone():
 #EXCLUDED = "excluded"
 #get_plugins_return = R() ? excludeIE ? EXCLUDED : o() : i()
 
-def get_canvas_data():
+def get_canvas_data(): # 多分これ壊れてる。
     from PIL import Image, ImageDraw, ImageFont
     import io
     import base64
@@ -299,8 +299,8 @@ components = [
     {"key": "cpuClass", "value": "not available"}, # navigator.cpuClassがなければ
     {"key": "platform", "value": "Win32"}, # Win32, Win64, MacIntel, Linux armv71, iPhone, Android
     {"key": "plugins", "value": [["Web com.adobe.pdf Renderer","Portable Document Format",[["application/x-google-chrome-pdf","pdf"]]],["l5cWLFpU","RMOPm6laVKs9mb057dt9e2bVSRQv26GD",[["","FKN"]]],["Web Portable Document Format Display","",[["application/pdf","pdf"]]],["k9e2bVS","fy4cWLFh3EhvXTwBAAIr899Hi47lSwB",[["","w3b"]]]]}, # 元コードはline: 172から
-    {"key": "canvas", "value": get_canvas_data()},
-    {"key": "webgl", "value": False},
+    {"key": "canvas", "value": get_canvas_data()}, # 壊れてる。
+    {"key": "webgl", "value": False}, # 壊れてる。
     {"key": "webdriver", "value": False},
     {"key": "webdriver", "value": False},
     {"key": "webdriver", "value": False},
