@@ -1,4 +1,7 @@
+import io
+import base64
 import numpy as np
+from PIL import Image
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
@@ -25,6 +28,45 @@ def is_webgl_supported():
     except Exception as e:
         print(f"Error initializing GLUT: {e}")
         return False
+
+
+def get_max_anisotropy():
+    """Check for anisotropic filtering support and get the maximum value."""
+    extension_name = b"GL_EXT_texture_filter_anisotropic"
+    try:
+        # Check if the extension is supported
+        extensions = glGetString(GL_EXTENSIONS).split()
+        if extension_name in extensions:
+            # Dynamically get the anisotropy constant
+            GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT = 0x84FF  # Known value for this constant
+            anisotropy_ext = glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT)
+            return anisotropy_ext
+        else:
+            return "Anisotropic filtering not supported"
+    except Exception as e:
+        return f"Error checking anisotropic filtering: {e}"
+
+def get_canvas_data_url():
+    # Get the current viewport size (width, height)
+    width, height = glGetIntegerv(GL_VIEWPORT)[2], glGetIntegerv(GL_VIEWPORT)[3]
+    
+    # Read the pixel data from the framebuffer (this is similar to canvas.toDataURL)
+    pixel_data = glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE)
+    
+    # Convert the pixel data to an image using PIL (Pillow)
+    image = Image.frombytes("RGBA", (width, height), pixel_data)
+    
+    # Save the image to a bytes buffer (in PNG format)
+    img_buffer = io.BytesIO()
+    image.save(img_buffer, format="PNG")
+    
+    # Convert the image to base64
+    img_data_url = base64.b64encode(img_buffer.getvalue()).decode('utf-8')
+    
+    # Format it like a data URL
+    data_url = f"data:image/png;base64,{img_data_url}"
+    
+    return data_url
 
 # Function to execute WebGL-like operations
 def execute_webgl():
@@ -63,7 +105,7 @@ def execute_webgl():
         # Example of fetching anisotropy extension
         anisotropy_ext = glGetString(GL_EXTENSIONS).find(b"EXT_texture_filter_anisotropic")
         if anisotropy_ext != -1:
-            anisotropy_value = glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT)
+            anisotropy_value = get_max_anisotropy()
             results.append(f"webgl max anisotropy: {anisotropy_value}")
         else:
             results.append("webgl max anisotropy: null")
@@ -80,6 +122,46 @@ def execute_webgl():
 
     except Exception as e:
         results.append(f"Error: {str(e)}")
+    try:
+        # Try to get the WEBGL_debug_renderer_info extension
+        debug_renderer_info = glGetString(GL_EXTENSIONS).split()
+        if b"WEBGL_debug_renderer_info" in debug_renderer_info:
+            UNMASKED_VENDOR_WEBGL = 0x9245
+            UNMASKED_RENDERER_WEBGL = 0x9246
+            vendor = glGetString(UNMASKED_VENDOR_WEBGL)
+            renderer = glGetString(UNMASKED_RENDERER_WEBGL)
+            results.append(f"webgl unmasked vendor: {vendor.decode()}")
+            results.append(f"webgl unmasked renderer: {renderer.decode()}")
+    except Exception as e:
+        pass  # Ignore errors for debug info collection
+
+    # Shader precision formats
+    def collect_shader_precision():
+        """Helper to collect precision format details."""
+        precisions = []
+        try:
+            shader_types = [GL_VERTEX_SHADER, GL_FRAGMENT_SHADER]
+            precisions_levels = ["HIGH", "MEDIUM", "LOW"]
+            value_types = ["precision", "rangeMin", "rangeMax"]
+
+            for shader_type in shader_types:
+                shader_name = "vertex" if shader_type == GL_VERTEX_SHADER else "fragment"
+                for level in precisions_levels:
+                    for value_type in value_types:
+                        try:
+                            precision_format = glGetShaderPrecisionFormat(shader_type, level)
+                            value = precision_format[value_types.index(value_type)]
+                            precisions.append(f"webgl {shader_name} shader {level.lower()} precision {value_type}: {value}")
+                        except Exception as e:
+                            pass
+        except Exception as e:
+            pass
+        return precisions
+
+    # Collect precision info and add to the list
+    results.extend(collect_shader_precision())
+    
+    results.append(get_canvas_data_url())
 
     return results
 
