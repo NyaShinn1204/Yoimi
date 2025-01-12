@@ -1,5 +1,5 @@
 import requests
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 
 class fingerprint:
     def map_values(func, arr):
@@ -199,6 +199,16 @@ response = session.get(response.headers["Location"], headers=headers, allow_redi
 
 print("----RESPONSE----")
 print(response.headers)
+set_cookie = response.headers.get('Set-Cookie', '')
+
+# transaction_idを抽出
+transaction_id = None
+cookies = set_cookie.split(',')
+for cookie in cookies:
+    if 'transaction_id' in cookie:
+        transaction_id = cookie.split('=')[1].split(';')[0]
+        break
+print(transaction_id)
 print("----END RESPONSE--")
 
 headers["host"] = "agree.pid.nhk.or.jp"
@@ -228,7 +238,7 @@ def fingerprint_selenium():
     # Chromiumのオプション設定    
     # WebDriverのセットアップ（Chromiumを指定）
     #service = Service()  # chromedriverのパスを指定
-    driver = uc.Chrome(headless=False)
+    driver = uc.Chrome(headless=True)
     
     try:
         # Webページを開く
@@ -1720,8 +1730,6 @@ return new Promise((resolve, reject) => {
         return result
     
     finally:
-        import time
-        time.sleep(3)
         # ブラウザを閉じる
         driver.quit()
 
@@ -1739,8 +1747,11 @@ payload = {
     "snsid":"undefined",
     "Fingerprint":get_fingerprint
 }
-sent_auth = session.post("https://login.auth.nhkid.jp/auth/login", headers=headers, data=payload)
+payload = f"AUTH_TYPE=AUTH_OP&SITE_ID=co_site&MESSAGE_AUTH={quote(response_parameter["MESSAGE_AUTH"])}&AUTHENTICATED={quote(response_parameter["AUTHENTICATED"])}&snsid=undefined&Fingerprint={get_fingerprint}"
+print(payload)
+sent_auth = session.post("https://login.auth.nhkid.jp/auth/login", headers=headers, data=payload, cookies={"transaction_id": transaction_id})
 print("----RESPONSE----")
 print(sent_auth.text)
+print(sent_auth.status_code)
 print(sent_auth.headers)
 print("----END RESPONSE--")
