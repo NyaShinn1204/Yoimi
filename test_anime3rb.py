@@ -87,28 +87,84 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 print("ok value is invalid")
                 return
             
-            anime_name, anime_link = anime3rb_downloader.get_info(links[download_title_s])
+            anime_name, anime_link_episode_num = anime3rb_downloader.get_info(links[download_title_s])
             
         elif url.__contains__("titles/"):
-            anime_name, anime_link = anime3rb_downloader.get_info(url)
+            anime_name, anime_link_episode_num = anime3rb_downloader.get_info(url)
+            for i in range(int(anime_link_episode_num[1])):
+                episode_number = i+1
+                
+                real_url = anime_link_episode_num[0]
+                if not url.endswith('/'):
+                    url += '/'
+                
+                url = re.sub(r'/episode/(.*?)/\d+', r'/titles/\1/', real_url)
+                url = f"{url}{episode_number}".replace("titles", "episode")
+                
+                # ok single episode
+                logger.info("Get Title for 1 Episode", extra={"service_name": "Anime3rb"})
+                
+                player_url = anime3rb_downloader.get_player_info(url).replace('\\u0026', "&")
+                player_info = anime3rb_downloader.get_player_meta(player_url)
+                
+                #print(player_info)
+                logger.info("Found resolution", extra={"service_name": "Anime3rb"})
+                for info in player_info:
+                    logger.info(f"+ {info["label"]}", extra={"service_name": "Anime3rb"})
+                    
+                # select best resolution
+                best_quality_url = player_info[0]["src"]
+                
+                logger.info("Video Content Link", extra={"service_name": "Anime3rb"})
+                logger.info(" + Video_URL: "+best_quality_url, extra={"service_name": "Anime3rb"})
+                
+                logger.info("Downloading Episode...", extra={"service_name": "Anime3rb"})
+                
+                def sanitize_filename(filename):
+                    filename = filename.replace(":", "：").replace("?", "？")
+                    return re.sub(r'[<>"/\\|*]', "_", filename)
+                
+                title_name_logger = sanitize_filename(anime_name[1]+"_"+"#"+str(episode_number).zfill(2)+".mp4")
+                            
+                video_downloaded = anime3rb_downloader.aria2c(best_quality_url, title_name_logger, config, unixtime, anime_name[1])
             
         if url.__contains__("episode/"):
+            episode_number = re.search(r'/(\d+)$', url).group(1)
             temp_url = re.sub(r'/episode/(.*?)/\d+', r'/titles/\1/', url)
-            anime_name, anime_link = anime3rb_downloader.get_info(temp_url)
+            anime_name, anime_link_episode_num = anime3rb_downloader.get_info(temp_url)
             
             # ok single episode
-            logger.info("Get Title for 1 Episode", extra={"service_name": "U-Next"})
+            logger.info("Get Title for 1 Episode", extra={"service_name": "Anime3rb"})
             
             player_url = anime3rb_downloader.get_player_info(url).replace('\\u0026', "&")
             player_info = anime3rb_downloader.get_player_meta(player_url)
             
-            print(player_info)
+            #print(player_info)
+            logger.info("Found resolution", extra={"service_name": "Anime3rb"})
+            for info in player_info:
+                logger.info(f"+ {info["label"]}", extra={"service_name": "Anime3rb"})
+                
+            # select best resolution
+            best_quality_url = player_info[0]["src"]
+            
+            logger.info("Video Content Link", extra={"service_name": "Anime3rb"})
+            logger.info(" + Video_URL: "+best_quality_url, extra={"service_name": "Anime3rb"})
+            
+            logger.info("Downloading Episode...", extra={"service_name": "Anime3rb"})
+            
+            def sanitize_filename(filename):
+                filename = filename.replace(":", "：").replace("?", "？")
+                return re.sub(r'[<>"/\\|*]', "_", filename)
+            
+            title_name_logger = sanitize_filename(anime_name[1]+"_"+"#"+episode_number.zfill(2)+".mp4")
+                        
+            video_downloaded = anime3rb_downloader.aria2c(best_quality_url, title_name_logger, config, unixtime, anime_name[1])
             
         else:
             # ok season
-            logger.info("Get Title for Season", extra={"service_name": "U-Next"}) 
+            logger.info("Get Title for Season", extra={"service_name": "Anime3rb"}) 
         
-        print(anime_name, anime_link)
+        #print(anime_name, anime_link_episode_num)
             
         
     except Exception as error:
@@ -127,4 +183,4 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         print("Version: "+additional_info[1])
         print("----END ERROR LOG----")
 
-main_command(requests.Session(),"https://anime3rb.com/episode/isekai-wa-smartphone-to-tomo-ni/1","","","",[False,"0.9.0"])
+main_command(requests.Session(),"https://anime3rb.com/titles/isekai-wa-smartphone-to-tomo-ni/","","","",[False,"0.9.0"])
