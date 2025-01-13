@@ -1,11 +1,13 @@
+import re
 import sys
 import time
 import yaml
 import logging
 import requests
 import traceback
+from urllib.parse import urlparse, parse_qs
 
-import anime3rb as anime3rb
+import ongoing.anime3rb.anime3rb as anime3rb
 
 __service_name__ = "Anime3rb"
 
@@ -69,8 +71,44 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         # No require login for this site
         
-        if url.__contains__("search?q="):
-            result = anime3rb_downloader.search(url)
+        if url.__contains__("search?q="):            
+            parsed_url = urlparse(url)
+            query_params = parse_qs(parsed_url.query)
+            re_search_query = query_params.get('q', [None])[0]
+            
+            result, links = anime3rb_downloader.search(re_search_query)
+        
+            logger.info("[+] Get Result: {search_name}".format(search_name=re_search_query),extra={"service_name": "Anime3rb"})
+            for i, result_sig  in enumerate(result):
+                logger.info(f"[+] {i}: {result_sig.get_text()}",extra={"service_name": "Anime3rb"})
+                
+            download_title_s = int(input("What do you want to download? (ex: 7): "))
+            if download_title_s >= len(result):
+                print("ok value is invalid")
+                return
+            
+            anime_name, anime_link = anime3rb_downloader.get_info(links[download_title_s])
+            
+        elif url.__contains__("titles/"):
+            anime_name, anime_link = anime3rb_downloader.get_info(url)
+            
+        if url.__contains__("episode/"):
+            temp_url = re.sub(r'/episode/(.*?)/\d+', r'/titles/\1/', url)
+            anime_name, anime_link = anime3rb_downloader.get_info(temp_url)
+            
+            # ok single episode
+            logger.info("Get Title for 1 Episode", extra={"service_name": "U-Next"})
+            
+            player_url = anime3rb_downloader.get_player_info(url).replace('\\u0026', "&")
+            player_info = anime3rb_downloader.get_player_meta(player_url)
+            
+            print(player_info)
+            
+        else:
+            # ok season
+            logger.info("Get Title for Season", extra={"service_name": "U-Next"}) 
+        
+        print(anime_name, anime_link)
             
         
     except Exception as error:
@@ -89,4 +127,4 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         print("Version: "+additional_info[1])
         print("----END ERROR LOG----")
 
-main_command(requests.Session(),"url","","","",[False,"0.9.0"])
+main_command(requests.Session(),"https://anime3rb.com/episode/isekai-wa-smartphone-to-tomo-ni/1","","","",[False,"0.9.0"])
