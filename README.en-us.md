@@ -109,7 +109,7 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | NHK+                 | ❌      |  ❌  | 
 | Anime3rb             |  X       |  ✅  |
 
-NHK+ Cancel Reason: [※2](#nhk+_issues)
+NHK+ Cancel Reason: [※2](#nhk_issues)
 
 ## Existing Issues
 
@@ -117,7 +117,7 @@ NHK+ Cancel Reason: [※2](#nhk+_issues)
 
 In this case, use the -rd option or the --randaom-directory option.
 
-#### NHK+ Issues
+#### NHK Issues
 
 I have to give up on nhk+ because I can't match the “fingerprint” used to log in.
 The source code itself is in /ongoing/nhk_plus/, so if you can fix it, please pull requests or whatever.
