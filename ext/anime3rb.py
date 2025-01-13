@@ -81,7 +81,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             result, links = anime3rb_downloader.search(re_search_query)
         
-            logger.info("[+] Get Result: {search_name}".format(search_name=re_search_query),extra={"service_name": __service_name__})
+            logger.info("Get Result: {search_name}".format(search_name=re_search_query),extra={"service_name": __service_name__})
             for i, result_sig  in enumerate(result):
                 logger.info(f"[+] {i}: {result_sig.get_text()}",extra={"service_name": __service_name__})
                 
@@ -91,6 +91,47 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 return
             
             anime_name, anime_link_episode_num = anime3rb_downloader.get_info(links[download_title_s])
+            
+            logger.info("Get Title for Season", extra={"service_name": __service_name__})
+            for i in range(int(anime_link_episode_num[1])):
+                episode_number = i+1
+                title_name_logger = sanitize_filename(anime_name[1]+"_"+"#"+str(episode_number).zfill(2)+".mp4")
+                logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+            for i in range(int(anime_link_episode_num[1])):
+                episode_number = i+1
+                
+                real_url = anime_link_episode_num[0]
+                if not url.endswith('/'):
+                    url += '/'
+                
+                url = re.sub(r'/episode/(.*?)/\d+', r'/titles/\1/', real_url)
+                url = f"{url}/{episode_number}".replace("titles", "episode")
+                                
+                # ok single episode
+                logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
+                
+                player_url = anime3rb_downloader.get_player_info(url).replace('\\u0026', "&")
+                player_info = anime3rb_downloader.get_player_meta(player_url)
+                
+                #print(player_info)
+                logger.info("Found resolution", extra={"service_name": __service_name__})
+                for info in player_info:
+                    logger.info(f"+ {info["label"]}", extra={"service_name": __service_name__})
+                    
+                # select best resolution
+                best_quality_url = player_info[0]["src"]
+                
+                logger.info("Video Content Link", extra={"service_name": __service_name__})
+                logger.info(" + Video_URL: "+best_quality_url, extra={"service_name": __service_name__})
+                
+                logger.info("Downloading Episode...", extra={"service_name": __service_name__})
+                
+                title_name_logger = sanitize_filename(anime_name[1]+"_"+"#"+str(episode_number).zfill(2)+".mp4")
+                            
+                video_downloaded = anime3rb_downloader.aria2c(best_quality_url, title_name_logger, config, unixtime, anime_name[1])
+                logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
+                
+            logger.info('Finished ownload series: {}'.format(title_name_logger), extra={"service_name": __service_name__})
             
         elif url.__contains__("titles/"):
             anime_name, anime_link_episode_num = anime3rb_downloader.get_info(url)

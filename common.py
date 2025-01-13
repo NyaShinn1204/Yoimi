@@ -27,7 +27,7 @@ def get_parser(url):
     valid_dmm_tv = r'^["\']?http(?:s)?://tv\.dmm\.com/vod(?:/playback)?/\?.*season=(?P<season>[^&?]+)(?:&.*content=(?P<content>[^&?]+)|)["\']?$'
     valid_brainshark = r'^["\']?https?://www\.brainshark\.com/brainshark/brainshark\.services\.player/api/v1\.0/Presentation\?([^&]*&)*pi=(?P<pi>[^&]+)(&|$)'
     valid_fod = r'^["\']?http(?:|s)://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+/?)?["\']?$'
-    valid_anime3rb = r'^["\']?http(?:|s)://anime3rb\.com/(?:titles|episode)/([\w-]+)/?.*|search\?q=[\w]+["\']?$'
+    valid_anime3rb = r'^["\']?http(?:|s)://anime3rb\.com/(?:titles|episode)/([\w-]+)/.*|search\?q=[^"\']+["\']?$'
     
     if re.match(valid_abema, url):
         return AbemaTV, "abema"
@@ -43,7 +43,7 @@ def get_parser(url):
         return Brainshark, "brainshark"
     elif re.match(valid_fod, url):
         return FOD, "fod"
-    elif re.match(valid_anime3rb, url):
+    elif re.match(valid_anime3rb, url) or url.__contains__("anime3rb.com/search?q="):
         return Anime3rb, "anime3rb"
     return None, None
 
