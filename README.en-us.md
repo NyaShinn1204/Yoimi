@@ -97,7 +97,7 @@ If you want to use your account, you can use your account as follows. Some cooki
 
 We currently support or are working on the following sites
 
-Completed: ✅ | Under construction: 🔄️
+Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 
 |                      | Premium  | Free  | 
 | -------------------- | -------- | ----- |
@@ -106,8 +106,10 @@ Completed: ✅ | Under construction: 🔄️
 | Dmm-TV               | ✅      | 🔄️   |
 | Danime               | 🔄️      | 🔄️   |
 | FOD                  | ✅      | ｘ    |
-| NHK+                 | ❌      |  ❌  | [※2](#nhk+_issues)
+| NHK+                 | ❌      |  ❌  | 
 | Anime3rb             |  X       |  ✅  |
+
+NHK+ Cancel Reason: [※2](#nhk+_issues)
 
 ## Existing Issues
 
