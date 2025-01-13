@@ -109,7 +109,7 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | NHK+                 | ❌      |  ❌  | 
 | Anime3rb             |  X       |  ✅  |
 
-NHK+ Cancel Reason: [※2](#nhk_issues)
+NHK+ Cancel Reason: [※2](#nhk-issues)
 
 ## Existing Issues
 
