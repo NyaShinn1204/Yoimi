@@ -10,6 +10,7 @@ from ext import unext_v2 as Unext_v2
 from ext import dmm_tv as Dmm_tv
 from ext import brainshark as Brainshark
 from ext import fod as FOD
+from ext import anime3rb as Anime3rb
 
 __version__ = "0.9.0"
 
@@ -26,6 +27,7 @@ def get_parser(url):
     valid_dmm_tv = r'^["\']?http(?:s)?://tv\.dmm\.com/vod(?:/playback)?/\?.*season=(?P<season>[^&?]+)(?:&.*content=(?P<content>[^&?]+)|)["\']?$'
     valid_brainshark = r'^["\']?https?://www\.brainshark\.com/brainshark/brainshark\.services\.player/api/v1\.0/Presentation\?([^&]*&)*pi=(?P<pi>[^&]+)(&|$)'
     valid_fod = r'^["\']?http(?:|s)://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+/?)?["\']?$'
+    valid_anime3rb = r'^["\']?http(?:|s)://anime3rb\.com/(?:titles|episode)/([\w-]+)/?.*|search\?q=[\w]+["\']?$'
     
     if re.match(valid_abema, url):
         return AbemaTV, "abema"
@@ -41,6 +43,8 @@ def get_parser(url):
         return Brainshark, "brainshark"
     elif re.match(valid_fod, url):
         return FOD, "fod"
+    elif re.match(valid_anime3rb, url):
+        return Anime3rb, "anime3rb"
     return None, None
 
 

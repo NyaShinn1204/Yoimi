@@ -50,7 +50,8 @@ def streams_list():
         "GYAO!": ["No", "No", "Yes (JP)"],
         "U-Next": ["Yes", "Yes", "Yes (JP)"],
         "DMM-tv": ["Yes", "Yes", "Unknown"],
-        "FOD": ["Yes", "Yes", "Unknown"]
+        "FOD": ["Yes", "Yes", "Unknown"],
+        "Anime3rb": ["No", "No", "No"]
     }
 
     print('[INFO] Supported website')
