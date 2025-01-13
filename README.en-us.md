@@ -106,13 +106,20 @@ Completed: ✅ | Under construction: 🔄️
 | Dmm-TV               | ✅      | 🔄️   |
 | Danime               | 🔄️      | 🔄️   |
 | FOD                  | ✅      | ｘ    |
-| NHK+                 | 🔄️      | 🔄️   |
+| NHK+                 | ❌      |  ❌  | [※2](#nhk+_issues)
+| Anime3rb             |  X       |  ✅  |
 
 ## Existing Issues
 
 #### Decryption fails in Chinese environment
 
 In this case, use the -rd option or the --randaom-directory option.
+
+#### NHK+ Issues
+
+I have to give up on nhk+ because I can't match the “fingerprint” used to log in.
+The source code itself is in /ongoing/nhk_plus/, so if you can fix it, please pull requests or whatever.
+Please do so (see below).
 
 #### Other
 
