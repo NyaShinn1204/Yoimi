@@ -81,3 +81,7 @@ for index in return_meta["data"]:
 #print(total_comment_json)
 print(total_comment)
 print(total_tv)
+
+# コメントの取得は終わったので、ここから埋め込む方法を探す。
+# todo: create .xml file
+# sample: so44516232.xml
