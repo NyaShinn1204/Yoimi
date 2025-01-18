@@ -1,8 +1,10 @@
 import os
 import yaml
+import json
 import time
 import shutil
 import logging
+import xml.etree.ElementTree as ET
 from datetime import datetime
 
 from ext.utils import dmm_tv
@@ -206,6 +208,134 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         missing_key = e.args[0]
                         values[missing_key] = ""
                         title_name_logger = format_string.format(**values)
+
+                if additional_info[2]:        
+                    sate = {}
+                    sate["info"] = {
+                        "work_title": title_name,
+                        "episode_title": f"{message["node"]["episodeNumberName"]} {message["node"]["episodeTitle"]}",
+                    #    "duration": 1479,
+                        "raw_text": f"{title_name} {message["node"]["episodeNumberName"]} {message["node"]["episodeTitle"]}",
+                        "series_title": title_name,
+                        "episode_text": message["node"]["episodeTitle"],
+                        "episode_number": 1,
+                        "subtitle": message["node"]["episodeTitle"],
+                    }
+                    
+                    def get_niconico_info(stage, data):
+                        if stage == 1:
+                            querystring = {
+                                "q": data,
+                                "_sort": "-startTime",
+                                "_context": "NCOverlay/3.23.0/Mod For Yoimi",
+                                "targets": "title,description",
+                                "fields": "contentId,title,userId,channelId,viewCounter,lengthSeconds,thumbnailUrl,startTime,commentCounter,categoryTags,tags",
+                                "filters[commentCounter][gt]": 0,
+                                "filters[genre.keyword][0]": "アニメ",
+                                "_offset": 0,
+                                "_limit": 20,
+                            }
+                            
+                            result = session.get("https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search", params=querystring).json()
+                            return result
+                        elif stage == 2:
+                            result = session.get(f"https://www.nicovideo.jp/watch/{data}?responseType=json").json()
+                            return result
+                        elif stage == 3:
+                            payload = {
+                                "params":{
+                                    "targets": data[1],
+                                    "language":"ja-jp"},
+                                "threadKey": data[0],
+                                "additionals":{}
+                            }
+                            headers = {
+                              "X-Frontend-Id": "6",
+                              "X-Frontend-Version": "0",
+                              "Content-Type": "application/json"
+                            }
+                            result = session.post(f"https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
+                            return result
+                        
+                    logger.info(f"Getting Niconico Comment", extra={"service_name": "U-Next"})
+                    return_meta = get_niconico_info(1, sate["info"]["raw_text"])
+                    
+                    base_content_id = return_meta["data"][0]["contentId"]
+                    
+                    total_comment = 0
+                    total_comment_json = []
+                    total_tv = []
+                    
+                    for index in return_meta["data"]:
+                        return_meta = get_niconico_info(2, index["contentId"])
+                            
+                        filtered_data = [
+                            {"id": str(item["id"]), "fork": item["forkLabel"]}
+                            for item in return_meta["data"]["response"]["comment"]["threads"] if item["label"] != "easy"
+                        ]
+                        
+                        return_meta = get_niconico_info(3, [return_meta["data"]["response"]["comment"]["nvComment"]["threadKey"], filtered_data])
+                        for i in return_meta["data"]["globalComments"]:
+                            total_comment = total_comment + i["count"]
+                        for i in return_meta["data"]["threads"]:
+                            for i in i["comments"]:
+                                total_comment_json.append(i)
+                        if index["tags"].__contains__("dアニメストア"):
+                            total_tv.append("dアニメ")
+                        else:
+                            total_tv.append("公式")
+                    
+                    def generate_xml(json_data):
+                        root = ET.Element("packet", version="20061206")
+                        
+                        for item in json_data:
+                            chat = ET.SubElement(root, "chat")
+                            chat.set("no", str(item["no"]))
+                            chat.set("vpos", str(item["vposMs"] // 10))
+                            timestamp = datetime.fromisoformat(item["postedAt"]).timestamp()
+                            chat.set("date", str(int(timestamp)))
+                            chat.set("date_usec", "0")
+                            chat.set("user_id", item["userId"])
+                            
+                            if len(item["commands"]) > 1:
+                                chat.set("mail", "small shita")
+                            else:
+                                chat.set("mail", " ".join(item["commands"]))
+                            
+                            chat.set("premium", "1" if item["isPremium"] else "0")
+                            chat.set("anonymity", "0")
+                            chat.text = item["body"]
+                        
+                        return ET.ElementTree(root)
+                    
+                    def save_xml_to_file(tree, base_filename="output.xml"):
+                        directory = os.path.dirname(base_filename)
+                        if directory and not os.path.exists(directory):
+                            os.makedirs(directory)
+                        
+                        filename = base_filename
+                        counter = 1
+                        while os.path.exists(filename):
+                            filename = f"{os.path.splitext(base_filename)[0]}_{counter}.xml"
+                            counter += 1
+                    
+                        root = tree.getroot()
+                        ET.indent(tree, space="  ", level=0)
+                        
+                        tree.write(filename, encoding="utf-8", xml_declaration=True)
+                        return filename
+                    
+                    tree = generate_xml(total_comment_json)
+                    
+                    logger.info(f" + Hit Channel: {', '.join(total_tv)}", extra={"service_name": "U-Next"})
+                    logger.info(f" + Total Comment: {str(total_comment)}", extra={"service_name": "U-Next"})
+                    
+                    saved_filename = save_xml_to_file(tree, base_filename=os.path.join(config["directorys"]["Downloads"], title_name, "niconico_comment", f"{title_name_logger}_[{base_content_id}]"+".xml"))
+                    
+                    logger.info(f" + XML data saved to: {saved_filename}", extra={"service_name": "U-Next"})
+                    
+                    if additional_info[3]:
+                        continue
                 #print(status_check[i])
                 if plan_status == "OTHER":
                     status_real = status_check[i]
@@ -355,7 +485,135 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     missing_key = e.args[0]
                     values[missing_key] = ""
                     title_name_logger = format_string.format(**values)
-            #"print(status_check)
+            
+            if additional_info[2]:        
+                sate = {}
+                sate["info"] = {
+                    "work_title": title_name,
+                    "episode_title": f"{message["node"]["episodeNumberName"]} {message["node"]["episodeTitle"]}",
+                #    "duration": 1479,
+                    "raw_text": f"{title_name} {message["node"]["episodeNumberName"]} {message["node"]["episodeTitle"]}",
+                    "series_title": title_name,
+                    "episode_text": message["node"]["episodeNumberName"],
+                    "episode_number": 1,
+                    "subtitle": message["node"]["episodeTitle"],
+                }
+                
+                def get_niconico_info(stage, data):
+                    if stage == 1:
+                        querystring = {
+                            "q": data,
+                            "_sort": "-startTime",
+                            "_context": "NCOverlay/3.23.0/Mod For Yoimi",
+                            "targets": "title,description",
+                            "fields": "contentId,title,userId,channelId,viewCounter,lengthSeconds,thumbnailUrl,startTime,commentCounter,categoryTags,tags",
+                            "filters[commentCounter][gt]": 0,
+                            "filters[genre.keyword][0]": "アニメ",
+                            "_offset": 0,
+                            "_limit": 20,
+                        }
+                        
+                        result = session.get("https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search", params=querystring).json()
+                        return result
+                    elif stage == 2:
+                        result = session.get(f"https://www.nicovideo.jp/watch/{data}?responseType=json").json()
+                        return result
+                    elif stage == 3:
+                        payload = {
+                            "params":{
+                                "targets": data[1],
+                                "language":"ja-jp"},
+                            "threadKey": data[0],
+                            "additionals":{}
+                        }
+                        headers = {
+                          "X-Frontend-Id": "6",
+                          "X-Frontend-Version": "0",
+                          "Content-Type": "application/json"
+                        }
+                        result = session.post(f"https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
+                        return result
+                    
+                logger.info(f"Getting Niconico Comment", extra={"service_name": "U-Next"})
+                return_meta = get_niconico_info(1, sate["info"]["raw_text"])
+                
+                base_content_id = return_meta["data"][0]["contentId"]
+                
+                total_comment = 0
+                total_comment_json = []
+                total_tv = []
+                
+                for index in return_meta["data"]:
+                    return_meta = get_niconico_info(2, index["contentId"])
+                        
+                    filtered_data = [
+                        {"id": str(item["id"]), "fork": item["forkLabel"]}
+                        for item in return_meta["data"]["response"]["comment"]["threads"] if item["label"] != "easy"
+                    ]
+                    
+                    return_meta = get_niconico_info(3, [return_meta["data"]["response"]["comment"]["nvComment"]["threadKey"], filtered_data])
+                    for i in return_meta["data"]["globalComments"]:
+                        total_comment = total_comment + i["count"]
+                    for i in return_meta["data"]["threads"]:
+                        for i in i["comments"]:
+                            total_comment_json.append(i)
+                    if index["tags"].__contains__("dアニメストア"):
+                        total_tv.append("dアニメ")
+                    else:
+                        total_tv.append("公式")
+                
+                def generate_xml(json_data):
+                    root = ET.Element("packet", version="20061206")
+                    
+                    for item in json_data:
+                        chat = ET.SubElement(root, "chat")
+                        chat.set("no", str(item["no"]))
+                        chat.set("vpos", str(item["vposMs"] // 10))
+                        timestamp = datetime.fromisoformat(item["postedAt"]).timestamp()
+                        chat.set("date", str(int(timestamp)))
+                        chat.set("date_usec", "0")
+                        chat.set("user_id", item["userId"])
+                        
+                        if len(item["commands"]) > 1:
+                            chat.set("mail", "small shita")
+                        else:
+                            chat.set("mail", " ".join(item["commands"]))
+                        
+                        chat.set("premium", "1" if item["isPremium"] else "0")
+                        chat.set("anonymity", "0")
+                        chat.text = item["body"]
+                    
+                    return ET.ElementTree(root)
+                
+                def save_xml_to_file(tree, base_filename="output.xml"):
+                    directory = os.path.dirname(base_filename)
+                    if directory and not os.path.exists(directory):
+                        os.makedirs(directory)
+                    
+                    filename = base_filename
+                    counter = 1
+                    while os.path.exists(filename):
+                        filename = f"{os.path.splitext(base_filename)[0]}_{counter}.xml"
+                        counter += 1
+                
+                    root = tree.getroot()
+                    ET.indent(tree, space="  ", level=0)
+                    
+                    tree.write(filename, encoding="utf-8", xml_declaration=True)
+                    return filename
+                
+                tree = generate_xml(total_comment_json)
+                
+                logger.info(f" + Hit Channel: {', '.join(total_tv)}", extra={"service_name": "U-Next"})
+                logger.info(f" + Total Comment: {str(total_comment)}", extra={"service_name": "U-Next"})
+                
+                saved_filename = save_xml_to_file(tree, base_filename=os.path.join(config["directorys"]["Downloads"], title_name, "niconico_comment", f"{title_name_logger}_[{base_content_id}]"+".xml"))
+                
+                logger.info(f" + XML data saved to: {saved_filename}", extra={"service_name": "U-Next"})
+                
+                if additional_info[3]:
+                    return
+            
             video_duration = message["node"]["playInfo"]["duration"]
             
             content_type = status_check["status"]

@@ -225,5 +225,5 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         print("EType:\n"+str(type_))
         print("EValue:\n"+str(value))
         print("Service: "+__service_name__)
-        print("Version: "+additional_info[1])
+        print("Version: "+additional_info[0])
         print("----END ERROR LOG----")

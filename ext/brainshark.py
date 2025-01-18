@@ -56,7 +56,7 @@ def set_variable(session, LOG_LEVEL):
         
     session.headers.update({"User-Agent": config["headers"]["User-Agent"]})
 
-def main_command(session, url, email, password, LOG_LEVEL):
+def main_command(session, url, email, password, LOG_LEVEL, additional_info):
     try:
         #global media_code, playtoken
         set_variable(session, LOG_LEVEL)
