@@ -1,6 +1,8 @@
+import os
 import json
 import requests
-
+import xml.etree.ElementTree as ET
+from datetime import datetime
 sate = {}
 sate["info"] = {
     "work_title": "時々ボソッとロシア語でデレる隣のアーリャさん",
@@ -52,6 +54,7 @@ def get_niconico_info(stage, data):
 return_meta = get_niconico_info(1, sate["info"]["raw_text"])
 
 print(return_meta["data"][0])
+base_content_id = return_meta["data"][0]["contentId"]
 
 total_comment = 0
 total_comment_json = []
@@ -68,16 +71,19 @@ for index in return_meta["data"]:
     ]
     
     return_meta = get_niconico_info(3, [return_meta["data"]["response"]["comment"]["nvComment"]["threadKey"], filtered_data])
-    print(return_meta)
+    #print(return_meta)
     for i in return_meta["data"]["globalComments"]:
         total_comment = total_comment + i["count"]
     for i in return_meta["data"]["threads"]:
-        total_comment_json.append(i["comments"])
+        for i in i["comments"]:
+            total_comment_json.append(i)
     if index["tags"].__contains__("dアニメストア"):
         total_tv.append("dアニメ")
     else:
         total_tv.append("公式")
 
+#for i in total_comment_json:
+#    print(i)
 #print(total_comment_json)
 print(total_comment)
 print(total_tv)
@@ -85,3 +91,47 @@ print(total_tv)
 # コメントの取得は終わったので、ここから埋め込む方法を探す。
 # todo: create .xml file
 # sample: so44516232.xml
+def generate_xml(json_data):
+    root = ET.Element("packet", version="20061206")
+    
+    for item in json_data:
+        chat = ET.SubElement(root, "chat")
+        chat.set("no", str(item["no"]))
+        chat.set("vpos", str(item["vposMs"] // 10))
+        timestamp = datetime.fromisoformat(item["postedAt"]).timestamp()
+        chat.set("date", str(int(timestamp)))
+        chat.set("date_usec", "0")
+        chat.set("user_id", item["userId"])
+        
+        if len(item["commands"]) > 1:
+            chat.set("mail", "small shita")
+        else:
+            chat.set("mail", " ".join(item["commands"]))
+        
+        chat.set("premium", "1" if item["isPremium"] else "0")
+        chat.set("anonymity", "0")
+        chat.text = item["body"]
+    
+    return ET.ElementTree(root)
+
+def save_xml_to_file(tree, base_filename="output.xml"):
+    # ファイル名の競合回避
+    filename = base_filename
+    counter = 1
+    while os.path.exists(filename):
+        filename = f"{os.path.splitext(base_filename)[0]}_{counter}.xml"
+        counter += 1
+    
+    # インデントを適用して整形
+    root = tree.getroot()
+    ET.indent(tree, space="  ", level=0)
+    
+    # XMLファイル保存
+    tree.write(filename, encoding="utf-8", xml_declaration=True)
+    return filename
+
+tree = generate_xml(total_comment_json)
+
+saved_filename = save_xml_to_file(tree, base_filename=base_content_id+".xml")
+
+print(f"XML data saved to: {saved_filename}")

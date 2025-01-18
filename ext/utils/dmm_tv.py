@@ -335,7 +335,7 @@ class Dmm_TV_downloader:
                 "sec-fetch-mode": "navigate",
                 "sec-fetch-user": "?1",
                 "sec-fetch-dest": "document",
-                "referer": "https://accounts.dmm.com/app/service/login/password?client_id=S5wqksTne9ZGYLH1YeIaWcSYSkYvDtjOEi&parts=regist&parts=snslogin&parts=darkmode",
+                "referer": f"https://accounts.dmm.com/app/service/login/password?client_id={_CLIENT_ID}&parts=regist&parts=snslogin&parts=darkmode",
                 "accept-encoding": "gzip, deflate, br, zstd",
                 "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7"
             }
