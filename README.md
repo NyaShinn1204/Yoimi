@@ -58,20 +58,26 @@ Usage: yoimi.py download [OPTIONS] <URL site>
   Check supported streams from yuu with `yuu streams`
 
 Options:
-  -U, --username TEXT        Use username/password to download premium video
-  -P, --password TEXT        Use username/password to download premium video
-  -p, --proxy <ip:port/url>  Use http(s)/socks5 proxies (please add
-                             `socks5://` if you use socks5)
-  -r, --resolution TEXT      Resolution to be downloaded (Default: best)
-  -R, --resolutions          Show available resolutions
-  -m, --mux                  Mux .ts to .mkv (Need ffmpeg or mkvmerge)
-  -mf, --muxfile TEXT        Mux .ts to opticial file
-  -keep, --keep-fragments    Keep downloaded fragment and combined fragment
-                             (If muxing) (Default: no)
-  -o, --output TEXT          Output filename
-  -v, --verbose              Enable verbosity
-  -rd, --random-directory    Make temp a random directory
-  -h, --help                 Show this message and exit.
+  -U, --username TEXT            Use username/password to download premium
+                                 video
+  -P, --password TEXT            Use username/password to download premium
+                                 video
+  -p, --proxy <ip:port/url>      Use http(s)/socks5 proxies (please add
+                                 `socks5://` if you use socks5)
+  -r, --resolution TEXT          Resolution to be downloaded (Default: best)
+  -R, --resolutions              Show available resolutions
+  -m, --mux                      Mux .ts to .mkv (Need ffmpeg or mkvmerge)
+  -mf, --muxfile TEXT            Mux .ts to opticial file
+  -keep, --keep-fragments        Keep downloaded fragment and combined
+                                 fragment (If muxing) (Default: no)
+  -o, --output TEXT              Output filename
+  -v, --verbose                  Enable verbosity
+  -rd, --random-directory        Make temp a random directory
+  -gnc, --get-niconico-comment   Get Niconico Commment for Title # Unsupported
+                                 Abema, Anime3rb
+  -odc, --only-download-comment  Only Download Niconico Commment # Unsupported
+                                 Abema, Anime3rb
+  -h, --help                     Show this message and exit.
 ```
 
 - **`--username/-U`**: ユーザー名またはメールアドレス
@@ -80,6 +86,8 @@ Options:
     - 例: `127.0.0.1:1080`, `http://127.0.0.1:1080`, `http://user:pass@127.0.0.1:1080`, `socks5://127.0.0.1:1080`
 - **`--verbose/-v`**: デバッグモードを利用する
 - **`--random-directory/-rd`**: tempフォルダをランダム文字にする [※1](#中国語環境で暗号化解除が失敗する)
+- **`--get-niconico-comment`**: ニコニコのコメントをダウンロードする
+- **`--only-download-comment`**: ニコニコのコメントのみダウンロードする
 
 ### 基本的なダウンロード
 

@@ -72,14 +72,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         if email and password != "":
             status, message = nhkplus_downloader.authorize(email, password)
             if status == False:
-                logger.error(message, extra={"service_name": "Dmm-TV"})
+                logger.error(message, extra={"service_name": "NHK+"})
                 exit(1)
             else:
-                logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Dmm-TV"})
+                logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "NHK+"})
                 plan_status = message["planStatus"]["planType"]
-                logger.info("Loggined Account", extra={"service_name": "Dmm-TV"})
-                logger.info(" + ID: "+message["id"], extra={"service_name": "Dmm-TV"})
-                logger.info(" + PlanType: "+plan_status, extra={"service_name": "Dmm-TV"})
+                logger.info("Loggined Account", extra={"service_name": "NHK+"})
+                logger.info(" + ID: "+message["id"], extra={"service_name": "NHK+"})
+                logger.info(" + PlanType: "+plan_status, extra={"service_name": "NHK+"})
         else:
             plan_status = "No Logined"
         
