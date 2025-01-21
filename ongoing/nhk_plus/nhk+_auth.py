@@ -1747,6 +1747,7 @@ payload = {
     "snsid":"undefined",
     "Fingerprint":get_fingerprint
 }
+#なんか失敗する。謎です
 payload = f"AUTH_TYPE=AUTH_OP&SITE_ID=co_site&MESSAGE_AUTH={quote(response_parameter["MESSAGE_AUTH"])}&AUTHENTICATED={quote(response_parameter["AUTHENTICATED"])}&snsid=undefined&Fingerprint={get_fingerprint}"
 print(payload)
 sent_auth = session.post("https://login.auth.nhkid.jp/auth/login", headers=headers, data=payload, cookies={"transaction_id": transaction_id})
