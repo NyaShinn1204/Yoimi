@@ -1261,7 +1261,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
             #print(global_license_json)
             #return
-            for episode_num, message in enumerate(messages):
+            def worker_for_this(episode_num, message):
                 episode_num = f"{episode_num +1}"
                 if id_type[2] == "ノーマルアニメ":
                     format_string = config["format"]["anime"]
@@ -1398,6 +1398,21 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
                     session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
+            
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                futures = [
+                    executor.submit(
+                        worker_for_this,
+                        episode_num,
+                        message,
+                    )
+                    for episode_num, message in enumerate(messages)
+                ]
+        
+                # 各スレッドの結果を取得
+                for future in futures:
+                    future.result()
             logger.info("Finished download Series: {}".format(title_name), extra={"service_name": "U-Next"})
     except Exception as error:
         import traceback
