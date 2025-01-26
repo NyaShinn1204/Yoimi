@@ -1090,40 +1090,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         values[missing_key] = ""
                         title_name_logger = format_string.format(**values)
                 logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
+            # ここで各エピソードごとに回してる
+            # でもこれだと待ち時間が地獄なので...
+            # ここで一括でライセンス取得する
+            
+            # ここでコメントdl(まとめて)
             for message in messages:
-                if id_type[2] == "ノーマルアニメ":
-                    format_string = config["format"]["anime"]
-                    values = {
-                        "seriesname": title_name,
-                        "titlename": message.get("displayNo", ""),
-                        "episodename": message.get("episodeName", "")
-                    }
-                    try:
-                        title_name_logger = format_string.format(**values)
-                    except KeyError as e:
-                        missing_key = e.args[0]
-                        values[missing_key] = ""
-                        title_name_logger = format_string.format(**values)
-                if id_type[2] == "劇場":
-                    format_string = config["format"]["movie"]
-                    if message.get("displayNo", "") == "":
-                        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                        values = {
-                            "seriesname": title_name,
-                        }
-                    else:
-                        values = {
-                            "seriesname": title_name,
-                            "titlename": message.get("displayNo", ""),
-                            "episodename": message.get("episodeName", "")
-                        }
-                    try:
-                        title_name_logger = format_string.format(**values)
-                    except KeyError as e:
-                        missing_key = e.args[0]
-                        values[missing_key] = ""
-                        title_name_logger = format_string.format(**values)
-                
                 if additional_info[2]:        
                     sate = {}
                     sate["info"] = {
@@ -1251,6 +1223,42 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     if additional_info[3]:
                         continue
+            # ここでライセンス解析(まとめて)
+            for message in messages:
+                # TODO. ここにいきなコメントを書く
+            for message in messages:
+                if id_type[2] == "ノーマルアニメ":
+                    format_string = config["format"]["anime"]
+                    values = {
+                        "seriesname": title_name,
+                        "titlename": message.get("displayNo", ""),
+                        "episodename": message.get("episodeName", "")
+                    }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
+                if id_type[2] == "劇場":
+                    format_string = config["format"]["movie"]
+                    if message.get("displayNo", "") == "":
+                        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                        values = {
+                            "seriesname": title_name,
+                        }
+                    else:
+                        values = {
+                            "seriesname": title_name,
+                            "titlename": message.get("displayNo", ""),
+                            "episodename": message.get("episodeName", "")
+                        }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
                         
                 if message["minimumPrice"] != -1:
                     logger.info(f" ! {title_name_logger} require {message["minimumPrice"]} point", extra={"service_name": "U-Next"})
