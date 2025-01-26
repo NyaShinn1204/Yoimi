@@ -192,7 +192,7 @@ class Unext_utils:
         return result
     
 class Unext_license:
-    def license_vd_ad(video_pssh, audio_pssh, playtoken, session):
+    def license_vd_ad(video_pssh, audio_pssh, playtoken, session, mpd_content, media_code):
         _WVPROXY = "https://wvproxy.unext.jp/proxy"
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
@@ -229,6 +229,8 @@ class Unext_license:
         cdm.close(session_id_audio)
         
         keys = {
+            "media_code": media_code,
+            "mpd_content": mpd_content,
             "video_key": video_keys,
             "audio_key": audio_keys
         }
@@ -1247,7 +1249,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})
                 logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": "U-Next"})
                 
-                license_key = Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
+                license_key = Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session, mpd_content, media_code)
                 
                 logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "U-Next"})
                 
@@ -1257,9 +1259,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 append_data_to_global(i+1, license_key)
                 session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
                 session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
-            print(global_license_json)
-            return
-            for message in messages:
+            #print(global_license_json)
+            #return
+            for episode_num, message in enumerate(messages):
+                episode_num = f"{episode_num +1}"
                 if id_type[2] == "ノーマルアニメ":
                     format_string = config["format"]["anime"]
                     values = {
@@ -1307,30 +1310,36 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             logger.info(f"Coming soon", extra={"service_name": "U-Next"})
                             return
                     
-                status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
+                #status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
+                status = True
+                playtoken = None
+                media_code = global_license_json.get(episode_num)["media_code"]
                 if status == False:
                     logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
                     exit(1)
                 else:
                     logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
-                    status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
+                    status = True
+                    mpd_content = global_license_json.get(episode_num)["mpd_content"]
+                    #status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
                     if status == False:
                         logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "U-Next"})
                         logger.error(f"Reason: {mpd_content}", extra={"service_name": "U-Next"})
                         session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
                         session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
                         exit(1)
-                    mpd_lic = Unext_utils.parse_mpd_logic(mpd_content)
-        
-                    logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})
-                    logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": "U-Next"})
-                    
-                    license_key = Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
-                    
-                    logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "U-Next"})
-                    
-                    logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
-                    logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
+                    #mpd_lic = Unext_utils.parse_mpd_logic(mpd_content)
+        #
+                    #logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})
+                    #logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": "U-Next"})
+                    #
+                    #license_key = Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
+                    #
+                    #logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "U-Next"})
+                    #
+                    #logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
+                    #logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
+                    license_key = global_license_json.get(episode_num)
                                         
                     logger.info("Checking resolution...", extra={"service_name": "U-Next"})
                     resolution_s = mpd_parse.get_resolutions(mpd_content)
