@@ -750,7 +750,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         #        if additional_info[3]:
         #            return
         ##        
-    except Exception as error:
+    except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         #print(traceback.format_exc())
         #print("\n")
