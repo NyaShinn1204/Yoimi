@@ -1,0 +1,16 @@
+headers:
+  Login-Agent: 'Mozilla/5.0 (Linux; Android 9; 23113RKC6C Build/PQ3B.190801.10101846;) App/2120046.840334a (AbemaTV;10.109.0;ja_JP;)'
+  User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0'
+
+directorys:
+  Temp: './temp'
+  Downloads: './downloads'
+  Binaries: './binaries'
+
+authorization: # option
+  use_token: False
+  token: '' # 'Bearer eyJhbG.....'    token expire is 1day
+
+format:
+  anime: '{seriesname}_{titlename}_{episodename}'
+  movie: '{seriesname}_{titlename}_{episodename}' # if not found episode_name, auto to delete episode_name

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+message RegionInfo {
+  string field_1 = 1;  // JP
+  string field_2 = 2;  // Asia/Tokyo
+  string field_3 = 3;  // +09:00
+  string field_4 = 4;  // https://...
+}
