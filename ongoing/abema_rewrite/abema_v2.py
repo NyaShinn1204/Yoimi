@@ -10,7 +10,8 @@ from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
 
 #from ext.utils import unext
-from abema import abema
+#from abema import abema
+import abema
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
@@ -125,22 +126,22 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         if config["authorization"]["use_token"]:
             if config["authorization"]["token"] != "":
-                status, message = unext_downloader.check_token(config["authorization"]["token"])
+                status, message = abema_downloader.check_token(config["authorization"]["token"])
                 if status == False:
                     logger.error(message, extra={"service_name": "Abema"})
                     exit(1)
                 else:
-                    account_point = str(message["points"])
                     session.headers.update({"Authorization": config["authorization"]["token"]})
                     logger.debug("Get Token: "+config["authorization"]["token"], extra={"service_name": "Abema"})
                     logger.info("Loggined Account", extra={"service_name": "Abema"})
-                    logger.info(" + ID: "+message["id"], extra={"service_name": "Abema"})
-                    logger.info(" + Point: "+account_point, extra={"service_name": "Abema"})
+                    logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
+                    for plan_num, i in enumerate(message["subscriptions"]):
+                        logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+message["profile"]["userId"], extra={"service_name": "Abema"})
             else:
                 logger.error("Please input token", extra={"service_name": "Abema"})
                 exit(1)
         else:
-            status, message = unext_downloader.authorize(email, password)
+            status, message = abema_downloader.authorize(email, password)
             try:
                 logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Abema"})
             except:
@@ -149,105 +150,105 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.error(message, extra={"service_name": "Abema"})
                 exit(1)
             else:
-                account_point = str(message["points"])
                 logger.info("Loggined Account", extra={"service_name": "Abema"})
-                logger.info(" + ID: "+message["id"], extra={"service_name": "Abema"})
-                logger.info(" + Point: "+account_point, extra={"service_name": "Abema"})
+                logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
+                for plan_num, i in enumerate(message["subscriptions"]):
+                    logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+message["profile"]["userId"], extra={"service_name": "Abema"})
             
-        status, meta_response = unext_downloader.get_title_metadata(url)
-        if status == False:
-            logger.error("Failed to Get Series Json", extra={"service_name": "U-Next"})
-            exit(1)
-        else:
-            title_name = meta_response["titleName"]
-            
-        status = unext.Unext_utils.check_single_episode(url)
-        logger.info("Get Video Type for URL", extra={"service_name": "U-Next"})
-        status_id, id_type = unext_downloader.get_id_type(url)
-        if status_id == False:
-            logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
-            exit(1)
-        logger.info(f" + Video Type: {id_type}", extra={"service_name": "U-Next"})
-        if status == False:
-            logger.info("Get Title for Season", extra={"service_name": "U-Next"})
-            status, messages = unext_downloader.get_title_parse_all(url)
-            if status == False:
-                logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
-                exit(1)
-                
-            logger.info("Downloading All Episode Thumbnails...", extra={"service_name": "U-Next"})
-            
-            unext_downloader.get_thumbnail_list(meta_response["id"], message["id"], id_type, config, unixtime)
-                
-            for message in messages:
-                if id_type[2] == "ノーマルアニメ":
-                    format_string = config["format"]["anime"]
-                    values = {
-                        "seriesname": title_name,
-                        "titlename": message.get("displayNo", ""),
-                        "episodename": message.get("episodeName", "")
-                    }
-                    try:
-                        title_name_logger = format_string.format(**values)
-                    except KeyError as e:
-                        missing_key = e.args[0]
-                        values[missing_key] = ""
-                        title_name_logger = format_string.format(**values)
-                if id_type[2] == "劇場":
-                    format_string = config["format"]["movie"]
-                    if message.get("displayNo", "") == "":
-                        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                        values = {
-                            "seriesname": title_name,
-                        }
-                    else:
-                        values = {
-                            "seriesname": title_name,
-                            "titlename": message.get("displayNo", ""),
-                            "episodename": message.get("episodeName", "")
-                        }
-                    try:
-                        title_name_logger = format_string.format(**values)
-                    except KeyError as e:
-                        missing_key = e.args[0]
-                        values[missing_key] = ""
-                        title_name_logger = format_string.format(**values)
-                logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
-            for message in messages:
-                if id_type[2] == "ノーマルアニメ":
-                    format_string = config["format"]["anime"]
-                    values = {
-                        "seriesname": title_name,
-                        "titlename": message.get("displayNo", ""),
-                        "episodename": message.get("episodeName", "")
-                    }
-                    try:
-                        title_name_logger = format_string.format(**values)
-                    except KeyError as e:
-                        missing_key = e.args[0]
-                        values[missing_key] = ""
-                        title_name_logger = format_string.format(**values)
-                if id_type[2] == "劇場":
-                    format_string = config["format"]["movie"]
-                    if message.get("displayNo", "") == "":
-                        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                        values = {
-                            "seriesname": title_name,
-                        }
-                    else:
-                        values = {
-                            "seriesname": title_name,
-                            "titlename": message.get("displayNo", ""),
-                            "episodename": message.get("episodeName", "")
-                        }
-                    try:
-                        title_name_logger = format_string.format(**values)
-                    except KeyError as e:
-                        missing_key = e.args[0]
-                        values[missing_key] = ""
-                        title_name_logger = format_string.format(**values)
-                
-                if additional_info[2]: # ニコニコのコメントダウンロード時
+        #status, meta_response = unext_downloader.get_title_metadata(url)
+        #if status == False:
+        #    logger.error("Failed to Get Series Json", extra={"service_name": "U-Next"})
+        #    exit(1)
+        #else:
+        #    title_name = meta_response["titleName"]
+        #    
+        #status = unext.Unext_utils.check_single_episode(url)
+        #logger.info("Get Video Type for URL", extra={"service_name": "U-Next"})
+        #status_id, id_type = unext_downloader.get_id_type(url)
+        #if status_id == False:
+        #    logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
+        #    exit(1)
+        #logger.info(f" + Video Type: {id_type}", extra={"service_name": "U-Next"})
+        #if status == False:
+        #    logger.info("Get Title for Season", extra={"service_name": "U-Next"})
+        #    status, messages = unext_downloader.get_title_parse_all(url)
+        #    if status == False:
+        #        logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
+        #        exit(1)
+        #        
+        #    logger.info("Downloading All Episode Thumbnails...", extra={"service_name": "U-Next"})
+        #    
+        #    unext_downloader.get_thumbnail_list(meta_response["id"], message["id"], id_type, config, unixtime)
+        #        
+        #    for message in messages:
+        #        if id_type[2] == "ノーマルアニメ":
+        #            format_string = config["format"]["anime"]
+        #            values = {
+        #                "seriesname": title_name,
+        #                "titlename": message.get("displayNo", ""),
+        #                "episodename": message.get("episodeName", "")
+        #            }
+        #            try:
+        #                title_name_logger = format_string.format(**values)
+        #            except KeyError as e:
+        #                missing_key = e.args[0]
+        #                values[missing_key] = ""
+        #                title_name_logger = format_string.format(**values)
+        #        if id_type[2] == "劇場":
+        #            format_string = config["format"]["movie"]
+        #            if message.get("displayNo", "") == "":
+        #                format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+        #                values = {
+        #                    "seriesname": title_name,
+        #                }
+        #            else:
+        #                values = {
+        #                    "seriesname": title_name,
+        #                    "titlename": message.get("displayNo", ""),
+        #                    "episodename": message.get("episodeName", "")
+        #                }
+        #            try:
+        #                title_name_logger = format_string.format(**values)
+        #            except KeyError as e:
+        #                missing_key = e.args[0]
+        #                values[missing_key] = ""
+        #                title_name_logger = format_string.format(**values)
+        #        logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
+        #    for message in messages:
+        #        if id_type[2] == "ノーマルアニメ":
+        #            format_string = config["format"]["anime"]
+        #            values = {
+        #                "seriesname": title_name,
+        #                "titlename": message.get("displayNo", ""),
+        #                "episodename": message.get("episodeName", "")
+        #            }
+        #            try:
+        #                title_name_logger = format_string.format(**values)
+        #            except KeyError as e:
+        #                missing_key = e.args[0]
+        #                values[missing_key] = ""
+        #                title_name_logger = format_string.format(**values)
+        #        if id_type[2] == "劇場":
+        #            format_string = config["format"]["movie"]
+        #            if message.get("displayNo", "") == "":
+        #                format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+        #                values = {
+        #                    "seriesname": title_name,
+        #                }
+        #            else:
+        #                values = {
+        #                    "seriesname": title_name,
+        #                    "titlename": message.get("displayNo", ""),
+        #                    "episodename": message.get("episodeName", "")
+        #                }
+        #            try:
+        #                title_name_logger = format_string.format(**values)
+        #            except KeyError as e:
+        #                missing_key = e.args[0]
+        #                values[missing_key] = ""
+        #                title_name_logger = format_string.format(**values)
+        #        
+        #        if additional_info[2]: # ニコニコのコメントダウンロード時
                     sate = {}
                     sate["info"] = {
                         "work_title": title_name,
@@ -373,50 +374,50 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     if additional_info[3]:
                         continue
-
-        else:
-            logger.info("Get Title for 1 Episode", extra={"service_name": "U-Next"})
-            status, message, point = unext_downloader.get_title_parse_single(url)
-            if status == False:
-                logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
-                exit(1)
-            
-            if id_type[2] == "ノーマルアニメ":
-                format_string = config["format"]["anime"]
-                values = {
-                    "seriesname": title_name,
-                    "titlename": message.get("displayNo", ""),
-                    "episodename": message.get("episodeName", "")
-                }
-                try:
-                    title_name_logger = format_string.format(**values)
-                except KeyError as e:
-                    missing_key = e.args[0]
-                    values[missing_key] = ""
-                    title_name_logger = format_string.format(**values)
-            if id_type[2] == "劇場":
-                format_string = config["format"]["movie"]
-                if message.get("displayNo", "") == "":
-                    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                    values = {
-                        "seriesname": title_name,
-                    }
-                else:
-                    values = {
-                        "seriesname": title_name,
-                        "titlename": message.get("displayNo", ""),
-                        "episodename": message.get("episodeName", "")
-                    }
-                try:
-                    title_name_logger = format_string.format(**values)
-                except KeyError as e:
-                    missing_key = e.args[0]
-                    values[missing_key] = ""
-                    title_name_logger = format_string.format(**values)
-            logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
-
-
-            if additional_info[2]: # ニコニコのコメントダウンロード時
+#
+        #else:
+        #    logger.info("Get Title for 1 Episode", extra={"service_name": "U-Next"})
+        #    status, message, point = unext_downloader.get_title_parse_single(url)
+        #    if status == False:
+        #        logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
+        #        exit(1)
+        #    
+        #    if id_type[2] == "ノーマルアニメ":
+        #        format_string = config["format"]["anime"]
+        #        values = {
+        #            "seriesname": title_name,
+        #            "titlename": message.get("displayNo", ""),
+        #            "episodename": message.get("episodeName", "")
+        #        }
+        #        try:
+        #            title_name_logger = format_string.format(**values)
+        #        except KeyError as e:
+        #            missing_key = e.args[0]
+        #            values[missing_key] = ""
+        #            title_name_logger = format_string.format(**values)
+        #    if id_type[2] == "劇場":
+        #        format_string = config["format"]["movie"]
+        #        if message.get("displayNo", "") == "":
+        #            format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+        #            values = {
+        #                "seriesname": title_name,
+        #            }
+        #        else:
+        #            values = {
+        #                "seriesname": title_name,
+        #                "titlename": message.get("displayNo", ""),
+        #                "episodename": message.get("episodeName", "")
+        #            }
+        #        try:
+        #            title_name_logger = format_string.format(**values)
+        #        except KeyError as e:
+        #            missing_key = e.args[0]
+        #            values[missing_key] = ""
+        #            title_name_logger = format_string.format(**values)
+        #    logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
+#
+#
+        #    if additional_info[2]: # ニコニコのコメントダウンロード時
                 sate = {}
                 sate["info"] = {
                     "work_title": title_name,
@@ -542,7 +543,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 if additional_info[3]:
                     return
-                
+        #        
     except Exception as error:
         import traceback
         import sys
