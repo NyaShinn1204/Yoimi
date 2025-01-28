@@ -214,10 +214,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 season_response = response["seasons"]
                 
                 for season_num, i in enumerate(season_response):
-                    if len(season_response) == 1:
-                        seriesname = title_name
-                    else:
-                        seriesname = i["name"]
                     logger.info(f"Processing season {str(season_num+1)} | {i["name"]}", extra={"service_name": "Abema"})
                     for i2 in i["episodeGroups"]:
                         #print(i2["id"])
@@ -229,7 +225,18 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             "include": "liveEvent,slot"
                         }
                         response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/{i2["id"]}/contents", params=query_string).json()
-                        for message in response["episodeGroupContents"]:
+                        
+                        episode_group_ontents = response["episodeGroupContents"]
+                        
+                        if len(season_response) == 1:
+                            if len(episode_group_ontents) == 1:
+                                seriesname = title_name
+                            else:
+                                seriesname = title_name + "_" + i2["name"]
+                        else:
+                            seriesname = i["name"]
+                            
+                        for message in episode_group_ontents:
                             if id_type == "アニメ":
                                 format_string = config["format"]["anime"].replace("_{episodename}", "")
                                 values = {
