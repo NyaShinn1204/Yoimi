@@ -155,10 +155,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         else:
             exit("except error unknown error lol moment")
         print(abema_get_series_id)
+                
         if abema_get_series_id.__contains__("_p"):
+            logger.info("Get Title for 1 Episode", extra={"service_name": "Abema"})
             print("episode download")
             metadata_url = f"https://api.p-c3-e.abema-tv.com/v1/video/programs/{abema_get_series_id}?division=0&include=tvod"
         else:
+            logger.info(f"Get Title for Season", extra={"service_name": "Abema"})
             print("series download")
             content_id = re.match(r"^(\d+-\d+)", abema_get_series_id).group(1)
             if abema_get_series_id.__contains__("_s"):
@@ -170,11 +173,45 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     "include": "liveEvent,slot"
                 }
                 response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/{content_id}_eg0/contents", params=query_string)
-                # _sが見つかれば、特定のシリーズを探すようにする。
-                #https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/420-11_eg0/contents?seasonId=420-11_s1&limit=100&offset=0&orderType=asc&includes=liveEvent%2Cslot
+                for message in response["episodeGroupContents"]:
+                    if id_type == "アニメ":
+                        format_string = config["format"]["anime"].replace("_{episodename}", "")
+                        values = {
+                            "seriesname": title_name,
+                            "titlename": message["episode"].get("title", ""),
+                        }
+                        try:
+                            title_name_logger = format_string.format(**values)
+                        except KeyError as e:
+                            missing_key = e.args[0]
+                            values[missing_key] = ""
+                            title_name_logger = format_string.format(**values)
+                    if id_type == "劇場":
+                        format_string = config["format"]["movie"]
+                        if message.get("displayNo", "") == "":
+                            format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                            values = {
+                                "seriesname": title_name,
+                            }
+                        else:
+                            values = {
+                                "seriesname": title_name,
+                                "titlename": message["episode"].get("displayNo", ""),
+                                #"episodename": message.get("episodeName", "")
+                            }
+                        try:
+                            title_name_logger = format_string.format(**values)
+                        except KeyError as e:
+                            missing_key = e.args[0]
+                            values[missing_key] = ""
+                            title_name_logger = format_string.format(**values)
+                    logger.info(f" + {title_name_logger}", extra={"service_name": "Abema"})
             else:
                 response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/video/series/{content_id}", params={"includeSlot": "true"}).json()
-                for i in response["seasons"]:
+                id_type = response["genre"]["name"]
+                title_name = response["title"]
+                for season_num, i in enumerate(response["seasons"]):
+                    logger.info(f"Processing season {str(season_num+1)} | {i["name"]}", extra={"service_name": "Abema"})
                     query_string = {
                         "seasonId": i["id"],
                         "limit": 100,
@@ -182,7 +219,40 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         "orderType": "asc",
                         "include": "liveEvent,slot"
                     }
-                    response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/{content_id}_eg0/contents", params=query_string)
+                    response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/{content_id}_eg0/contents", params=query_string).json()
+                    for message in response["episodeGroupContents"]:
+                        if id_type == "アニメ":
+                            format_string = config["format"]["anime"].replace("_{episodename}", "")
+                            values = {
+                                "seriesname": i["name"],
+                                "titlename": message["episode"].get("title", ""),
+                            }
+                            try:
+                                title_name_logger = format_string.format(**values)
+                            except KeyError as e:
+                                missing_key = e.args[0]
+                                values[missing_key] = ""
+                                title_name_logger = format_string.format(**values)
+                        if id_type == "劇場":
+                            format_string = config["format"]["movie"]
+                            if message.get("displayNo", "") == "":
+                                format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                                values = {
+                                    "seriesname": title_name,
+                                }
+                            else:
+                                values = {
+                                    "seriesname": i["name"],
+                                    "titlename": message["episode"].get("displayNo", ""),
+                                    #"episodename": message.get("episodeName", "")
+                                }
+                            try:
+                                title_name_logger = format_string.format(**values)
+                            except KeyError as e:
+                                missing_key = e.args[0]
+                                values[missing_key] = ""
+                                title_name_logger = format_string.format(**values)
+                        logger.info(f" + {title_name_logger}", extra={"service_name": "Abema"})
         #status, meta_response = unext_downloader.get_title_metadata(url)
         #if status == False:
         #    logger.error("Failed to Get Series Json", extra={"service_name": "U-Next"})
