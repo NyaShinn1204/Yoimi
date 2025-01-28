@@ -133,7 +133,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info("Loggined Account", extra={"service_name": "Abema"})
                 logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
                 for plan_num, i in enumerate(message["subscriptions"]):
-                    logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+message["profile"]["userId"], extra={"service_name": "Abema"})
+                    logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
             
         #status, meta_response = unext_downloader.get_title_metadata(url)
         #if status == False:

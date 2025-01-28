@@ -81,7 +81,7 @@ class Abema_downloader:
     def __init__(self, session):
         self.session = session
     def authorize(self, email_or_id, password):
-        if email_or_id or password == None:
+        if email_or_id and password == None:
             # this area to make temporary token for download
             print()
             return True, None
