@@ -1,0 +1,5 @@
+{
+	"version": "0.9.0",
+	"changelog_ja": "主な変更点 - 0.9\n- [Add] 新しいオプション'-rd', '--random-directory'を追加しました\n- [Fix] うまくURLが解析されない問題の修正\n- [Fix] Dmm-TVでうまくアカウントのチェックがされない問題の修正\n- [Fix] Dmm-TVでうまくエピソードの分類がされていない問題の修正\n- [Fix] 言語設定が中国語の時に、暗号化の解除で失敗する問題の対処\n- [Soon] NHK+の解析が終了したので、現在取り組んでいます",
+    "changelog_jp": "What's New? - 0.9\n- [Add] Added new options '-rd” and '--random-directory\n- [Fix] Fixed problem with URL parsing.\n- [Fix] Fixed problem with Dmm-TV not checking accounts properly.\n- [Fix] Fixed an issue where Dmm-TV was not categorizing episodes properly.\n- [Fix] Fixed an issue where decryption would fail when the language setting was set to Chinese.\n- [Soon] Finished analyzing NHK+ and working on it now"
+}

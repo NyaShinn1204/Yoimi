@@ -531,3 +531,5 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         print(v)
         print(traceback.format_exception(t,v,tb))
         print(traceback.format_tb(error.__traceback__))
+import requests
+main_command(requests.Session(), "https://abema.tv/video/episode/25-262_s1_p13", "apexawsapex@outlook.jp", "zZw7N3CR9WLtSX4", "INFO", ["0.9.0", False, False, False])
