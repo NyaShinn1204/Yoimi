@@ -160,7 +160,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             metadata_url = f"https://api.p-c3-e.abema-tv.com/v1/video/programs/{abema_get_series_id}?division=0&include=tvod"
         else:
             print("series download")
-            content_id = re.match(r"(\d+-\d+)_", abema_get_series_id).group(1)
+            content_id = re.match(r"^(\d+-\d+)", abema_get_series_id).group(1)
             if abema_get_series_id.__contains__("_s"):
                 query_string = {
                     "seasonId": abema_get_series_id,
