@@ -1,10 +1,9 @@
-import os
 import re
+import sys
 import yaml
 import time
-import shutil
-import json
 import logging
+import traceback
 from datetime import datetime
 from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
@@ -12,6 +11,8 @@ import xml.etree.ElementTree as ET
 #from ext.utils import unext
 #from abema import abema
 import abema
+
+__service_name__ = "Abema"
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
@@ -750,9 +751,17 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         #            return
         ##        
     except Exception as error:
-        import traceback
-        import sys
-        t, v, tb = sys.exc_info()
-        print(v)
-        print(traceback.format_exception(t,v,tb))
-        print(traceback.format_tb(error.__traceback__))
+        logger.error("Traceback has occurred", extra={"service_name": __service_name__})
+        #print(traceback.format_exc())
+        #print("\n")
+        type_, value, _ = sys.exc_info()
+        #print(type_)
+        #print(value)
+        print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
+        print("\n----ERROR LOG----")
+        print("ENative:\n"+traceback.format_exc())
+        print("EType:\n"+str(type_))
+        print("EValue:\n"+str(value))
+        print("Service: "+__service_name__)
+        print("Version: "+additional_info[0])
+        print("----END ERROR LOG----")
