@@ -68,14 +68,22 @@ def check_proxie(session):
         start = time.time()
         _ENDPOINT_CHECK_IP = 'https://api.p-c3-e.abema-tv.com/v1/ip/check'
         
-        auth_response = session.get(_ENDPOINT_CHECK_IP, params={"device": "android"}).json()
+        auth_response = session.get(_ENDPOINT_CHECK_IP, params={"device": "android"})
+
+        from region_check_pb2 import RegionInfo
+        from google.protobuf.json_format import MessageToJson
+        
+        proto_message = RegionInfo()
+        proto_message.ParseFromString(auth_response.content)
+        
+        auth_json = MessageToJson(proto_message)
         
         end = time.time()
         time_elapsed = end - start
         time_elapsed = time_elapsed * 1000
         
         try:
-            if auth_response["location"] != "JP":
+            if auth_json["location"] != "JP":
                 logger.error(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
                 logger.error(f"However, this proxy is not located in Japan. You will not be able to use it.", extra={"service_name": "Yoimi"})
                 exit(1)
@@ -133,7 +141,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info("Loggined Account", extra={"service_name": "Abema"})
                 logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
                 for plan_num, i in enumerate(message["subscriptions"]):
-                    logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
+                    logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+message["profile"]["userId"], extra={"service_name": "Abema"})
+                    
+        if url.__contains__("abema.app"):
+            temp_url = session.get(url, allow_redirects=False)
+            url = temp_url.headers["Location"]
+            
             
         #status, meta_response = unext_downloader.get_title_metadata(url)
         #if status == False:
@@ -531,5 +544,3 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         print(v)
         print(traceback.format_exception(t,v,tb))
         print(traceback.format_tb(error.__traceback__))
-import requests
-main_command(requests.Session(), "https://abema.tv/video/episode/25-262_s1_p13", "apexawsapex@outlook.jp", "zZw7N3CR9WLtSX4", "INFO", ["0.9.0", False, False, False])
