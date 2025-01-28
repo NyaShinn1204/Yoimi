@@ -157,8 +157,21 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         print(abema_get_series_id)
         if abema_get_series_id.__contains__("_p"):
             print("episode download")
+            metadata_url = f"https://api.p-c3-e.abema-tv.com/v1/video/programs/{abema_get_series_id}?division=0&include=tvod"
         else:
             print("series download")
+            if abema_get_series_id.__contains__("_s"):
+                content_id = re.match(r"(\d+-\d+)_", abema_get_series_id).group(1)
+                query_string = {
+                    "seasonId": abema_get_series_id,
+                    "limit": 100,
+                    "offset": 0,
+                    "orderType": "asc",
+                    "include": "liveEvent,slot"
+                }
+                response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/{content_id}_eg0/contents", params=query_string)
+                # _sが見つかれば、特定のシリーズを探すようにする。
+                #https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/420-11_eg0/contents?seasonId=420-11_s1&limit=100&offset=0&orderType=asc&includes=liveEvent%2Cslot
         #status, meta_response = unext_downloader.get_title_metadata(url)
         #if status == False:
         #    logger.error("Failed to Get Series Json", extra={"service_name": "U-Next"})
