@@ -66,36 +66,16 @@ def check_proxie(session):
     logger.info("Checking Proxie...", extra={"service_name": "Yoimi"})
     try:
         start = time.time()
-        #
-        _ENDPOINT_CHALLENG_ID = 'https://oauth.unext.jp/oauth2/auth?state={state}&scope=offline%20unext&nonce={nonce}&response_type=code&client_id=unextAndroidApp&redirect_uri=jp.unext%3A%2F%2Fpage%3Doauth_callback'
-        _ENDPOINT_RES = 'https://oauth.unext.jp/oauth2/login'
+        _ENDPOINT_CHECK_IP = 'https://api.p-c3-e.abema-tv.com/v1/ip/check'
         
-        response = session.get(
-            _ENDPOINT_CHALLENG_ID.format(
-                state="ma68aiLyo4LhQkOVHGctEN7jH7PGmRIhRVOmzgK8f5y",
-                nonce="ArnY3qesx6DVqiMIXYxEnJG2KzHhMe9l4bzZLOaLnZw"
-            )
-        )
-        script_tag = BeautifulSoup(response.text, "lxml").find("script", {"id": "__NEXT_DATA__"})
-        json_data = json.loads(script_tag.string)
-        challenge_id = json_data.get("props", {}).get("challengeId")
-    
-        payload_ = {
-            "id": "example@example.com",
-            "password": "example123",
-            "challenge_id": challenge_id,
-            "device_code": "920",
-            "scope": ["offline", "unext"],
-        }
-        auth_response = session.post(_ENDPOINT_RES, json=payload_).json()
-        #    
-        #
+        auth_response = session.get(_ENDPOINT_CHECK_IP, params={"device": "android"}).json()
+        
         end = time.time()
         time_elapsed = end - start
         time_elapsed = time_elapsed * 1000
         
         try:
-            if auth_response["error_hint"] == "GAW0500003":
+            if auth_response["location"] != "JP":
                 logger.error(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
                 logger.error(f"However, this proxy is not located in Japan. You will not be able to use it.", extra={"service_name": "Yoimi"})
                 exit(1)
