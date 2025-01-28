@@ -147,7 +147,18 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             temp_url = session.get(url, allow_redirects=False)
             url = temp_url.headers["Location"]
             
-            
+        matches = re.findall(r'(\d{2,3}-\d{2,3}(?:_[\w-]+)?)', url)
+        if matches:
+            abema_get_series_id = max((match for match in matches if '_' in match), default=None)
+            if abema_get_series_id is None:
+                abema_get_series_id = max(matches, key=len)
+        else:
+            exit("except error unknown error lol moment")
+        print(abema_get_series_id)
+        if abema_get_series_id.__contains__("_p"):
+            print("episode download")
+        else:
+            print("series download")
         #status, meta_response = unext_downloader.get_title_metadata(url)
         #if status == False:
         #    logger.error("Failed to Get Series Json", extra={"service_name": "U-Next"})
