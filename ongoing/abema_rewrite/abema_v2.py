@@ -125,7 +125,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info("Loggined Account", extra={"service_name": "Abema"})
                     logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
                     for plan_num, i in enumerate(message["subscriptions"]):
-                        logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+message["profile"]["userId"], extra={"service_name": "Abema"})
+                        logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
             else:
                 logger.error("Please input token", extra={"service_name": "Abema"})
                 exit(1)
@@ -142,7 +142,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info("Loggined Account", extra={"service_name": "Abema"})
                 logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
                 for plan_num, i in enumerate(message["subscriptions"]):
-                    logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+message["profile"]["userId"], extra={"service_name": "Abema"})
+                    logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
                     
         if url.__contains__("abema.app"):
             temp_url = session.get(url, allow_redirects=False)
@@ -160,7 +160,43 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         if abema_get_series_id.__contains__("_p"):
             logger.info("Get Title for 1 Episode", extra={"service_name": "Abema"})
             print("episode download")
-            metadata_url = f"https://api.p-c3-e.abema-tv.com/v1/video/programs/{abema_get_series_id}?division=0&include=tvod"
+            response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/video/programs/{abema_get_series_id}?division=0&include=tvod").json()
+            id_type = response["genre"]["name"]
+            title_name = response["series"]["title"]
+            if id_type == "アニメ":
+                format_string = config["format"]["anime"].replace("_{episodename}", "")
+                values = {
+                    "seriesname": title_name,
+                    "titlename": response["episode"].get("title", ""),
+                }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
+            if id_type == "劇場":
+                # どうやってこれ判定するねん
+                print("")
+                #format_string = config["format"]["movie"]
+                #if response.get("displayNo", "") == "":
+                #    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                #    values = {
+                #        "seriesname": title_name,
+                #    }
+                #else:
+                #    values = {
+                #        "seriesname": title_name,
+                #        "titlename": response["episode"].get("displayNo", ""),
+                #        #"episodename": message.get("episodeName", "")
+                #    }
+                #try:
+                #    title_name_logger = format_string.format(**values)
+                #except KeyError as e:
+                #    missing_key = e.args[0]
+                #    values[missing_key] = ""
+                #    title_name_logger = format_string.format(**values)
+            logger.info(f" + {title_name_logger}", extra={"service_name": "Abema"})
         else:
             logger.info(f"Get Title for Season", extra={"service_name": "Abema"})
             print("series download")
@@ -174,6 +210,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     "include": "liveEvent,slot"
                 }
                 response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/{content_id}_eg0/contents", params=query_string)
+                id_type = response["genre"]["name"]
+                title_name = response["title"]
                 for message in response["episodeGroupContents"]:
                     if id_type == "アニメ":
                         format_string = config["format"]["anime"].replace("_{episodename}", "")
