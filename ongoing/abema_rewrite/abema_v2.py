@@ -3,6 +3,7 @@ import sys
 import yaml
 import time
 import logging
+import datetime
 import traceback
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -156,13 +157,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         else:
             exit("except error unknown error lol moment")
         print(abema_get_series_id)
-                
+        
+        response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/series/{re.match(r"^(\d+-\d+)", abema_get_series_id).group(1)}?includes=liveEvent%2Cslot").json()
+        id_type = response["genre"]["name"]
+        title_name = response["title"]
+        
         if abema_get_series_id.__contains__("_p"):
             logger.info("Get Title for 1 Episode", extra={"service_name": "Abema"})
             print("episode download")
-            response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/video/programs/{abema_get_series_id}?division=0&include=tvod").json()
-            id_type = response["genre"]["name"]
-            title_name = response["series"]["title"]
             if id_type == "アニメ":
                 format_string = config["format"]["anime"].replace("_{episodename}", "")
                 values = {
@@ -178,25 +180,27 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             if id_type == "劇場":
                 # どうやってこれ判定するねん
                 print("")
-                #format_string = config["format"]["movie"]
-                #if response.get("displayNo", "") == "":
-                #    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                #    values = {
-                #        "seriesname": title_name,
-                #    }
-                #else:
-                #    values = {
-                #        "seriesname": title_name,
-                #        "titlename": response["episode"].get("displayNo", ""),
-                #        #"episodename": message.get("episodeName", "")
-                #    }
-                #try:
-                #    title_name_logger = format_string.format(**values)
-                #except KeyError as e:
-                #    missing_key = e.args[0]
-                #    values[missing_key] = ""
-                #    title_name_logger = format_string.format(**values)
-            logger.info(f" + {title_name_logger}", extra={"service_name": "Abema"})
+                
+            if 'label' in response:
+                if 'free' in response['label']:
+                    content_type = True
+            elif 'freeEndAt' in response:
+                content_type = True
+            else:
+                content_type = False
+                
+            if content_type == True:
+                free_end_at = response['freeEndAt']
+                tdt = datetime.fromtimestamp(free_end_at)
+                d_week = {'Sun':'日','Mon':'月','Tue':'火','Wed':'水','Thu':'木','Fri':'金','Sat':'土'}
+                free_end_at = tdt.strftime('%Y年%m月%d日({}) %H時%M分%S秒').format(d_week[tdt.strftime('%a')])
+                
+                content_type = "FREE   "
+                content_status_lol = f" | END FREE {free_end_at}"
+            else:
+                content_type = "PREMIUM"
+                content_status_lol = ""
+            logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
         else:
             logger.info(f"Get Title for Season", extra={"service_name": "Abema"})
             print("series download")
@@ -209,9 +213,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     "orderType": "asc",
                     "include": "liveEvent,slot"
                 }
-                response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/{content_id}_eg0/contents", params=query_string)
-                id_type = response["genre"]["name"]
-                title_name = response["title"]
+                response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/{content_id}_eg0/contents", params=query_string).json()
                 for message in response["episodeGroupContents"]:
                     if id_type == "アニメ":
                         format_string = config["format"]["anime"].replace("_{episodename}", "")
@@ -226,29 +228,36 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             values[missing_key] = ""
                             title_name_logger = format_string.format(**values)
                     if id_type == "劇場":
-                        format_string = config["format"]["movie"]
-                        if message.get("displayNo", "") == "":
-                            format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                            values = {
-                                "seriesname": title_name,
-                            }
+                       # どうやってこれ判定するねん
+                       print("")
+                                              
+                    if 'label' in message:
+                        if 'free' in message['label']:
+                            content_type = True
+                    elif 'freeEndAt' in message:
+                        content_type = True
+                    elif message["video"]["terms"][0]["onDemandType"] == 3:
+                        content_type = True
+                    else:
+                        content_type = False
+                        
+                    if content_type == True:
+                        if message["video"]["terms"][0]["onDemandType"] == 3:
+                            free_end_at = message["video"]["terms"][0]["endAt"]
                         else:
-                            values = {
-                                "seriesname": title_name,
-                                "titlename": message["episode"].get("displayNo", ""),
-                                #"episodename": message.get("episodeName", "")
-                            }
-                        try:
-                            title_name_logger = format_string.format(**values)
-                        except KeyError as e:
-                            missing_key = e.args[0]
-                            values[missing_key] = ""
-                            title_name_logger = format_string.format(**values)
-                    logger.info(f" + {title_name_logger}", extra={"service_name": "Abema"})
+                            free_end_at = message['freeEndAt']
+                        tdt = datetime.fromtimestamp(free_end_at)
+                        d_week = {'Sun':'日','Mon':'月','Tue':'火','Wed':'水','Thu':'木','Fri':'金','Sat':'土'}
+                        free_end_at = tdt.strftime('%Y年%m月%d日({}) %H時%M分%S秒').format(d_week[tdt.strftime('%a')])
+                        
+                        content_type = "FREE   "
+                        content_status_lol = f" | END FREE {free_end_at}"
+                    else:
+                        content_type = "PREMIUM"
+                        content_status_lol = ""
+                    logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
             else:
                 response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/video/series/{content_id}", params={"includeSlot": "true"}).json()
-                id_type = response["genre"]["name"]
-                title_name = response["title"]
                 
                 season_response = response["seasons"]
                 
@@ -289,25 +298,33 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                     values[missing_key] = ""
                                     title_name_logger = format_string.format(**values)
                             if id_type == "劇場":
-                                format_string = config["format"]["movie"]
-                                if message.get("displayNo", "") == "":
-                                    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                                    values = {
-                                        "seriesname": title_name,
-                                    }
+                                # どうやってこれ判定するねん
+                                print("")
+                            if 'label' in message:
+                                if 'free' in message['label']:
+                                    content_type = True
+                            elif 'freeEndAt' in message:
+                                content_type = True
+                            elif message["video"]["terms"][0]["onDemandType"] == 3:
+                                content_type = True
+                            else:
+                                content_type = False
+                                
+                            if content_type == True:
+                                if message["video"]["terms"][0]["onDemandType"] == 3:
+                                    free_end_at = message["video"]["terms"][0]["endAt"]
                                 else:
-                                    values = {
-                                        "seriesname": i["name"],
-                                        "titlename": message["episode"].get("displayNo", ""),
-                                        #"episodename": message.get("episodeName", "")
-                                    }
-                                try:
-                                    title_name_logger = format_string.format(**values)
-                                except KeyError as e:
-                                    missing_key = e.args[0]
-                                    values[missing_key] = ""
-                                    title_name_logger = format_string.format(**values)
-                            logger.info(f" + {title_name_logger}", extra={"service_name": "Abema"})
+                                    free_end_at = message['freeEndAt']
+                                tdt = datetime.fromtimestamp(free_end_at)
+                                d_week = {'Sun':'日','Mon':'月','Tue':'火','Wed':'水','Thu':'木','Fri':'金','Sat':'土'}
+                                free_end_at = tdt.strftime('%Y年%m月%d日({}) %H時%M分%S秒').format(d_week[tdt.strftime('%a')])
+                                
+                                content_type = "FREE   "
+                                content_status_lol = f" | END FREE {free_end_at}"
+                            else:
+                                content_type = "PREMIUM"
+                                content_status_lol = ""
+                            logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
                     
                 
                 #if len(response["seasons"]) != 1:
