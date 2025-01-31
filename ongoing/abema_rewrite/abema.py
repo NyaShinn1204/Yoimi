@@ -87,7 +87,8 @@ class Abema_downloader:
             return True, None
         
         # ログインのため仮tokenの生成
-        self.session.headers.update({'Authorization': 'Bearer ' + Abema_utils.gen_temp_token(self.session)[0]})
+        temp_token = Abema_utils.gen_temp_token(self.session)
+        self.session.headers.update({'Authorization': 'Bearer ' + temp_token[0]})
         
         _ENDPOINT_MAIL = "https://api.p-c3-e.abema-tv.com/v1/auth/user/email"
         _ENDPOINT_OTP = "https://api.p-c3-e.abema-tv.com/v1/auth/oneTimePassword"
@@ -120,7 +121,7 @@ class Abema_downloader:
         self.session.headers.update({'Authorization': 'Bearer ' + auth_response_json["token"]})
         
         user_info_res = self.session.get(_USERAPI+"/"+userId)
-        return True, user_info_res.json()
+        return True, user_info_res.json(), temp_token[1]
     def check_token(self, token):
         _USERAPI = "https://api.p-c3-e.abema-tv.com/v1/users"
         token_payload = token.split(".")[1]

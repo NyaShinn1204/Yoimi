@@ -135,7 +135,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.error("Please input token", extra={"service_name": "Abema"})
                 exit(1)
         else:
-            status, message = abema_downloader.authorize(email, password)
+            status, message, device_id = abema_downloader.authorize(email, password)
             try:
                 logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Abema"})
             except:
@@ -208,7 +208,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
             
             hls = response['playback']['hls']
-            mpd = session.get(response['playback']['dash']).text
             
             m3u8_content = session.get(hls).text
             
@@ -331,18 +330,18 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
-            key, reason = get_video_key(ticket)
-            if not key:
-                logger.error('{}'.format(reason), extra={"service_name": "Abema"})
-                #continue
-            def get_default_KID(mpd_file):
-                tree = ET.parse(mpd_file)
-                root = tree.getroot()
+            def get_default_KID(mpd_content):
+                root = ET.fromstring(mpd_content)
             
-                namespace = {'': 'urn:mpeg:dash:schema:mpd:2011'}  # 名前空間の設定（必要に応じて変更）
+                namespaces = {
+                    '': 'urn:mpeg:dash:schema:mpd:2011',  # デフォルト名前空間
+                    'cenc': 'urn:mpeg:cenc:2013'  # CENC名前空間
+                }
             
-                for elem in root.iterfind('.//{urn:mpeg:dash:schema:mpd:2011}ContentProtection', namespace):
-                    default_KID = elem.get('default_KID')
+                # 'ContentProtection'タグ内で'cenc:default_KID'を検索
+                for elem in root.iterfind('.//{urn:mpeg:dash:schema:mpd:2011}Period//{urn:mpeg:dash:schema:mpd:2011}AdaptationSet//{urn:mpeg:dash:schema:mpd:2011}ContentProtection', namespaces):
+                    # 名前空間付きの属性名でdefault_KIDを取得
+                    default_KID = elem.get('{urn:mpeg:cenc:2013}default_KID')
                     if default_KID:
                         return default_KID
                 return None
@@ -359,14 +358,24 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 mediatoken = restoken['token']
                 #self.yuu_logger.debug('Media token: {}'.format(mediatoken))
                 
-                kid = get_default_KID(mpd)
+                
+                mpd = session.get(response['playback']['dash'], params={"t": mediatoken, "enc": "clear", "dt": "pc_unknown", "ccf": 0, "dtid": "jdwHcemp6THr", "ut": 1}).text
+                import base64
+                sex_kid = get_default_KID(mpd)
+                
+                print(sex_kid.replace("-", "").upper())
+                
+                kid = base64.b64encode(bytes.fromhex(sex_kid.replace("-", "").upper())).decode('utf-8').replace("==", "").replace("+", "-")
+                
+                print(kid)
         
                 #self.yuu_logger.debug('Sending ticket and media token to License API')
+                print(response["id"])
                 rgl = session.post("https://license.p-c3-e.abema-tv.com/abematv-dash", params={"t": mediatoken, "cid": response["id"], "ct": "program"}, json={"kids":[kid],"type":"temporary"})
                 if rgl.status_code == 403:
                     return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
         
-                gl = rgl.json()["keys"]
+                gl = rgl.json()["keys"][0]
         
                 cid = gl['kid']
                 k = gl['k']
@@ -375,17 +384,20 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 #self.yuu_logger.debug('K: {}'.format(k))
         
                 #self.yuu_logger.debug('Summing up data with STRTABLE')
-                res = sum([self._STRTABLE.find(k[i]) * (58 ** (len(k) - 1 - i)) for i in range(len(k))])
+                res = sum(["123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".find(k[i]) * (58 ** (len(k) - 1 - i)) for i in range(len(k))])
         
                 #self.yuu_logger.debug('Result: {}'.format(res))
                 #self.yuu_logger.debug('Intepreting data')
         
+                import struct
+                import hmac
+                import hashlib
                 encvk = struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff)
         
                 #self.yuu_logger.debug('Encoded video key: {}'.format(encvk))
                 #self.yuu_logger.debug('Hashing data')
         
-                h = hmac.new(unhexlify(self._HKEY), (cid + self.device_id).encode("utf-8"), digestmod=hashlib.sha256)
+                h = hmac.new(unhexlify("3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E"), (cid + device_id).encode("utf-8"), digestmod=hashlib.sha256)
                 enckey = h.digest()
         
                 #self.yuu_logger.debug('Second Encoded video key: {}'.format(enckey))
@@ -408,19 +420,23 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 else:
                     iv = iv
                 downloaded_files = []
-                iv, _aes = setup_decryptor(key) # Initialize a new decryptor
+               #iv, _aes = setup_decryptor(key) # Initialize a new decryptor
                 try:
                     with tqdm(total=len(files), desc='Downloading', ascii=True, unit='file') as pbar:
                         for tsf in files:
-                            outputtemp = output_temp_directory + os.path.basename(tsf)
+                            outputtemp = os.path.join(output_temp_directory, os.path.basename(tsf))
+                            if not os.path.exists(output_temp_directory):
+                                os.makedirs(output_temp_directory, exist_ok=True)
                             if outputtemp.find('?tver') != -1:
                                 outputtemp = outputtemp[:outputtemp.find('?tver')]
+                            print(outputtemp)
                             with open(outputtemp, 'wb') as outf:
                                 try:
                                     vid = session.get(tsf)
-                                    vid = _aes.decrypt(vid.content)
-                                    outf.write(vid)
+                                   # vid = _aes.decrypt(vid.content)
+                                    outf.write(vid.content)
                                 except Exception as err:
+                                    print(err)
                                     #yuu_log.error('Problem occured\nreason: {}'.format(err))
                                     return None
                             pbar.update()
@@ -429,8 +445,24 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     #yuu_log.warn('User pressed CTRL+C, cleaning up...')
                     return None
                 return downloaded_files
+            def merge_video(path, output):
+                with open(output, 'wb') as out:
+                    with tqdm(total=len(path), desc="Merging", ascii=True, unit="file") as pbar:
+                        for i in path:
+                            out.write(open(i, 'rb').read())
+                            os.remove(i)
+                            pbar.update()
             
-            download_chunk(files, key, iv)
+            try:
+                key, reason = get_video_key(ticket)
+                if not key:
+                    logger.error('{}'.format(reason), extra={"service_name": "Abema"})
+                    #continue
+            except:
+                print("lol")
+            key = ""
+            downloaded_files = download_chunk(files, key, iv)
+            merge_video(downloaded_files, os.path.join(config["directorys"]["Temp"], "content", unixtime, "fuck_abema.mp4"))
             
         else:
             logger.info(f"Get Title for Season", extra={"service_name": "Abema"})
