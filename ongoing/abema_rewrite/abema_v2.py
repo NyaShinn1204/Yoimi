@@ -149,7 +149,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             temp_url = session.get(url, allow_redirects=False)
             url = temp_url.headers["Location"]
             
-        matches = re.findall(r'(\d{2,3}-\d{2,3}(?:_[\w-]+)?)', url)
+        matches = re.findall(r'(\d{1,3}-\d{1,3}(?:_[\w-]+)?)', url)
         if matches:
             abema_get_series_id = max((match for match in matches if '_' in match), default=None)
             if abema_get_series_id is None:
@@ -157,7 +157,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         else:
             exit("except error unknown error lol moment")
         print(abema_get_series_id)
-        
+        print(re.match(r"^(\d+-\d+)", abema_get_series_id).group(1))
         response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/series/{re.match(r"^(\d+-\d+)", abema_get_series_id).group(1)}?includes=liveEvent%2Cslot").json()
         id_type = response["genre"]["name"]
         title_name = response["title"]
@@ -165,6 +165,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         if abema_get_series_id.__contains__("_p"):
             logger.info("Get Title for 1 Episode", extra={"service_name": "Abema"})
             print("episode download")
+            response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/video/programs/{abema_get_series_id}?division=0&include=tvod").json()
             if id_type == "アニメ":
                 format_string = config["format"]["anime"].replace("_{episodename}", "")
                 values = {
