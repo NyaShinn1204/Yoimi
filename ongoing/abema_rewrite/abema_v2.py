@@ -11,6 +11,7 @@ from tqdm import tqdm
 from Crypto.Cipher import AES
 from datetime import datetime
 from binascii import unhexlify
+import xml.etree.ElementTree as ET
 
 #from ext.utils import unext
 #from abema import abema
@@ -207,8 +208,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
             
             hls = response['playback']['hls']
+            mpd = session.get(response['playback']['dash']).text
             
-            m3u8_content = session.get("https://ds-vod-abematv.akamaized.net/program/2-15_s1_p1/playlist.m3u8").text
+            m3u8_content = session.get(hls).text
             
             resolution_list = []
             resolution_data = {
@@ -327,6 +329,74 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info('Resolution: {}'.format(resolution[-1]+"p"), extra={"service_name": "Abema"})
             logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": "Abema"})
             
+            output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+            
+            key, reason = get_video_key(ticket)
+            if not key:
+                logger.error('{}'.format(reason), extra={"service_name": "Abema"})
+                #continue
+            def get_default_KID(mpd_file):
+                tree = ET.parse(mpd_file)
+                root = tree.getroot()
+            
+                namespace = {'': 'urn:mpeg:dash:schema:mpd:2011'}  # 名前空間の設定（必要に応じて変更）
+            
+                for elem in root.iterfind('.//{urn:mpeg:dash:schema:mpd:2011}ContentProtection', namespace):
+                    default_KID = elem.get('default_KID')
+                    if default_KID:
+                        return default_KID
+                return None
+            def get_video_key(ticket):
+                #self.yuu_logger.debug('Sending parameter to API')
+                _KEYPARAMS = {
+                    "osName": "pc",
+                    "osVersion": "1.0.0",
+                    "osLand": "ja",
+                    "osTimezone": "Asia/Tokyo",
+                    "appVersion": "v25.130.0"
+                }
+                restoken = session.get("https://api.p-c3-e.abema-tv.com/v1/media/token", params=_KEYPARAMS).json()
+                mediatoken = restoken['token']
+                #self.yuu_logger.debug('Media token: {}'.format(mediatoken))
+                
+                kid = get_default_KID(mpd)
+        
+                #self.yuu_logger.debug('Sending ticket and media token to License API')
+                rgl = session.post("https://license.p-c3-e.abema-tv.com/abematv-dash", params={"t": mediatoken, "cid": response["id"], "ct": "program"}, json={"kids":[kid],"type":"temporary"})
+                if rgl.status_code == 403:
+                    return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
+        
+                gl = rgl.json()["keys"]
+        
+                cid = gl['kid']
+                k = gl['k']
+        
+                #self.yuu_logger.debug('CID: {}'.format(cid))
+                #self.yuu_logger.debug('K: {}'.format(k))
+        
+                #self.yuu_logger.debug('Summing up data with STRTABLE')
+                res = sum([self._STRTABLE.find(k[i]) * (58 ** (len(k) - 1 - i)) for i in range(len(k))])
+        
+                #self.yuu_logger.debug('Result: {}'.format(res))
+                #self.yuu_logger.debug('Intepreting data')
+        
+                encvk = struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff)
+        
+                #self.yuu_logger.debug('Encoded video key: {}'.format(encvk))
+                #self.yuu_logger.debug('Hashing data')
+        
+                h = hmac.new(unhexlify(self._HKEY), (cid + self.device_id).encode("utf-8"), digestmod=hashlib.sha256)
+                enckey = h.digest()
+        
+                #self.yuu_logger.debug('Second Encoded video key: {}'.format(enckey))
+                #self.yuu_logger.debug('Decrypting result')
+        
+                aes = AES.new(enckey, AES.MODE_ECB)
+                vkey = aes.decrypt(encvk)
+        
+                #self.yuu_logger.debug('Decrypted, Result: {}'.format(vkey))
+        
+                return vkey, 'Success getting video key'
             def setup_decryptor(key):
                 iv = unhexlify(iv)
                 _aes = AES.new(key, AES.MODE_CBC, IV=iv)
@@ -342,7 +412,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 try:
                     with tqdm(total=len(files), desc='Downloading', ascii=True, unit='file') as pbar:
                         for tsf in files:
-                            outputtemp = self.temporary_folder + os.path.basename(tsf)
+                            outputtemp = output_temp_directory + os.path.basename(tsf)
                             if outputtemp.find('?tver') != -1:
                                 outputtemp = outputtemp[:outputtemp.find('?tver')]
                             with open(outputtemp, 'wb') as outf:
@@ -359,6 +429,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     #yuu_log.warn('User pressed CTRL+C, cleaning up...')
                     return None
                 return downloaded_files
+            
+            download_chunk(files, key, iv)
             
         else:
             logger.info(f"Get Title for Season", extra={"service_name": "Abema"})
