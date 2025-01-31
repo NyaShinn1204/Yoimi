@@ -202,6 +202,50 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 content_type = "PREMIUM"
                 content_status_lol = ""
             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
+            
+            hls = response['playback']['hls']
+            
+            m3u8_content = session.get("https://ds-vod-abematv.akamaized.net/program/2-15_s1_p1/playlist.m3u8").text
+            
+            resolution_list = []
+            resolution_data = {
+                "1080p": ["4000kb/s", "AAC 192kb/s 2ch"],
+                "720p": ["2000kb/s", "AAC 160kb/s 2ch"],
+                "480p": ["900kb/s", "AAC 128kb/s 2ch"],
+                "360p": ["550kb/s", "AAC 128kb/s 2ch"],
+                "240p": ["240kb/s", "AAC 64kb/s 1ch"],
+                "180p": ["120kb/s", "AAC 64kb/s 1ch"]
+            }
+            resolutions = re.findall(r"RESOLUTION=(\d+)x(\d+)", m3u8_content)
+            
+            resolution_list = []
+            
+            for resolution in resolutions:
+                width, height = map(int, resolution)
+                
+                temp_list = []
+                
+                temp_list.append(f"{width}x{height}")
+                temp_list.append(f"{height}p")
+                    
+                resolution_list.append(temp_list)
+
+            logger.info('Available resolution:', extra={"service_name": "Abema"})
+            #logger.log(0, '{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16), extra={"service_name": "Abema"})
+            print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16))
+            for res in resolution_list:
+                r_c = res[1]
+                wxh = res[0]
+                vidq, audq = resolution_data[r_c]
+                #logger.log(0, '{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format('>> ' + r_c, wxh, vidq, audq, width=16), extra={"service_name": "Abema"})
+                print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format('>> ' + r_c, wxh, vidq, audq, width=16))
+
+            m3u8_url = '{x}/{r}/playlist.m3u8'.format(x=hls[:hls.rfind('/')], r=resolution[-1])
+
+            logger.debug('Title: {}'.format(title_name_logger), extra={"service_name": "Abema"})
+            logger.debug('Total Resolution: {}'.format(resolution_list), extra={"service_name": "Abema"})
+            logger.debug('M3U8 Link: {}'.format(m3u8_url), extra={"service_name": "Abema"})
+            
         else:
             logger.info(f"Get Title for Season", extra={"service_name": "Abema"})
             print("series download")
