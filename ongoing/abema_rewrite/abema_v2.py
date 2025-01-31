@@ -1,13 +1,16 @@
 import re
+import os
 import sys
 import yaml
 import time
+import m3u8
 import logging
 import datetime
 import traceback
+from tqdm import tqdm
+from Crypto.Cipher import AES
 from datetime import datetime
-from bs4 import BeautifulSoup
-import xml.etree.ElementTree as ET
+from binascii import unhexlify
 
 #from ext.utils import unext
 #from abema import abema
@@ -216,6 +219,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 "240p": ["240kb/s", "AAC 64kb/s 1ch"],
                 "180p": ["120kb/s", "AAC 64kb/s 1ch"]
             }
+            bitrate_calculation = {
+                "1080p": 5175,
+                "720p": 2373,
+                "480p": 1367,
+                "360p": 878,
+                "240p": 292,
+                "180p": 179
+            }
             resolutions = re.findall(r"RESOLUTION=(\d+)x(\d+)", m3u8_content)
             
             resolution_list = []
@@ -245,6 +256,109 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.debug('Title: {}'.format(title_name_logger), extra={"service_name": "Abema"})
             logger.debug('Total Resolution: {}'.format(resolution_list), extra={"service_name": "Abema"})
             logger.debug('M3U8 Link: {}'.format(m3u8_url), extra={"service_name": "Abema"})
+            
+            def parse_m3u8(m3u8_url):
+                #self.yuu_logger.debug('Requesting m3u8')
+                r = session.get(m3u8_url)
+                #self.yuu_logger.debug('Data requested')
+        
+                if 'timeshift forbidden' in r.text:
+                    return None, None, None, 'This video can\'t be downloaded for now.'
+        
+                if r.status_code == 403:
+                    return None, None, None, 'This video is geo-locked for Japan only.'
+        
+                #self.yuu_logger.debug('Parsing m3u8')
+        
+                x = m3u8.loads(r.text)
+                files = x.files[1:]
+                if not files[0]:
+                    files = files[1:]
+                try:
+                    if 'tsda' in files[5]:
+                        # Assume DRMed
+                        return None, None, None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
+                except Exception:
+                    try:
+                        if 'tsda' in files[-1]:
+                            # Assume DRMed
+                            return None, None, None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
+                    except Exception:
+                        if 'tsda' in files[0]:
+                            # Assume DRMed
+                            return None, None, None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
+                resgex = re.findall(r'(\d*)(?:\/\w+.ts)', files[0])[0]
+                keys_data = x.keys[0]
+                iv = x.keys[0].iv
+                ticket = x.keys[0].uri[18:]
+        
+                parsed_files = []
+                for f in files:
+                    if f.startswith('/tsvpg') or f.startswith('/tspg'):
+                        f = 'https://ds-vod-abematv.akamaized.net' + f
+                    parsed_files.append(f)
+        
+                #if self.resolution[:-1] != resgex:
+                #    #if not self.resolution_o:
+                #    #    self.yuu_logger.warn('Changing resolution, from {} to {}p'.format(self.resolution, resgex))
+                #    self.resolution = resgex + 'p'
+                logger.debug('Total files: {}'.format(len(files)), extra={"service_name": "Abema"})
+                logger.debug('IV: {}'.format(iv), extra={"service_name": "Abema"})
+                logger.debug('Ticket key: {}'.format(ticket), extra={"service_name": "Abema"})
+        
+                n = 0.0
+                for seg in x.segments:
+                    n += seg.duration
+        
+                est_filesize = round((round(n) * bitrate_calculation[resolution[-1]+"p"]) / 1024 / 6, 2)
+        
+                return parsed_files, iv[2:], ticket, est_filesize, 'Success'
+            
+            files, iv, ticket, filesize, reason = parse_m3u8(m3u8_url)
+            #print(files, iv, ticket, filesize, reason)
+            
+            if filesize > 1000:
+                filesize = round(filesize / 1000, 1)
+                filesize = str(filesize)+" GiB"
+            else:
+                filesize = str(filesize)+" MiB"
+            
+            logger.info('Output: {}'.format(title_name_logger+".mp4"), extra={"service_name": "Abema"})
+            logger.info('Resolution: {}'.format(resolution[-1]+"p"), extra={"service_name": "Abema"})
+            logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": "Abema"})
+            
+            def setup_decryptor(key):
+                iv = unhexlify(iv)
+                _aes = AES.new(key, AES.MODE_CBC, IV=iv)
+                return iv, _aes
+        
+            def download_chunk(files, key, iv):
+                if iv.startswith('0x'):
+                    iv = iv[2:]
+                else:
+                    iv = iv
+                downloaded_files = []
+                iv, _aes = setup_decryptor(key) # Initialize a new decryptor
+                try:
+                    with tqdm(total=len(files), desc='Downloading', ascii=True, unit='file') as pbar:
+                        for tsf in files:
+                            outputtemp = self.temporary_folder + os.path.basename(tsf)
+                            if outputtemp.find('?tver') != -1:
+                                outputtemp = outputtemp[:outputtemp.find('?tver')]
+                            with open(outputtemp, 'wb') as outf:
+                                try:
+                                    vid = session.get(tsf)
+                                    vid = _aes.decrypt(vid.content)
+                                    outf.write(vid)
+                                except Exception as err:
+                                    #yuu_log.error('Problem occured\nreason: {}'.format(err))
+                                    return None
+                            pbar.update()
+                            downloaded_files.append(outputtemp)
+                except KeyboardInterrupt:
+                    #yuu_log.warn('User pressed CTRL+C, cleaning up...')
+                    return None
+                return downloaded_files
             
         else:
             logger.info(f"Get Title for Season", extra={"service_name": "Abema"})
