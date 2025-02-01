@@ -186,9 +186,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 # どうやってこれ判定するねん
                 print("")
                 
+            
+                
             if 'label' in response:
                 if 'free' in response['label']:
                     content_type = True
+                else:
+                    content_type = False
             elif 'freeEndAt' in response:
                 content_type = True
             else:
