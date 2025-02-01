@@ -338,7 +338,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
-            decrypt_type = "hls" # or dash
+            decrypt_type = "dash" # or dash
             
             if decrypt_type == "hls":
                 def get_video_key(ticket):
@@ -447,6 +447,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.debug("GET K: {}".format(k), extra={"service_name": "Abema"})
                     logger.debug("GET KTY: {}".format(kty), extra={"service_name": "Abema"})
                     
+                    logger.info("SET Alg: A128KW", extra={"service_name": "Abema"})
+                    
+                    logger.info("JS Update KID: {}".format(kid), extra={"service_name": "Abema"})
+                    logger.info("JS Update K: {}".format(kid), extra={"service_name": "Abema"})
                     
                     # Kをdecryptする方法?
                     # Step1. AES-CBC, HMAC-SHA256, Blowfish-ECB, RC4, Base58 encoding (Bitcoin variant)を用いてkからclearkeyを生成する
