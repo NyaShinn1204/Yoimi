@@ -3,8 +3,12 @@ import os
 import sys
 import yaml
 import time
+import hmac
 import m3u8
+import base64
+import struct
 import logging
+import hashlib
 import datetime
 import traceback
 from tqdm import tqdm
@@ -334,85 +338,123 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
-            def get_default_KID(mpd_content):
-                root = ET.fromstring(mpd_content)
+            decrypt_type = "hls" # or dash
             
-                namespaces = {
-                    '': 'urn:mpeg:dash:schema:mpd:2011',  # デフォルト名前空間
-                    'cenc': 'urn:mpeg:cenc:2013'  # CENC名前空間
-                }
+            if decrypt_type == "hls":
+                def get_video_key(ticket):
+                    #self.yuu_logger.debug('Sending parameter to API')
+                    _MEDIATOKEN_API = "https://api.p-c3-e.abema-tv.com/v1/media/token"
+                    _LICENSE_API = "https://license.abema.io/abematv-hls"
+                    
+                    _STRTABLE = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+                    _HKEY = b"3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E"
+                    
+                    _KEYPARAMS = {
+                        "osName": "pc",
+                        "osVersion": "1.0.0",
+                        "osLand": "ja",
+                        "osTimezone": "Asia/Tokyo",
+                        "appVersion": "v25.130.0"
+                    }
+                    restoken = session.get(_MEDIATOKEN_API, params=_KEYPARAMS).json()
+                    mediatoken = restoken['token']
+                    #self.yuu_logger.debug('Media token: {}'.format(mediatoken))
             
-                # 'ContentProtection'タグ内で'cenc:default_KID'を検索
-                for elem in root.iterfind('.//{urn:mpeg:dash:schema:mpd:2011}Period//{urn:mpeg:dash:schema:mpd:2011}AdaptationSet//{urn:mpeg:dash:schema:mpd:2011}ContentProtection', namespaces):
-                    # 名前空間付きの属性名でdefault_KIDを取得
-                    default_KID = elem.get('{urn:mpeg:cenc:2013}default_KID')
-                    if default_KID:
-                        return default_KID
-                return None
-            def get_video_key(ticket):
-                #self.yuu_logger.debug('Sending parameter to API')
-                _KEYPARAMS = {
-                    "osName": "pc",
-                    "osVersion": "1.0.0",
-                    "osLand": "ja",
-                    "osTimezone": "Asia/Tokyo",
-                    "appVersion": "v25.130.0"
-                }
-                restoken = session.get("https://api.p-c3-e.abema-tv.com/v1/media/token", params=_KEYPARAMS).json()
-                mediatoken = restoken['token']
-                #self.yuu_logger.debug('Media token: {}'.format(mediatoken))
+                    #self.yuu_logger.debug('Sending ticket and media token to License API')
+                    rgl = session.post(_LICENSE_API, params={"t": mediatoken}, json={"kv": "a", "lt": ticket})
+                    if rgl.status_code == 403:
+                        return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
+            
+                    gl = rgl.json()
+            
+                    cid = gl['cid']
+                    k = gl['k']
+            
+                    #self.yuu_logger.debug('CID: {}'.format(cid))
+                    #self.yuu_logger.debug('K: {}'.format(k))
+            
+                    #self.yuu_logger.debug('Summing up data with STRTABLE')
+                    res = sum([_STRTABLE.find(k[i]) * (58 ** (len(k) - 1 - i)) for i in range(len(k))])
+            
+                    #self.yuu_logger.debug('Result: {}'.format(res))
+                    #self.yuu_logger.debug('Intepreting data')
+            
+                    encvk = struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff)
+            
+                    #self.yuu_logger.debug('Encoded video key: {}'.format(encvk))
+                    #self.yuu_logger.debug('Hashing data')
+            
+                    h = hmac.new(unhexlify(_HKEY), (cid + device_id).encode("utf-8"), digestmod=hashlib.sha256)
+                    enckey = h.digest()
+            
+                    #self.yuu_logger.debug('Second Encoded video key: {}'.format(enckey))
+                    #self.yuu_logger.debug('Decrypting result')
+            
+                    aes = AES.new(enckey, AES.MODE_ECB)
+                    vkey = aes.decrypt(encvk)
+            
+                    #self.yuu_logger.debug('Decrypted, Result: {}'.format(vkey))
+            
+                    return vkey
+            if decrypt_type == "dash":
+                def get_default_KID(mpd_content):
+                    root = ET.fromstring(mpd_content)
                 
+                    namespaces = {
+                        '': 'urn:mpeg:dash:schema:mpd:2011',
+                        'cenc': 'urn:mpeg:cenc:2013'
+                    }
                 
-                mpd = session.get(response['playback']['dash'], params={"t": mediatoken, "enc": "clear", "dt": "pc_unknown", "ccf": 0, "dtid": "jdwHcemp6THr", "ut": 1}).text
-                import base64
-                sex_kid = get_default_KID(mpd)
-                
-                print(sex_kid.replace("-", "").upper())
-                
-                kid = base64.b64encode(bytes.fromhex(sex_kid.replace("-", "").upper())).decode('utf-8').replace("==", "").replace("+", "-")
-                
-                print(kid)
-        
-                #self.yuu_logger.debug('Sending ticket and media token to License API')
-                print(response["id"])
-                rgl = session.post("https://license.p-c3-e.abema-tv.com/abematv-dash", params={"t": mediatoken, "cid": response["id"], "ct": "program"}, json={"kids":[kid],"type":"temporary"})
-                if rgl.status_code == 403:
-                    return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
-        
-                gl = rgl.json()["keys"][0]
-        
-                cid = gl['kid']
-                k = gl['k']
-        
-                #self.yuu_logger.debug('CID: {}'.format(cid))
-                #self.yuu_logger.debug('K: {}'.format(k))
-        
-                #self.yuu_logger.debug('Summing up data with STRTABLE')
-                res = sum(["123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".find(k[i]) * (58 ** (len(k) - 1 - i)) for i in range(len(k))])
-        
-                #self.yuu_logger.debug('Result: {}'.format(res))
-                #self.yuu_logger.debug('Intepreting data')
-        
-                import struct
-                import hmac
-                import hashlib
-                encvk = struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff)
-        
-                #self.yuu_logger.debug('Encoded video key: {}'.format(encvk))
-                #self.yuu_logger.debug('Hashing data')
-        
-                h = hmac.new(unhexlify("3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E"), (cid + device_id).encode("utf-8"), digestmod=hashlib.sha256)
-                enckey = h.digest()
-        
-                #self.yuu_logger.debug('Second Encoded video key: {}'.format(enckey))
-                #self.yuu_logger.debug('Decrypting result')
-        
-                aes = AES.new(enckey, AES.MODE_ECB)
-                vkey = aes.decrypt(encvk)
-        
-                #self.yuu_logger.debug('Decrypted, Result: {}'.format(vkey))
-        
-                return vkey, 'Success getting video key'
+                    for elem in root.iterfind('.//{urn:mpeg:dash:schema:mpd:2011}Period//{urn:mpeg:dash:schema:mpd:2011}AdaptationSet//{urn:mpeg:dash:schema:mpd:2011}ContentProtection', namespaces):
+                        default_KID = elem.get('{urn:mpeg:cenc:2013}default_KID')
+                        if default_KID:
+                            return default_KID
+                    return None
+                def get_video_key(ticket):
+                    #self.yuu_logger.debug('Sending parameter to API')
+                    _KEYPARAMS = {
+                        "osName": "pc",
+                        "osVersion": "1.0.0",
+                        "osLand": "ja",
+                        "osTimezone": "Asia/Tokyo",
+                        "appVersion": "v25.130.0"
+                    }
+                    restoken = session.get("https://api.p-c3-e.abema-tv.com/v1/media/token", params=_KEYPARAMS).json()
+                    mediatoken = restoken['token']
+                    #self.yuu_logger.debug('Media token: {}'.format(mediatoken))
+                    
+                    
+                    mpd = session.get(response['playback']['dash'], params={"t": mediatoken, "enc": "clear", "dt": "pc_unknown", "ccf": 0, "dtid": "jdwHcemp6THr", "ut": 1}).text
+                    sex_kid = get_default_KID(mpd)
+                    
+                    #print(sex_kid.replace("-", "").upper())
+                    
+                    kid = base64.b64encode(bytes.fromhex(sex_kid.replace("-", "").upper())).decode('utf-8').replace("==", "").replace("+", "-")
+                    
+                    logger.debug("Gen Kids: {}".format(kid), extra={"service_name": "Abema"})
+                    
+                    rgl = session.post("https://license.p-c3-e.abema-tv.com/abematv-dash", params={"t": mediatoken, "cid": response["id"], "ct": "program"}, json={"kids":[kid],"type":"temporary"})
+                    if rgl.status_code == 403:
+                        return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
+            
+                    gl = rgl.json()["keys"][0]
+            
+                    kid = gl['kid']
+                    k = gl['k']
+                    kty = gl['kty']
+                    
+                    logger.debug("GET KID: {}".format(kid), extra={"service_name": "Abema"})
+                    logger.debug("GET K: {}".format(k), extra={"service_name": "Abema"})
+                    logger.debug("GET KTY: {}".format(kty), extra={"service_name": "Abema"})
+                    
+                    
+                    # Kをdecryptする方法?
+                    # Step1. AES-CBC, HMAC-SHA256, Blowfish-ECB, RC4, Base58 encoding (Bitcoin variant)を用いてkからclearkeyを生成する
+                    # Step2. mp4decryptを使ってコンテンツ保護を解除
+                    
+                    # Source: https://forum.videohelp.com/threads/414857-Help-me-to-download-this-video-from-abema
+                    
+                    return "Coming soon...?"
             def setup_decryptor(key):
                 iv = unhexlify(iv)
                 _aes = AES.new(key, AES.MODE_CBC, IV=iv)
@@ -424,7 +466,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 else:
                     iv = iv
                 downloaded_files = []
-               #iv, _aes = setup_decryptor(key) # Initialize a new decryptor
+                iv, _aes = setup_decryptor(key) # Initialize a new decryptor
                 try:
                     with tqdm(total=len(files), desc='Downloading', ascii=True, unit='file') as pbar:
                         for tsf in files:
@@ -437,8 +479,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             with open(outputtemp, 'wb') as outf:
                                 try:
                                     vid = session.get(tsf)
-                                   # vid = _aes.decrypt(vid.content)
-                                    outf.write(vid.content)
+                                    vid = _aes.decrypt(vid.content)
+                                    outf.write(vid)
                                 except Exception as err:
                                     print(err)
                                     #yuu_log.error('Problem occured\nreason: {}'.format(err))
@@ -461,12 +503,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 key, reason = get_video_key(ticket)
                 if not key:
                     logger.error('{}'.format(reason), extra={"service_name": "Abema"})
-                    #continue
+                downloaded_files = download_chunk(files, key, iv)
+                merge_video(downloaded_files, os.path.join(config["directorys"]["Temp"], "content", unixtime, "fuck_abema.mp4"))
             except:
                 print("lol")
-            key = ""
-            downloaded_files = download_chunk(files, key, iv)
-            merge_video(downloaded_files, os.path.join(config["directorys"]["Temp"], "content", unixtime, "fuck_abema.mp4"))
             
         else:
             logger.info(f"Get Title for Season", extra={"service_name": "Abema"})
@@ -592,486 +632,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                 content_type = "PREMIUM"
                                 content_status_lol = ""
                             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
-                    
-                
-                #if len(response["seasons"]) != 1:
-                #    for season_num, i in enumerate(response["seasons"]):
-                #        logger.info(f"Processing season {str(season_num+1)} | {i["name"]}", extra={"service_name": "Abema"})
-                #        query_string = {
-                #            "seasonId": i["id"],
-                #            "limit": 100,
-                #            "offset": 0,
-                #            "orderType": "asc",
-                #            "include": "liveEvent,slot"
-                #        }
-                #        response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/{content_id}_eg0/contents", params=query_string).json()
-                #        for message in response["episodeGroupContents"]:
-                #            if id_type == "アニメ":
-                #                format_string = config["format"]["anime"].replace("_{episodename}", "")
-                #                values = {
-                #                    "seriesname": i["name"],
-                #                    "titlename": message["episode"].get("title", ""),
-                #                }
-                #                try:
-                #                    title_name_logger = format_string.format(**values)
-                #                except KeyError as e:
-                #                    missing_key = e.args[0]
-                #                    values[missing_key] = ""
-                #                    title_name_logger = format_string.format(**values)
-                #            if id_type == "劇場":
-                #                format_string = config["format"]["movie"]
-                #                if message.get("displayNo", "") == "":
-                #                    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                #                    values = {
-                #                        "seriesname": title_name,
-                #                    }
-                #                else:
-                #                    values = {
-                #                        "seriesname": i["name"],
-                #                        "titlename": message["episode"].get("displayNo", ""),
-                #                        #"episodename": message.get("episodeName", "")
-                #                    }
-                #                try:
-                #                    title_name_logger = format_string.format(**values)
-                #                except KeyError as e:
-                #                    missing_key = e.args[0]
-                #                    values[missing_key] = ""
-                #                    title_name_logger = format_string.format(**values)
-                #            logger.info(f" + {title_name_logger}", extra={"service_name": "Abema"})
-                #else:
-                #    if response["seasons"]["episodeGroups"]
-                #    for season_num, i in enumerate(response["seasons"]):
-                #        logger.info(f"Processing season {str(season_num+1)} | {i["name"]}", extra={"service_name": "Abema"})
-                #        query_string = {
-                #            "seasonId": i["id"],
-                #            "limit": 100,
-                #            "offset": 0,
-                #            "orderType": "asc",
-                #            "include": "liveEvent,slot"
-                #        }
-                #        response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/episodeGroups/{content_id}_eg0/contents", params=query_string).json()
-                #        for message in response["episodeGroupContents"]:
-                #            if id_type == "アニメ":
-                #                format_string = config["format"]["anime"].replace("_{episodename}", "")
-                #                values = {
-                #                    "seriesname": i["name"],
-                #                    "titlename": message["episode"].get("title", ""),
-                #                }
-                #                try:
-                #                    title_name_logger = format_string.format(**values)
-                #                except KeyError as e:
-                #                    missing_key = e.args[0]
-                #                    values[missing_key] = ""
-                #                    title_name_logger = format_string.format(**values)
-                #            if id_type == "劇場":
-                #                format_string = config["format"]["movie"]
-                #                if message.get("displayNo", "") == "":
-                #                    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                #                    values = {
-                #                        "seriesname": title_name,
-                #                    }
-                #                else:
-                #                    values = {
-                #                        "seriesname": i["name"],
-                #                        "titlename": message["episode"].get("displayNo", ""),
-                #                        #"episodename": message.get("episodeName", "")
-                #                    }
-                #                try:
-                #                    title_name_logger = format_string.format(**values)
-                #                except KeyError as e:
-                #                    missing_key = e.args[0]
-                #                    values[missing_key] = ""
-                #                    title_name_logger = format_string.format(**values)
-                #            logger.info(f" + {title_name_logger}", extra={"service_name": "Abema"})
-        #status, meta_response = unext_downloader.get_title_metadata(url)
-        #if status == False:
-        #    logger.error("Failed to Get Series Json", extra={"service_name": "U-Next"})
-        #    exit(1)
-        #else:
-        #    title_name = meta_response["titleName"]
-        #    
-        #status = unext.Unext_utils.check_single_episode(url)
-        #logger.info("Get Video Type for URL", extra={"service_name": "U-Next"})
-        #status_id, id_type = unext_downloader.get_id_type(url)
-        #if status_id == False:
-        #    logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
-        #    exit(1)
-        #logger.info(f" + Video Type: {id_type}", extra={"service_name": "U-Next"})
-        #if status == False:
-        #    logger.info("Get Title for Season", extra={"service_name": "U-Next"})
-        #    status, messages = unext_downloader.get_title_parse_all(url)
-        #    if status == False:
-        #        logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
-        #        exit(1)
-        #        
-        #    logger.info("Downloading All Episode Thumbnails...", extra={"service_name": "U-Next"})
-        #    
-        #    unext_downloader.get_thumbnail_list(meta_response["id"], message["id"], id_type, config, unixtime)
-        #        
-        #    for message in messages:
-        #        if id_type[2] == "ノーマルアニメ":
-        #            format_string = config["format"]["anime"]
-        #            values = {
-        #                "seriesname": title_name,
-        #                "titlename": message.get("displayNo", ""),
-        #                "episodename": message.get("episodeName", "")
-        #            }
-        #            try:
-        #                title_name_logger = format_string.format(**values)
-        #            except KeyError as e:
-        #                missing_key = e.args[0]
-        #                values[missing_key] = ""
-        #                title_name_logger = format_string.format(**values)
-        #        if id_type[2] == "劇場":
-        #            format_string = config["format"]["movie"]
-        #            if message.get("displayNo", "") == "":
-        #                format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-        #                values = {
-        #                    "seriesname": title_name,
-        #                }
-        #            else:
-        #                values = {
-        #                    "seriesname": title_name,
-        #                    "titlename": message.get("displayNo", ""),
-        #                    "episodename": message.get("episodeName", "")
-        #                }
-        #            try:
-        #                title_name_logger = format_string.format(**values)
-        #            except KeyError as e:
-        #                missing_key = e.args[0]
-        #                values[missing_key] = ""
-        #                title_name_logger = format_string.format(**values)
-        #        logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
-        #    for message in messages:
-        #        if id_type[2] == "ノーマルアニメ":
-        #            format_string = config["format"]["anime"]
-        #            values = {
-        #                "seriesname": title_name,
-        #                "titlename": message.get("displayNo", ""),
-        #                "episodename": message.get("episodeName", "")
-        #            }
-        #            try:
-        #                title_name_logger = format_string.format(**values)
-        #            except KeyError as e:
-        #                missing_key = e.args[0]
-        #                values[missing_key] = ""
-        #                title_name_logger = format_string.format(**values)
-        #        if id_type[2] == "劇場":
-        #            format_string = config["format"]["movie"]
-        #            if message.get("displayNo", "") == "":
-        #                format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-        #                values = {
-        #                    "seriesname": title_name,
-        #                }
-        #            else:
-        #                values = {
-        #                    "seriesname": title_name,
-        #                    "titlename": message.get("displayNo", ""),
-        #                    "episodename": message.get("episodeName", "")
-        #                }
-        #            try:
-        #                title_name_logger = format_string.format(**values)
-        #            except KeyError as e:
-        #                missing_key = e.args[0]
-        #                values[missing_key] = ""
-        #                title_name_logger = format_string.format(**values)
-        #        
-        #        if additional_info[2]: # ニコニコのコメントダウンロード時
-        #            sate = {}
-        #            sate["info"] = {
-        #                "work_title": title_name,
-        #                "episode_title": f"{message.get("displayNo", "")} {message.get("episodeName", "")}",
-        #                "raw_text": f"{title_name} {message.get("displayNo", "")} {message.get("episodeName", "")}",
-        #                "series_title": title_name,
-        #                "episode_text": message.get("displayNo", ""),
-        #                "episode_number": 1,
-        #                "subtitle": message.get("episodeName", ""),
-        #            }
-        #            
-        #            def get_niconico_info(stage, data):
-        #                if stage == 1:
-        #                    querystring = {
-        #                        "q": data,
-        #                        "_sort": "-startTime",
-        #                        "_context": "NCOverlay/3.23.0/Mod For Yoimi",
-        #                        "targets": "title,description",
-        #                        "fields": "contentId,title,userId,channelId,viewCounter,lengthSeconds,thumbnailUrl,startTime,commentCounter,categoryTags,tags",
-        #                        "filters[commentCounter][gt]": 0,
-        #                        "filters[genre.keyword][0]": "アニメ",
-        #                        "_offset": 0,
-        #                        "_limit": 20,
-        #                    }
-        #                    
-        #                    result = session.get("https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search", params=querystring).json()
-        #                    return result
-        #                elif stage == 2:
-        #                    result = session.get(f"https://www.nicovideo.jp/watch/{data}?responseType=json").json()
-        #                    return result
-        #                elif stage == 3:
-        #                    payload = {
-        #                        "params":{
-        #                            "targets": data[1],
-        #                            "language":"ja-jp"},
-        #                        "threadKey": data[0],
-        #                        "additionals":{}
-        #                    }
-        #                    headers = {
-        #                      "X-Frontend-Id": "6",
-        #                      "X-Frontend-Version": "0",
-        #                      "Content-Type": "application/json"
-        #                    }
-        #                    result = session.post(f"https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
-        #                    return result
-        #                
-        #            logger.info(f"Getting Niconico Comment", extra={"service_name": "U-Next"})
-        #            return_meta = get_niconico_info(1, sate["info"]["raw_text"])
-        #            
-        #            base_content_id = return_meta["data"][0]["contentId"]
-        #            
-        #            total_comment = 0
-        #            total_comment_json = []
-        #            total_tv = []
-        #            
-        #            for index in return_meta["data"]:
-        #                return_meta = get_niconico_info(2, index["contentId"])
-        #                    
-        #                filtered_data = [
-        #                    {"id": str(item["id"]), "fork": item["forkLabel"]}
-        #                    for item in return_meta["data"]["response"]["comment"]["threads"] if item["label"] != "easy"
-        #                ]
-        #                
-        #                return_meta = get_niconico_info(3, [return_meta["data"]["response"]["comment"]["nvComment"]["threadKey"], filtered_data])
-        #                for i in return_meta["data"]["globalComments"]:
-        #                    total_comment = total_comment + i["count"]
-        #                for i in return_meta["data"]["threads"]:
-        #                    for i in i["comments"]:
-        #                        total_comment_json.append(i)
-        #                if index["tags"].__contains__("dアニメストア"):
-        #                    total_tv.append("dアニメ")
-        #                else:
-        #                    total_tv.append("公式")
-        #            
-        #            def generate_xml(json_data):
-        #                root = ET.Element("packet", version="20061206")
-        #                
-        #                for item in json_data:
-        #                    chat = ET.SubElement(root, "chat")
-        #                    chat.set("no", str(item["no"]))
-        #                    chat.set("vpos", str(item["vposMs"] // 10))
-        #                    timestamp = datetime.fromisoformat(item["postedAt"]).timestamp()
-        #                    chat.set("date", str(int(timestamp)))
-        #                    chat.set("date_usec", "0")
-        #                    chat.set("user_id", item["userId"])
-        #                    
-        #                    if len(item["commands"]) > 1:
-        #                        chat.set("mail", "small shita")
-        #                    else:
-        #                        chat.set("mail", " ".join(item["commands"]))
-        #                    
-        #                    chat.set("premium", "1" if item["isPremium"] else "0")
-        #                    chat.set("anonymity", "0")
-        #                    chat.text = item["body"]
-        #                
-        #                return ET.ElementTree(root)
-        #            
-        #            def save_xml_to_file(tree, base_filename="output.xml"):
-        #                directory = os.path.dirname(base_filename)
-        #                if directory and not os.path.exists(directory):
-        #                    os.makedirs(directory)
-        #                
-        #                filename = base_filename
-        #                counter = 1
-        #                while os.path.exists(filename):
-        #                    filename = f"{os.path.splitext(base_filename)[0]}_{counter}.xml"
-        #                    counter += 1
-        #            
-        #                root = tree.getroot()
-        #                ET.indent(tree, space="  ", level=0)
-        #                
-        #                tree.write(filename, encoding="utf-8", xml_declaration=True)
-        #                return filename
-        #            
-        #            tree = generate_xml(total_comment_json)
-        #            
-        #            logger.info(f" + Hit Channel: {', '.join(total_tv)}", extra={"service_name": "U-Next"})
-        #            logger.info(f" + Total Comment: {str(total_comment)}", extra={"service_name": "U-Next"})
-        #            
-        #            saved_filename = save_xml_to_file(tree, base_filename=os.path.join(config["directorys"]["Downloads"], title_name, "niconico_comment", f"{title_name_logger}_[{base_content_id}]"+".xml"))
-        #            
-        #            logger.info(f" + XML data saved to: {saved_filename}", extra={"service_name": "U-Next"})
-        #            
-        #            if additional_info[3]:
-        #                continue
-#
-        #else:
-        #    logger.info("Get Title for 1 Episode", extra={"service_name": "U-Next"})
-        #    status, message, point = unext_downloader.get_title_parse_single(url)
-        #    if status == False:
-        #        logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
-        #        exit(1)
-        #    
-        #    if id_type[2] == "ノーマルアニメ":
-        #        format_string = config["format"]["anime"]
-        #        values = {
-        #            "seriesname": title_name,
-        #            "titlename": message.get("displayNo", ""),
-        #            "episodename": message.get("episodeName", "")
-        #        }
-        #        try:
-        #            title_name_logger = format_string.format(**values)
-        #        except KeyError as e:
-        #            missing_key = e.args[0]
-        #            values[missing_key] = ""
-        #            title_name_logger = format_string.format(**values)
-        #    if id_type[2] == "劇場":
-        #        format_string = config["format"]["movie"]
-        #        if message.get("displayNo", "") == "":
-        #            format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-        #            values = {
-        #                "seriesname": title_name,
-        #            }
-        #        else:
-        #            values = {
-        #                "seriesname": title_name,
-        #                "titlename": message.get("displayNo", ""),
-        #                "episodename": message.get("episodeName", "")
-        #            }
-        #        try:
-        #            title_name_logger = format_string.format(**values)
-        #        except KeyError as e:
-        #            missing_key = e.args[0]
-        #            values[missing_key] = ""
-        #            title_name_logger = format_string.format(**values)
-        #    logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
-#
-#
-        #    if additional_info[2]: # ニコニコのコメントダウンロード時
-        #        sate = {}
-        #        sate["info"] = {
-        #            "work_title": title_name,
-        #            "episode_title": f"{message.get("displayNo", "")} {message.get("episodeName", "")}",
-        #            "raw_text": f"{title_name} {message.get("displayNo", "")} {message.get("episodeName", "")}",
-        #            "series_title": title_name,
-        #            "episode_text": message.get("displayNo", ""),
-        #            "episode_number": 1,
-        #            "subtitle": message.get("episodeName", ""),
-        #        }
-        #        
-        #        def get_niconico_info(stage, data):
-        #            if stage == 1:
-        #                querystring = {
-        #                    "q": data,
-        #                    "_sort": "-startTime",
-        #                    "_context": "NCOverlay/3.23.0/Mod For Yoimi",
-        #                    "targets": "title,description",
-        #                    "fields": "contentId,title,userId,channelId,viewCounter,lengthSeconds,thumbnailUrl,startTime,commentCounter,categoryTags,tags",
-        #                    "filters[commentCounter][gt]": 0,
-        #                    "filters[genre.keyword][0]": "アニメ",
-        #                    "_offset": 0,
-        #                    "_limit": 20,
-        #                }
-        #                
-        #                result = session.get("https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search", params=querystring).json()
-        #                return result
-        #            elif stage == 2:
-        #                result = session.get(f"https://www.nicovideo.jp/watch/{data}?responseType=json").json()
-        #                return result
-        #            elif stage == 3:
-        #                payload = {
-        #                    "params":{
-        #                        "targets": data[1],
-        #                        "language":"ja-jp"},
-        #                    "threadKey": data[0],
-        #                    "additionals":{}
-        #                }
-        #                headers = {
-        #                  "X-Frontend-Id": "6",
-        #                  "X-Frontend-Version": "0",
-        #                  "Content-Type": "application/json"
-        #                }
-        #                result = session.post(f"https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
-        #                return result
-        #            
-        #        logger.info(f"Getting Niconico Comment", extra={"service_name": "U-Next"})
-        #        return_meta = get_niconico_info(1, sate["info"]["raw_text"])
-        #        
-        #        base_content_id = return_meta["data"][0]["contentId"]
-        #        
-        #        total_comment = 0
-        #        total_comment_json = []
-        #        total_tv = []
-        #        
-        #        for index in return_meta["data"]:
-        #            return_meta = get_niconico_info(2, index["contentId"])
-        #                
-        #            filtered_data = [
-        #                {"id": str(item["id"]), "fork": item["forkLabel"]}
-        #                for item in return_meta["data"]["response"]["comment"]["threads"] if item["label"] != "easy"
-        #            ]
-        #            
-        #            return_meta = get_niconico_info(3, [return_meta["data"]["response"]["comment"]["nvComment"]["threadKey"], filtered_data])
-        #            for i in return_meta["data"]["globalComments"]:
-        #                total_comment = total_comment + i["count"]
-        #            for i in return_meta["data"]["threads"]:
-        #                for i in i["comments"]:
-        #                    total_comment_json.append(i)
-        #            if index["tags"].__contains__("dアニメストア"):
-        #                total_tv.append("dアニメ")
-        #            else:
-        #                total_tv.append("公式")
-        #        
-        #        def generate_xml(json_data):
-        #            root = ET.Element("packet", version="20061206")
-        #            
-        #            for item in json_data:
-        #                chat = ET.SubElement(root, "chat")
-        #                chat.set("no", str(item["no"]))
-        #                chat.set("vpos", str(item["vposMs"] // 10))
-        #                timestamp = datetime.fromisoformat(item["postedAt"]).timestamp()
-        #                chat.set("date", str(int(timestamp)))
-        #                chat.set("date_usec", "0")
-        #                chat.set("user_id", item["userId"])
-        #                
-        #                if len(item["commands"]) > 1:
-        #                    chat.set("mail", "small shita")
-        #                else:
-        #                    chat.set("mail", " ".join(item["commands"]))
-        #                
-        #                chat.set("premium", "1" if item["isPremium"] else "0")
-        #                chat.set("anonymity", "0")
-        #                chat.text = item["body"]
-        #            
-        #            return ET.ElementTree(root)
-        #        
-        #        def save_xml_to_file(tree, base_filename="output.xml"):
-        #            directory = os.path.dirname(base_filename)
-        #            if directory and not os.path.exists(directory):
-        #                os.makedirs(directory)
-        #            
-        #            filename = base_filename
-        #            counter = 1
-        #            while os.path.exists(filename):
-        #                filename = f"{os.path.splitext(base_filename)[0]}_{counter}.xml"
-        #                counter += 1
-        #        
-        #            root = tree.getroot()
-        #            ET.indent(tree, space="  ", level=0)
-        #            
-        #            tree.write(filename, encoding="utf-8", xml_declaration=True)
-        #            return filename
-        #        
-        #        tree = generate_xml(total_comment_json)
-        #        
-        #        logger.info(f" + Hit Channel: {', '.join(total_tv)}", extra={"service_name": "U-Next"})
-        #        logger.info(f" + Total Comment: {str(total_comment)}", extra={"service_name": "U-Next"})
-        #        
-        #        saved_filename = save_xml_to_file(tree, base_filename=os.path.join(config["directorys"]["Downloads"], title_name, "niconico_comment", f"{title_name_logger}_[{base_content_id}]"+".xml"))
-        #        
-        #        logger.info(f" + XML data saved to: {saved_filename}", extra={"service_name": "U-Next"})
-        #        
-        #        if additional_info[3]:
-        #            return
-        ##        
     except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         #print(traceback.format_exc())
