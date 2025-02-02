@@ -428,10 +428,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     sex_kid = get_default_KID(mpd)
                     
                     #print(sex_kid.replace("-", "").upper())
+                    logger.debug("Get default_kid: {}".format(sex_kid), extra={"service_name": "Abema"})
                     
                     kid = base64.b64encode(bytes.fromhex(sex_kid.replace("-", "").upper())).decode('utf-8').replace("==", "").replace("+", "-")
                     
-                    logger.debug("Gen Kids: {}".format(kid), extra={"service_name": "Abema"})
+                    logger.debug("Gen KID: {}".format(kid), extra={"service_name": "Abema"})
                     
                     rgl = session.post("https://license.p-c3-e.abema-tv.com/abematv-dash", params={"t": mediatoken, "cid": response["id"], "ct": "program"}, json={"kids":[kid],"type":"temporary"})
                     if rgl.status_code == 403:
