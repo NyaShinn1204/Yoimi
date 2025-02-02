@@ -338,7 +338,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
-            decrypt_type = "dash" # or dash
+            decrypt_type = "hls" # or dash
             
             if decrypt_type == "hls":
                 def get_video_key(ticket):
