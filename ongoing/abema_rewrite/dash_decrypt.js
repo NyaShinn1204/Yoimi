@@ -233,7 +233,8 @@ function wn(r, n, e) {
     var Kr = "."
     var Xr = "stringify"
 
-    var h = (t = (a = n, H[Ur][Nr][jr](null, J(a))), H[Br][Mr](t))
+    //var h = (t = (a = n, String.fromCharCode(null, J(a))), JSON.parse(t))
+    var h = {"keys":[{"kty":"oct","k":"GF5kEzJ57JMwj4ANiVjXK96YmupfqKJEGoRxcEr5D2xc.DyE8UXxDHTRoHqSFv8MnVv5.4a9dd24b59a7b15308a1fe46e31c7fa8","kid":"uIFdYNVYShGCkN8ufLd0mA"}],"type":"temporary"}
     var d = h[qr][0]
     var l = d[Jr]
     var w = d[Qr]
