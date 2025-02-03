@@ -19,12 +19,15 @@ var o = {
     wh: 202
 }
 var a = ["Y2hhckF0", "T3RPTWk=", "X19BQk1fTElDRU5TRV9QUk9YWV9f", "QlFWdXo=", "T1ptZUQ=", "aGlnaE9yZGVy", "cHVzaA==", "bGVuZ3Ro", "Q3dBUXI=", "bG93T3JkZXI=", "VEF0QUM=", "R0tLUkI=", "Ym1KZEo=", "T29XRlM=", "cURwQk4=", "UXRWRE4=", "a3JJRGs=", "ak5lYXY=", "UHBrZWs=", "Z3FicHY=", "Y0VnSWs=", "dXNo", "U2RvV3k=", "Z3NLS3I=", "Y2hhckNvZGVBdA==", "cG93", "RHVheUc=", "MDAwMDAwMDAwMDAwMDAwMA==", "UUpsZ3M=", "cmlnaHQ=", "VnhPRE8=", "bGVmdA==", "alhvZG4=", "c3BsaXQ=", "bWFw", "a1VlbWI=", "ZFpxZ3g=", "Zk1xTnM=", "andhRUU=", "SHJ6dEo=", "RnNTbXI=", "Z0JSV1g=", "QWxoY0c=", "TlpMVEU="];
+var i = 181;
+var auidwiaud = (function(r) {
+    for (; --r; ) {
+        a.push(a.shift());  // 配列aを回転
+    }
+    return a;  // 回転後の配列を返す
+})(++i);
+console.log(auidwiaud);  // 回転後の配列を表示
 var c, f, h = function(r, n) {
-    (function(r) {
-        for (; --r; ) {
-            a.push(a.shift());  // 配列aを回転
-        }
-    })(++r);
     var e = a[r -= 0];
     void 0 === h.dQYSYC && (!function() {
         var r;
@@ -86,7 +89,9 @@ var c, f, h = function(r, n) {
 }
 function br(r) {
     for (var n = function(r, n) { return r < n }, e = function(r, n) { return r / n }, t = function(r, n) { return r - n }, i = function(r, n) { return r >= n }, o = function(r, n) { return r * n }, u = function(r, n) { return r & n }, s = {}, a = r[h("0x2")], c = r.charAt(0), f = 0; n(f, r.length); f++)
-    s[r[h("0x27")](f)] = f;
+        decode_method = h("0x27")
+        //console.log(decode_method)
+        s[r[decode_method](f)] = f;
     return {
         e: function (o) {
             if (o[h("0x2")] === 0) return "";  // ここでも `h("0x2")` を使ってインデックスを取得
