@@ -251,6 +251,7 @@ function wn(r, n, e) {
         "y": 56,
         "z": 57
       }      
+    var Xr = "stringify"
 
     var h = (t = (a = n, H[Ur][Nr][jr](null, J(a))), H[Br][Mr](t))
     var d = h[qr][0]
@@ -261,11 +262,32 @@ function wn(r, n, e) {
     var g = p[Hr](0, p[Wr](Kr))
     var O = p[Hr](f(p[Wr](Kr), 1))
     var x = (s = v, c(J, Fr.d(s)))
+
+    //付けたし
+    var $r = "lib"
+    var rn = "WordArray"
+    var nn = "create"
+
     var y = (o = r, u = Cr(l, e, g), o[$r][rn][nn](u));
     return d.k = function (r, n, e, t) {
         var i = {};
         i[hn] = r[$r][rn][nn](n);
         var o, u, s, a, c, f = {};
+        //付けたし
+        var en = "create"
+        var sn = "CBC"
+        var tn = "iv"
+        var un = "enc"
+        var an = "Hex"
+        var Mr = "parse"
+        var on = "padding"
+        var cn = "pad"
+        var fn = "Pkcs7"
+        var zr = "AES"
+        var ln = "decrypt"
+        var Yr = "toString"
+        var dn = "Utf8"
+
         return f[en] = r[en][sn],
             f[tn] = (c = t,
             r[un][an][Mr](c)),
@@ -273,8 +295,49 @@ function wn(r, n, e) {
             (o = r, u = i, s = e, a = f, o[zr][ln](u, s, a))[Yr](r[un][dn])
     }(r, x, y, O),
         function (r) {
+            var Gr = "length"
+            var Zr = "charCodeAt"
+            var Vr = "buffer"
             for (var n = r[Gr], e = J(n), t = 0; t < n; ++t)
                 e[t] = r[Zr](t);
             return e[Vr]
         }((i = h,H[Br][Xr](i)))
 }
+
+function vn(r) {
+    //付けたし
+    var Tr = "abm_userId"
+    var Ar = "localStorage"
+    var Lr = "getItem"
+    //var n, e = (n = Tr,
+    //Ar[Lr](n));
+    var n, e = (n=Tr, e="EX4EKv39PYnRJF")
+    return function(n) {
+        return wn(r, n, e)
+    }
+}
+yn = function(r) {
+    On = new WeakMap
+    On.set(r, vn(s())),
+    r.registerLicenseResponseFilter((n => {
+        if (n.url.includes(pn.rC.CLEARKEY) && "application/json" === n.headers["content-type"]) {
+            const e = On.get(r);
+            if (void 0 === e)
+                throw new Error("Unexpected Error: Decoder is missing.");
+            const t = e(function(r) {
+                const n = JSON.stringify(r)
+                  , e = new TextEncoder;
+                return e.encode(n).buffer
+            }(n.data));
+            n.data = function(r) {
+                const n = new TextDecoder
+                  , e = new Uint8Array(r)
+                  , t = n.decode(e);
+                return JSON.parse(t)
+            }(t)
+        }
+        return Promise.resolve()
+    }
+    ))
+}
+yn(undefined)

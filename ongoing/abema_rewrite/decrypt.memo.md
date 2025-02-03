@@ -28,3 +28,15 @@ line: 22038の
 
 Step2.
 まだ暗号化されているのでどっかにあるコードを探す
+
+
+
+
+番外:
+initdataの取得:
+requestKeySystemAccessのthen->x
+↓
+x->k->U->createKeySession
+x:55957
+k:55966
+U:55979
