@@ -1,4 +1,5 @@
 var c, f, h = function(r, n) {
+    var a = ["Y2hhckF0", "T3RPTWk=", "X19BQk1fTElDRU5TRV9QUk9YWV9f", "QlFWdXo=", "T1ptZUQ=", "aGlnaE9yZGVy", "cHVzaA==", "bGVuZ3Ro", "Q3dBUXI=", "bG93T3JkZXI=", "VEF0QUM=", "R0tLUkI=", "Ym1KZEo=", "T29XRlM=", "cURwQk4=", "UXRWRE4=", "a3JJRGs=", "ak5lYXY=", "UHBrZWs=", "Z3FicHY=", "Y0VnSWs=", "dXNo", "U2RvV3k=", "Z3NLS3I=", "Y2hhckNvZGVBdA==", "cG93", "RHVheUc=", "MDAwMDAwMDAwMDAwMDAwMA==", "UUpsZ3M=", "cmlnaHQ=", "VnhPRE8=", "bGVmdA==", "alhvZG4=", "c3BsaXQ=", "bWFw", "a1VlbWI=", "ZFpxZ3g=", "Zk1xTnM=", "andhRUU=", "SHJ6dEo=", "RnNTbXI=", "Z0JSV1g=", "QWxoY0c=", "TlpMVEU="]
     var e = a[r -= 0];
     void 0 === h.dQYSYC && (!function() {
         var r;
@@ -316,28 +317,63 @@ function vn(r) {
         return wn(r, n, e)
     }
 }
-yn = function(r) {
-    On = new WeakMap
-    On.set(r, vn(s())),
-    r.registerLicenseResponseFilter((n => {
-        if (n.url.includes(pn.rC.CLEARKEY) && "application/json" === n.headers["content-type"]) {
-            const e = On.get(r);
-            if (void 0 === e)
-                throw new Error("Unexpected Error: Decoder is missing.");
-            const t = e(function(r) {
-                const n = JSON.stringify(r)
-                  , e = new TextEncoder;
-                return e.encode(n).buffer
-            }(n.data));
-            n.data = function(r) {
-                const n = new TextDecoder
-                  , e = new Uint8Array(r)
-                  , t = n.decode(e);
-                return JSON.parse(t)
-            }(t)
-        }
-        return Promise.resolve()
+const On = {}; // WeakMap の代わりに普通のオブジェクトを使用
+
+function yn(r) {
+    const encryptionObject = {
+        AES: { encrypt: () => {}, decrypt: () => {} },
+        Blowfish: { encrypt: () => {}, decrypt: () => {} },
+        DES: { encrypt: () => {}, decrypt: () => {} },
+        HmacSHA256: (t, n) => "hmac_sha256_result",
+        SHA256: (t, n) => "sha256_result",
+        enc: {
+            Utf8: { parse: () => {}, stringify: () => {} }
+        },
+        mode: { CBC: { processBlock: () => {} } },
+        pad: { Pkcs7: { pad: () => {}, unpad: () => {} } }
+    };
+    On[r] = vn(encryptionObject); // オブジェクトのキーに r をセット
+
+    var n = {
+        data: {
+            keys: [
+                {
+                    k: "GF5kEzJ57JMwj4ANiVjXK96YmupfqKJEGoRxcEr5D2xc.DyE8UXxDHTRoHqSFv8MnVv5.4a9dd24b59a7b15308a1fe46e31c7fa8",
+                    kid: "uIFdYNVYShGCkN8ufLd0mA",
+                    kty: "oct"
+                }
+            ],
+            type: "temporary"
+        }, 
+        headers: {
+            "content-length": "182",
+            "content-type": "application/json"
+        },
+        url: "https://license.p-c3-e.abema-tv.com/abematv-dash?" +
+             "t=6sJtxaJyf4tSDqoGNAmSqTScKrBUAxNZFXXur5XRWfKbw46V928K3nAeLZttpJUHsJEHSFhgubHG5QFJCXY9Kn2DgEE7XNucaYMt3Ppsgs6T1E2WCj6unr" +
+             "&cid=25-147_s1_p1&ct=program"
+    };
+
+    if (n.url.includes("https://license.p-c3-e.abema-tv.com/abematv-dash") && n.headers["content-type"] === "application/json") {
+        const e = On[r]; // get に相当する処理
+        if (e === undefined)
+            throw new Error("Unexpected Error: Decoder is missing.");
+
+        const t = e(function(r) {
+            const n = JSON.stringify(r);
+            const e = new TextEncoder();
+            return e.encode(n).buffer;
+        }(n.data));
+
+        n.data = function(r) {
+            const n = new TextDecoder();
+            const e = new Uint8Array(r);
+            const t = n.decode(e);
+            return JSON.parse(t);
+        }(t);
     }
-    ))
+
+    return Promise.resolve();
 }
-yn(undefined)
+
+yn(undefined);
