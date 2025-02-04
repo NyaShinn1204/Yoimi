@@ -954,7 +954,7 @@ function wn(r, n, e) {
 
         return f["mode"] = r["mode"]["CBC"],
             f[tn] = (c = t,
-            r[un][an][Mr](c)),
+            r["enc"]["Hex"]["parse"](c)),
             f[on] = r[cn][fn],
             (o = r, u = i, s = e, a = f, o[zr][ln](u, s, a))[Yr](r[un][dn])
     }(r, x, y, O),
@@ -1064,6 +1064,68 @@ function yn(r) {
             return new u.init(t,e)
         }
     })
+
+    dont_dupe_l_1 = encryptionObject.enc = {}
+    , dont_dupe_l_2 = dont_dupe_l_1.Hex = {
+      stringify: function(e) {
+          for (var t = e.words, n = e.sigBytes, r = [], i = 0; i < n; i++) {
+              var a = t[i >>> 2] >>> 24 - i % 4 * 8 & 255;
+              r.push((a >>> 4).toString(16)),
+              r.push((15 & a).toString(16))
+          }
+          return r.join("")
+      },
+      parse: function(e) {
+          for (var t = e.length, n = [], r = 0; r < t; r += 2)
+              n[r >>> 3] |= parseInt(e.substr(r, 2), 16) << 24 - r % 8 * 4;
+          return new u.init(n,t / 2)
+      }
+  }
+
+    encryptionObject.mode = {};
+
+    var d = encryptionObject.BlockCipherMode = c.extend({
+        createEncryptor: function(e, t) {
+            return this.Encryptor.create(e, t);
+        },
+        createDecryptor: function(e, t) {
+            return this.Decryptor.create(e, t);
+        },
+        init: function(e, t) {
+            this._cipher = e;
+            this._iv = t;
+        }
+    });
+    
+    encryptionObject.mode.CBC = function() {
+        var t = d.extend();
+        function n(t, n, r) {
+            var i, a = this._iv;
+            a ? (i = a, this._iv = undefined) : i = this._prevBlock;
+            for (var o = 0; o < r; o++)
+                t[n + o] ^= i[o];
+        }
+        return t.Encryptor = t.extend({
+            processBlock: function(e, t) {
+                var r = this._cipher,
+                    i = r.blockSize;
+                n.call(this, e, t, i);
+                r.encryptBlock(e, t);
+                this._prevBlock = e.slice(t, t + i);
+            }
+        }),
+        t.Decryptor = t.extend({
+            processBlock: function(e, t) {
+                var r = this._cipher,
+                    i = r.blockSize,
+                    a = e.slice(t, t + i);
+                r.decryptBlock(e, t);
+                n.call(this, e, t, i);
+                this._prevBlock = a;
+            }
+        }),
+        t;
+    }();    
     On[r] = vn(encryptionObject); // オブジェクトのキーに r をセット
 
     var n = {
