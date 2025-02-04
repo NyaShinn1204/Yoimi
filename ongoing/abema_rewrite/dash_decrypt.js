@@ -955,8 +955,8 @@ function wn(r, n, e) {
         return f["mode"] = r["mode"]["CBC"],
             f[tn] = (c = t,
             r["enc"]["Hex"]["parse"](c)),
-            f[on] = r[cn][fn],
-            (o = r, u = i, s = e, a = f, o[zr][ln](u, s, a))[Yr](r[un][dn])
+            f[on] = r["pad"]["Pkcs7"],
+            (o = r, u = i, s = e, a = f, o["AES"]["decrypt"](u, s, a))[Yr](r[un][dn])
     }(r, x, y, O),
         function (r) {
             var Gr = "length"
@@ -1126,6 +1126,109 @@ function yn(r) {
         }),
         t;
     }();    
+
+    encryptionObject.pad = {};
+
+    encryptionObject.pad.pad = function(e, t) {
+        for (var n = 4 * t, r = n - e.sigBytes % n, i = r << 24 | r << 16 | r << 8 | r, o = [], s = 0; s < r; s += 4)
+            o.push(i);
+        var c = a.create(o, r);
+        e.concat(c)
+    },
+    encryptionObject.pad.unpad = function(e) {
+        var t = 255 & e.words[e.sigBytes - 1 >>> 2];
+        e.sigBytes -= t
+    }
+
+    encryptionObject.algo = {};
+
+    var h = [0, 1, 2, 4, 8, 16, 32, 64, 128, 27, 54];
+    encryptionObject.algo.AES = c.extend({
+        _doReset: function() {
+            if (!this._nRounds || this._keyPriorReset !== this._key) {
+                for (var e = this._keyPriorReset = this._key, t = e.words, n = e.sigBytes / 4, r = 4 * ((this._nRounds = n + 6) + 1), a = this._keySchedule = [], o = 0; o < r; o++) {
+                    o < n ? a[o] = t[o] : (u = a[o - 1],
+                        o % n ? n > 6 && o % n == 4 && (u = i[u >>> 24] << 24 | i[u >>> 16 & 255] << 16 | i[u >>> 8 & 255] << 8 | i[255 & u]) : (u = i[(u = u << 8 | u >>> 24) >>> 24] << 24 | i[u >>> 16 & 255] << 16 | i[u >>> 8 & 255] << 8 | i[255 & u],
+                        u ^= h[o / n | 0] << 24),
+                        a[o] = a[o - n] ^ u);
+                }
+                for (var s = this._invKeySchedule = [], c = 0; c < r; c++) {
+                    if (o = r - c,
+                        c % 4)
+                        var u = a[o];
+                    else
+                        u = a[o - 4];
+                    s[c] = c < 4 || o <= 4 ? u : l[i[u >>> 24]] ^ _[i[u >>> 16 & 255]] ^ d[i[u >>> 8 & 255]] ^ p[i[255 & u]];
+                }
+            }
+        },
+        encryptBlock: function(e, t) {
+            this._doCryptBlock(e, t, this._keySchedule, o, s, c, u, i);
+        },
+        decryptBlock: function(e, t) {
+            var n = e[t + 1];
+            e[t + 1] = e[t + 3];
+            e[t + 3] = n;
+            this._doCryptBlock(e, t, this._invKeySchedule, l, _, d, p, a);
+            n = e[t + 1];
+            e[t + 1] = e[t + 3];
+            e[t + 3] = n;
+        },
+        _doCryptBlock: function(e, t, n, r, i, a, o, s) {
+            for (var c = this._nRounds, u = e[t] ^ n[0], l = e[t + 1] ^ n[1], _ = e[t + 2] ^ n[2], d = e[t + 3] ^ n[3], p = 4, h = 1; h < c; h++) {
+                var m = r[u >>> 24] ^ i[l >>> 16 & 255] ^ a[_ >>> 8 & 255] ^ o[255 & d] ^ n[p++],
+                    f = r[l >>> 24] ^ i[_ >>> 16 & 255] ^ a[d >>> 8 & 255] ^ o[255 & u] ^ n[p++],
+                    v = r[_ >>> 24] ^ i[d >>> 16 & 255] ^ a[u >>> 8 & 255] ^ o[255 & l] ^ n[p++],
+                    g = r[d >>> 24] ^ i[u >>> 16 & 255] ^ a[l >>> 8 & 255] ^ o[255 & _] ^ n[p++];
+                u = m;
+                l = f;
+                _ = v;
+                d = g;
+            }
+            m = (s[u >>> 24] << 24 | s[l >>> 16 & 255] << 16 | s[_ >>> 8 & 255] << 8 | s[255 & d]) ^ n[p++];
+            f = (s[l >>> 24] << 24 | s[_ >>> 16 & 255] << 16 | s[d >>> 8 & 255] << 8 | s[255 & u]) ^ n[p++];
+            v = (s[_ >>> 24] << 24 | s[d >>> 16 & 255] << 16 | s[u >>> 8 & 255] << 8 | s[255 & l]) ^ n[p++];
+            g = (s[d >>> 24] << 24 | s[u >>> 16 & 255] << 16 | s[l >>> 8 & 255] << 8 | s[255 & _]) ^ n[p++];
+            e[t] = m;
+            e[t + 1] = f;
+            e[t + 2] = v;
+            e[t + 3] = g;
+        },
+        keySize: 8
+    });
+
+    // Add AES to the encryptionObject
+    encryptionObject.algo.AES = m;
+
+    _createHelper = function() {
+        function e(e) {
+            return "string" == typeof e ? b : v
+        }
+        return function(t) {
+            return {
+                encrypt: function(n, r, i) {
+                    return e(r).encrypt(t, n, r, i)
+                },
+                decrypt: function(n, r, i) {
+                    return e(r).decrypt(t, n, r, i)
+                }
+            }
+        }
+    }()
+
+    // Define the helper function for encrypt/decrypt under encryptionObject.aes
+    encryptionObject.AES = (function() {
+        var helper = _createHelper(encryptionObject.algo.AES);
+        return {
+            encrypt: function(n, r, i) {
+                return helper.encrypt(n, r, i);
+            },
+            decrypt: function(n, r, i) {
+                return helper.decrypt(n, r, i);
+            }
+        };
+    })();
+
     On[r] = vn(encryptionObject); // オブジェクトのキーに r をセット
 
     var n = {
