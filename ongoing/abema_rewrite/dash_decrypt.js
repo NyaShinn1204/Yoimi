@@ -1202,9 +1202,61 @@ function yn(r) {
     // Add AES to the encryptionObject
     encryptionObject.algo.AES = m;
 
+    var orig_v = c.extend({
+        cfg: c.extend({
+            format: f
+        }),
+        encrypt: function(e, t, n, r) {
+            r = this.cfg.extend(r);
+            var i = e.createEncryptor(n, r)
+              , a = i.finalize(t)
+              , o = i.cfg;
+            return m.create({
+                ciphertext: a,
+                key: n,
+                iv: o.iv,
+                algorithm: e,
+                mode: o.mode,
+                padding: o.padding,
+                blockSize: e.blockSize,
+                formatter: r.format
+            })
+        },
+        decrypt: function(e, t, n, r) {
+            return r = this.cfg.extend(r),
+            t = this._parse(t, r.format),
+            console.log(e),
+            createDecryptor(n, r).finalize(t.ciphertext)
+        },
+        _parse: function(e, t) {
+            return "string" == typeof e ? t.parse(e, this) : e
+        }
+    })
+    extend = function(e) {
+        var t = a(this);
+        return e && t.mixIn(e),
+        t.hasOwnProperty("init") && this.init !== t.init || (t.init = function() {
+            t.$super.init.apply(this, arguments)
+        }
+        ),
+        t.init.prototype = t,
+        t.$super = this,
+        t
+    };
+    create = function() {
+        var e = this.extend();
+        return e.init.apply(e, arguments),
+        e
+    };
+    createEncryptor = function(e, t) {
+        return this.create(this._ENC_XFORM_MODE, e, t)
+    };
+    createDecryptor = function(e, t) {
+        return this.create(this._DEC_XFORM_MODE, e, t)
+    };
     _createHelper = function() {
         function e(e) {
-            return "string" == typeof e ? b : v
+            return "string" == typeof e ? b : orig_v
         }
         return function(t) {
             return {
@@ -1212,7 +1264,12 @@ function yn(r) {
                     return e(r).encrypt(t, n, r, i)
                 },
                 decrypt: function(n, r, i) {
-                    console.log(n,r,i)
+                    console.log("n", n)
+                    console.log("r", r)
+                    console.log("i", i)
+
+                    console.log("t", t)
+
                     return e(r).decrypt(t, n, r, i)
                 }
             }
