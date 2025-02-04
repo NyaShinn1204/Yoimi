@@ -1129,15 +1129,17 @@ function yn(r) {
 
     encryptionObject.pad = {};
 
-    encryptionObject.pad.pad = function(e, t) {
-        for (var n = 4 * t, r = n - e.sigBytes % n, i = r << 24 | r << 16 | r << 8 | r, o = [], s = 0; s < r; s += 4)
-            o.push(i);
-        var c = a.create(o, r);
-        e.concat(c)
-    },
-    encryptionObject.pad.unpad = function(e) {
-        var t = 255 & e.words[e.sigBytes - 1 >>> 2];
-        e.sigBytes -= t
+    (encryptionObject.pad = {}).Pkcs7 = {
+        pad: function(e, t) {
+            for (var n = 4 * t, r = n - e.sigBytes % n, i = r << 24 | r << 16 | r << 8 | r, o = [], s = 0; s < r; s += 4)
+                o.push(i);
+            var c = a.create(o, r);
+            e.concat(c)
+        },
+        unpad: function(e) {
+            var t = 255 & e.words[e.sigBytes - 1 >>> 2];
+            e.sigBytes -= t
+        }
     }
 
     encryptionObject.algo = {};
@@ -1210,6 +1212,7 @@ function yn(r) {
                     return e(r).encrypt(t, n, r, i)
                 },
                 decrypt: function(n, r, i) {
+                    console.log(n,r,i)
                     return e(r).decrypt(t, n, r, i)
                 }
             }
