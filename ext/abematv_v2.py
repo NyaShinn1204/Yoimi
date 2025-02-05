@@ -123,38 +123,55 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         abema_downloader = abema.Abema_downloader(session)
         
-        if config["authorization"]["use_token"]:
-            if config["authorization"]["token"] != "":
-                status, message = abema_downloader.check_token(config["authorization"]["token"])
+        if email and password != None:
+            if config["authorization"]["use_token"]:
+                if config["authorization"]["token"] != "":
+                    status, message = abema_downloader.check_token(config["authorization"]["token"])
+                    if status == False:
+                        logger.error(message, extra={"service_name": "Abema"})
+                        exit(1)
+                    else:
+                        session.headers.update({"Authorization": config["authorization"]["token"]})
+                        logger.debug("Get Token: "+config["authorization"]["token"], extra={"service_name": "Abema"})
+                        logger.info("Loggined Account", extra={"service_name": "Abema"})
+                        logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
+                        for plan_num, i in enumerate(message["subscriptions"]):
+                            logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
+                else:
+                    logger.error("Please input token", extra={"service_name": "Abema"})
+                    exit(1)
+            else:
+                status, message, device_id = abema_downloader.authorize(email, password)
+                try:
+                    logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Abema"})
+                except:
+                    logger.info("Failed to login", extra={"service_name": "Abema"})
                 if status == False:
                     logger.error(message, extra={"service_name": "Abema"})
                     exit(1)
                 else:
-                    session.headers.update({"Authorization": config["authorization"]["token"]})
-                    logger.debug("Get Token: "+config["authorization"]["token"], extra={"service_name": "Abema"})
                     logger.info("Loggined Account", extra={"service_name": "Abema"})
                     logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
                     for plan_num, i in enumerate(message["subscriptions"]):
                         logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
+            user_id = message["profile"]["userId"]
+            if "プレミアム" in message["subscriptions"]:
+                you_premium = True
+            elif message["subscriptions"] == []:
+                you_premium = False
             else:
-                logger.error("Please input token", extra={"service_name": "Abema"})
-                exit(1)
+                you_premium = False
+                 
         else:
-            status, message, device_id = abema_downloader.authorize(email, password)
-            try:
-                logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Abema"})
-            except:
-                logger.info("Failed to login", extra={"service_name": "Abema"})
+            temp_token = abema.Abema_utils.gen_temp_token(session)
+            session.headers.update({'Authorization': 'Bearer ' + temp_token[0]})
+            device_id = temp_token[1]
+            status, message = abema_downloader.check_token('Bearer ' + temp_token[0])
             if status == False:
                 logger.error(message, extra={"service_name": "Abema"})
                 exit(1)
-            else:
-                logger.info("Loggined Account", extra={"service_name": "Abema"})
-                logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
-                for plan_num, i in enumerate(message["subscriptions"]):
-                    logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
-        
-        user_id = message["profile"]["userId"]
+            user_id = message["profile"]["userId"]
+            you_premium = False
                     
         if url.__contains__("abema.app"):
             temp_url = session.get(url, allow_redirects=False)
@@ -217,6 +234,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 content_type = "PREMIUM"
                 content_status_lol = ""
             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
+            if you_premium == False:
+                if content_type == "PREMIUM":
+                    return
             
             hls = response['playback']['hls']
             duration = response['info']['duration']
@@ -314,8 +334,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         if 'tsda' in files[0]:
                             # Assume DRMed
                             return None, None, None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
-                resgex = re.findall(r'(\d*)(?:\/\w+.ts)', files[0])[0]
-                keys_data = x.keys[0]
                 iv = x.keys[0].iv
                 ticket = x.keys[0].uri[18:]
         
@@ -325,10 +343,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         f = 'https://ds-vod-abematv.akamaized.net' + f
                     parsed_files.append(f)
         
-                #if self.resolution[:-1] != resgex:
-                #    #if not self.resolution_o:
-                #    #    self.yuu_logger.warn('Changing resolution, from {} to {}p'.format(self.resolution, resgex))
-                #    self.resolution = resgex + 'p'
                 logger.debug('Total files: {}'.format(len(files)), extra={"service_name": "Abema"})
                 logger.debug('IV: {}'.format(iv), extra={"service_name": "Abema"})
                 logger.debug('Ticket key: {}'.format(ticket), extra={"service_name": "Abema"})

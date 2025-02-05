@@ -270,7 +270,7 @@ class Abema_downloader:
         self.session.headers.update({'Authorization': token})
         
         user_info_res = self.session.get(_USERAPI+"/"+userId)
-        if user_info_res.status == 200:
+        if user_info_res.status_code == 200:
             return True, user_info_res.json()
         else:
             return False, "Invalid Token"
