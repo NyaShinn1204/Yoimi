@@ -412,6 +412,64 @@ class Abema_downloader:
         else:
             return False, "Invalid Token"
         
+    def setup_decryptor(self, key, iv):
+        iv = unhexlify(iv)
+        _aes = AES.new(key, AES.MODE_CBC, IV=iv)
+        return iv, _aes
+
+    def download_chunk(self, files, key, iv, decrypt_type, output_temp_directory):
+        if decrypt_type == "hls":
+            if iv.startswith('0x'):
+                iv = iv[2:]
+            else:
+                iv = iv
+                iv, _aes = self.setup_decryptor(key, iv)
+        downloaded_files = []
+        try:
+            with tqdm(total=len(files), desc='Downloading', ascii=True, unit='file') as pbar:
+                for tsf in files:
+                    outputtemp = os.path.join(output_temp_directory, os.path.basename(tsf))
+                    if not os.path.exists(output_temp_directory):
+                        os.makedirs(output_temp_directory, exist_ok=True)
+                    if outputtemp.find('?tver') != -1:
+                        outputtemp = outputtemp[:outputtemp.find('?tver')]
+                    with open(outputtemp, 'wb') as outf:
+                        try:
+                            vid = self.session.get(tsf)
+                            if decrypt_type == "hls":
+                                vid = _aes.decrypt(vid.content)
+                            else:
+                                vid = vid.content
+                            outf.write(vid)
+                        except Exception as err:
+                            print(err)
+                            return None
+                    pbar.update()
+                    downloaded_files.append(outputtemp)
+        except KeyboardInterrupt:
+            return None
+        return downloaded_files
+    def merge_video(self, path, output, service_name="Abema"):
+        """
+        m4sファイルを結合して1つの動画ファイルにする関数
+        
+        Args:
+            input_files (list): 結合するm4sファイルのリスト
+            output_file (str): 出力する結合済みのファイル名
+        """
+        total_files = len(path)
+        
+        # バイナリモードでファイルを結合
+        with open(output, "wb") as outfile:
+            with tqdm(total=total_files, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as pbar:
+                for i, f in enumerate(path, start=1):
+                    with open(f, "rb") as infile:
+                        outfile.write(infile.read())
+                    os.remove(f)
+                    pbar.set_postfix(file=f, refresh=True)
+                    pbar.update(1)
+            
+        
     def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="Abema"):
         # 出力ディレクトリを作成
         os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)

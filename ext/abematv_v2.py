@@ -370,63 +370,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             decrypt_type = "dash" # or dash
             
-            def setup_decryptor(key, iv):
-                iv = unhexlify(iv)
-                _aes = AES.new(key, AES.MODE_CBC, IV=iv)
-                return iv, _aes
-        
-            def download_chunk(files, key, iv):
-                if decrypt_type == "hls":
-                    if iv.startswith('0x'):
-                        iv = iv[2:]
-                    else:
-                        iv = iv
-                        iv, _aes = setup_decryptor(key, iv)
-                downloaded_files = []
-                try:
-                    with tqdm(total=len(files), desc='Downloading', ascii=True, unit='file') as pbar:
-                        for tsf in files:
-                            outputtemp = os.path.join(output_temp_directory, os.path.basename(tsf))
-                            if not os.path.exists(output_temp_directory):
-                                os.makedirs(output_temp_directory, exist_ok=True)
-                            if outputtemp.find('?tver') != -1:
-                                outputtemp = outputtemp[:outputtemp.find('?tver')]
-                            with open(outputtemp, 'wb') as outf:
-                                try:
-                                    vid = session.get(tsf)
-                                    if decrypt_type == "hls":
-                                        vid = _aes.decrypt(vid.content)
-                                    else:
-                                        vid = vid.content
-                                    outf.write(vid)
-                                except Exception as err:
-                                    print(err)
-                                    return None
-                            pbar.update()
-                            downloaded_files.append(outputtemp)
-                except KeyboardInterrupt:
-                    return None
-                return downloaded_files
-            def merge_video(path, output, service_name="Abema"):
-                """
-                m4sファイルを結合して1つの動画ファイルにする関数
-                
-                Args:
-                    input_files (list): 結合するm4sファイルのリスト
-                    output_file (str): 出力する結合済みのファイル名
-                """
-                total_files = len(path)
-                
-                # バイナリモードでファイルを結合
-                with open(output, "wb") as outfile:
-                    with tqdm(total=total_files, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as pbar:
-                        for i, f in enumerate(path, start=1):
-                            with open(f, "rb") as infile:
-                                outfile.write(infile.read())
-                            os.remove(f)
-                            pbar.set_postfix(file=f, refresh=True)
-                            pbar.update(1)
-            
             try:
                 decrypt_module = getattr(abema, decrypt_type, None)
                 
@@ -440,14 +383,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     # 720p 2 = audio
                     segment_list = abema.Abema_utils.get_segment_link_list(key[1], f"{resolution_list[-1][1]}.1", "https://ds-vod-abematv.akamaized.net/")
                     files = segment_list[0]["all"]
-                    downloaded_files = download_chunk(files, key[0], iv)
+                    downloaded_files = abema_downloader.download_chunk(files, key[0], iv, decrypt_type, output_temp_directory)
                     temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video_encrypted.mp4")
-                    merge_video(downloaded_files, temp_output)
+                    abema_downloader.merge_video(downloaded_files, temp_output)
                     abema.Abema_decrypt.decrypt_content(key[0], temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video.mp4"), config)
                     files = [s.replace('p.1', 'p.2') for s in segment_list[1]["all"]]
-                    downloaded_files = download_chunk(files, key[0], iv)
+                    downloaded_files = abema_downloader.download_chunk(files, key[0], iv, decrypt_type, output_temp_directory)
                     temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio_encrypted.mp4")
-                    merge_video(downloaded_files, temp_output)
+                    abema_downloader.merge_video(downloaded_files, temp_output)
                     abema.Abema_decrypt.decrypt_content(key[0], temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio.mp4"), config)
                     
                     result = abema_downloader.mux_episode("download_video.mp4", "download_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(duration))
@@ -468,8 +411,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Abema"})
                     
                 if decrypt_type == "hls":
-                    downloaded_files = download_chunk(files, key, iv)
-                    merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"))
+                    downloaded_files = abema_downloader.download_chunk(files, key, iv, decrypt_type, output_temp_directory)
+                    abema_downloader.merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"))
             except Exception as e:
                 logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                 type_, value, _ = sys.exc_info()
