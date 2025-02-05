@@ -248,10 +248,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 content_type = "PREMIUM"
                 content_status_lol = ""
             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
-            if you_premium == False:
-                if content_type == "PREMIUM":
-                    logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Abema"})
-                    return
+            if episode_message["content_type"] == "PREMIUM" and you_premium == False:
+                logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Abema"})
+                return
             
             hls = response['playback']['hls']
             duration = response['info']['duration']
@@ -368,7 +367,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
-            decrypt_type = "dash" # or dash
+            decrypt_type = "hls" # or dash
             
             try:
                 decrypt_module = getattr(abema, decrypt_type, None)
@@ -485,6 +484,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 season_response = response["seasons"]
                 
+                total_episode_json = []
+                
                 for season_num, i in enumerate(season_response):
                     logger.info(f"Processing season {str(season_num+1)} | {i["name"]}", extra={"service_name": "Abema"})
                     for i2 in i["episodeGroups"]:
@@ -548,7 +549,21 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             else:
                                 content_type = "PREMIUM"
                                 content_status_lol = ""
+                                
+                            temp_json = {}
+                            temp_json["content_type"] = content_type
+                            temp_json["content_status"] = content_status_lol
+                            temp_json["title_name_logger"] = title_name_logger
+                            
+                            total_episode_json.append(temp_json)
+                                
                             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
+                for i, episode_message in enumerate(total_episode_json):
+                    logger.info("Get Title for Episode", extra={"service_name": "Abema"})
+                    logger.info(f" + {episode_message["content_type"]} | {episode_message["title_name_logger"]} {episode_message["content_status"]}", extra={"service_name": "Abema"})
+                    if episode_message["content_type"] == "PREMIUM" and you_premium == False:
+                        logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Abema"})
+                        continue
     except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         #print(traceback.format_exc())
