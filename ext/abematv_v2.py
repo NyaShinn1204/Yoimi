@@ -393,6 +393,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             return default_KID
                     return None
                 def get_video_key(null):
+                    global dash_mpd
                     #self.yuu_logger.debug('Sending parameter to API')
                     _KEYPARAMS = {
                         "osName": "pc",
@@ -404,8 +405,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     restoken = session.get("https://api.p-c3-e.abema-tv.com/v1/media/token", params=_KEYPARAMS).json()
                     mediatoken = restoken['token']                    
                     
-                    mpd = session.get(response['playback']['dash'], params={"t": mediatoken, "enc": "clear", "dt": "pc_unknown", "ccf": 0, "dtid": "jdwHcemp6THr", "ut": 1}).text
-                    sex_kid = get_default_KID(mpd)
+                    dash_mpd = session.get(response['playback']['dash'], params={"t": mediatoken, "enc": "clear", "dt": "pc_unknown", "ccf": 0, "dtid": "jdwHcemp6THr", "ut": 1}).text
+                    sex_kid = get_default_KID(dash_mpd)
                     
                     logger.debug("Get default_kid: {}".format(sex_kid), extra={"service_name": "Abema"})
                     
@@ -507,26 +508,42 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 except KeyboardInterrupt:
                     return None
                 return downloaded_files
-            def merge_video(path, output):
-                with open(output, 'wb') as out:
-                    with tqdm(total=len(path), desc="Merging", ascii=True, unit="file") as pbar:
-                        for i in path:
-                            out.write(open(i, 'rb').read())
-                            os.remove(i)
-                            pbar.update()
+            def merge_video(path, output, service_name="Abema"):
+                """
+                m4sファイルを結合して1つの動画ファイルにする関数
+                
+                Args:
+                    input_files (list): 結合するm4sファイルのリスト
+                    output_file (str): 出力する結合済みのファイル名
+                """
+                total_files = len(path)
+                
+                # バイナリモードでファイルを結合
+                with open(output, "wb") as outfile:
+                    with tqdm(total=total_files, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as pbar:
+                        for i, f in enumerate(path, start=1):
+                            with open(f, "rb") as infile:
+                                outfile.write(infile.read())
+                            os.remove(f)
+                            pbar.set_postfix(file=f, refresh=True)
+                            pbar.update(1)
             
             try:
                 key, reason = get_video_key(ticket)
                 if not key:
                     logger.error('{}'.format(reason), extra={"service_name": "Abema"})
+                if decrypt_type == "dash":
+                    segment_list_video = abema.Abema_utils.get_segment_link_list(dash_mpd, "720p.2", "https://ds-vod-abematv.akamaized.net/mp4vpg/25-147_s1_p1/XqUDeboQA9qCNFTJRCjFg2/720p.2/166.m4s")
+                    print(segment_list_video)
+                    files = None
                 downloaded_files = download_chunk(files, key, iv)
                 if decrypt_type == "hls":
                     merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"))
                 if decrypt_type == "dash":
                     random_string = str(int(time.time() * 1000))
-                    temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, random_string+".mp4")
+                    temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, random_string+"_encrypted.mp4")
                     merge_video(downloaded_files, temp_output)
-                    abema.Abema_decrypt.decrypt_content(key, temp_output, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config)
+                    abema.Abema_decrypt.decrypt_content(key, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, random_string+".mp4"), config)
             except Exception as e:
                 logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                 #print(traceback.format_exc())

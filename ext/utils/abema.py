@@ -5,17 +5,12 @@ import time
 import hmac
 import uuid
 import hashlib
-import string
-import random
-import requests
 import subprocess
-from base64 import urlsafe_b64encode, urlsafe_b64decode
 from tqdm import tqdm
+from lxml import etree
+from base64 import urlsafe_b64encode, urlsafe_b64decode
 from datetime import datetime
-from bs4 import BeautifulSoup
-from xml.etree import ElementTree as ET
-from urllib.parse import urlparse, parse_qs
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import urljoin
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
@@ -76,6 +71,110 @@ class Abema_utils:
             return None
 
         return [token, device_id]
+    def get_segment_link_list(mpd_content, representation_id, url):
+        if isinstance(mpd_content, str):
+            content = mpd_content.encode('utf-8')
+        else:
+            content = mpd_content
+        
+        """
+        MPDコンテンツから指定されたRepresentation IDに対応するSegmentTemplateのリストを取得する。
+    
+        Args:
+            mpd_content (str): MPDファイルのXMLコンテンツ。
+            representation_id (str): 抽出したいRepresentation ID。
+            url (str) : mpdファイルのURL
+    
+        Returns:
+            list: セグメントリスト。各セグメントテンプレートの初期化URLとセグメントURLリストを含む。
+        """
+        try:
+            tree = etree.fromstring(content)
+            # 名前空間を設定
+            ns = {'dash': 'urn:mpeg:dash:schema:mpd:2011'}
+    
+            # SegmentTemplateを探す（最初はvideo、次はaudio）
+            segment_templates = tree.findall('dash:SegmentTemplate', ns)
+            if not segment_templates:
+                return []
+            
+            result = []
+    
+            # 最初のSegmentTemplateはvideoとして処理
+            video_segment_template = segment_templates[0]
+            video_result = Abema_utils.process_segment_template(video_segment_template, ns, representation_id, url, "video")
+            result.append(video_result)
+            
+            # 二番目のSegmentTemplateはaudioとして処理
+            if len(segment_templates) > 1:
+                audio_segment_template = segment_templates[1]
+                audio_result = Abema_utils.process_segment_template(audio_segment_template, ns, representation_id, url, "audio")
+                result.append(audio_result)
+    
+            return result
+    
+        except etree.ParseError:
+            print("XML解析エラー")
+            return []
+        except Exception as e:
+            print(f"予期せぬエラーが発生しました: {e}")
+            return []
+    
+    def process_segment_template(segment_template, ns, representation_id, url, segment_type):
+        """
+        セグメントテンプレートを処理して、セグメントリストを生成するヘルパー関数。
+    
+        Args:
+            segment_template (Element): SegmentTemplate要素。
+            ns (dict): 名前空間の辞書。
+            representation_id (str): Representation ID。
+            url (str): mpdファイルのURL。
+            segment_type (str): セグメントの種類（'video' または 'audio'）。
+    
+        Returns:
+            dict: セグメント情報を含む辞書。
+        """
+        segment_timeline = segment_template.find('dash:SegmentTimeline', ns)
+        if segment_timeline is None:
+            return {}
+    
+        media_template = segment_template.get('media')
+        init_template = segment_template.get('initialization')
+        
+        # テンプレート文字列の $RepresentationID$ を実際のIDに置換
+        media_template = media_template.replace('$RepresentationID$', representation_id)
+        init_template = init_template.replace('$RepresentationID$', representation_id)
+        
+        # セグメントリストの構築
+        segment_list = []
+        segment_all = []
+        segment_all.append(urljoin(url, init_template))
+        current_time = 0
+        for segment in segment_timeline.findall('dash:S', ns):
+            d_attr = segment.get('d')
+            r_attr = segment.get('r')
+            if not d_attr:
+                continue
+            duration = int(d_attr)
+            
+            repeat_count = 1
+            if r_attr is not None:
+                repeat_count = int(r_attr) + 1
+    
+            for _ in range(repeat_count):
+                segment_file = media_template.replace('$Time$', str(current_time))
+                segment_list.append(urljoin(url, segment_file))
+                segment_all.append(urljoin(url, segment_file))
+                current_time += duration
+    
+        init_url = urljoin(url, init_template)
+    
+        return {
+            "type": segment_type,
+            "init": init_url,
+            "segments": segment_list,
+            "all": segment_all
+        }
 class Abema_decrypt:
     def mp4decrypt(key, config):
         if os.name == 'nt':
@@ -102,6 +201,7 @@ class Abema_decrypt:
     def decrypt_content(keys, input_file, output_file, config, service_name="Abema"):
         mp4decrypt_command = Abema_decrypt.mp4decrypt(keys, config)
         mp4decrypt_command.extend([input_file, output_file])
+        print(mp4decrypt_command)
         
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
             with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
