@@ -4,13 +4,19 @@ import json
 import time
 import hmac
 import uuid
+import struct
+import base64
 import hashlib
 import subprocess
+import pythonmonkey as pm
 from tqdm import tqdm
 from lxml import etree
-from base64 import urlsafe_b64encode, urlsafe_b64decode
+from Crypto.Cipher import AES
 from datetime import datetime
+from binascii import unhexlify
 from urllib.parse import urljoin
+import xml.etree.ElementTree as ET
+from base64 import urlsafe_b64encode, urlsafe_b64decode
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
@@ -216,6 +222,137 @@ class Abema_decrypt:
                 if process.returncode == 0:
                     inner_pbar.n = 100
                     inner_pbar.refresh()
+
+# ここからコンテンツ保護解除
+class hls:
+    def get_video_key(session=None, device_id=None, ticket=None, response=None, logger=None, user_id=None):
+        _MEDIATOKEN_API = "https://api.p-c3-e.abema-tv.com/v1/media/token"
+        _LICENSE_API = "https://license.abema.io/abematv-hls"
+        
+        _STRTABLE = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+        _HKEY = b"3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E"
+        
+        _KEYPARAMS = {
+            "osName": "pc",
+            "osVersion": "1.0.0",
+            "osLand": "ja",
+            "osTimezone": "Asia/Tokyo",
+            "appVersion": "v25.130.0"
+        }
+        restoken = session.get(_MEDIATOKEN_API, params=_KEYPARAMS).json()
+        mediatoken = restoken['token']
+        rgl = session.post(_LICENSE_API, params={"t": mediatoken}, json={"kv": "a", "lt": ticket})
+        if rgl.status_code == 403:
+            return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
+
+        gl = rgl.json()
+
+        cid = gl['cid']
+        k = gl['k']
+        res = sum([_STRTABLE.find(k[i]) * (58 ** (len(k) - 1 - i)) for i in range(len(k))])
+
+        encvk = struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff)
+
+        h = hmac.new(unhexlify(_HKEY), (cid + device_id).encode("utf-8"), digestmod=hashlib.sha256)
+        enckey = h.digest()
+
+        aes = AES.new(enckey, AES.MODE_ECB)
+        vkey = aes.decrypt(encvk)
+
+        return vkey, "Success"
+
+class dash:
+    def get_default_KID(mpd_content):
+        root = ET.fromstring(mpd_content)
+    
+        namespaces = {
+            '': 'urn:mpeg:dash:schema:mpd:2011',
+            'cenc': 'urn:mpeg:cenc:2013'
+        }
+    
+        for elem in root.iterfind('.//{urn:mpeg:dash:schema:mpd:2011}Period//{urn:mpeg:dash:schema:mpd:2011}AdaptationSet//{urn:mpeg:dash:schema:mpd:2011}ContentProtection', namespaces):
+            default_KID = elem.get('{urn:mpeg:cenc:2013}default_KID')
+            if default_KID:
+                return default_KID
+        return None
+    def get_video_key(session=None, device_id=None, ticket=None, response=None, logger=None, user_id=None):
+        _KEYPARAMS = {
+            "osName": "pc",
+            "osVersion": "1.0.0",
+            "osLand": "ja",
+            "osTimezone": "Asia/Tokyo",
+            "appVersion": "v25.130.0"
+        }
+        restoken = session.get("https://api.p-c3-e.abema-tv.com/v1/media/token", params=_KEYPARAMS).json()
+        mediatoken = restoken['token']                    
+        
+        dash_mpd = session.get(response['playback']['dash'], params={"t": mediatoken, "enc": "clear", "dt": "pc_unknown", "ccf": 0, "dtid": "jdwHcemp6THr", "ut": 1}).text
+        sex_kid = dash.get_default_KID(dash_mpd)
+        
+        logger.debug("Get default_kid: {}".format(sex_kid), extra={"service_name": "Abema"})
+        
+        kid = base64.b64encode(bytes.fromhex(sex_kid.replace("-", "").upper())).decode('utf-8').replace("==", "").replace("+", "-").replace("/", "_")
+        
+        logger.debug("Gen KID: {}".format(kid), extra={"service_name": "Abema"})
+        
+        rgl = session.post("https://license.p-c3-e.abema-tv.com/abematv-dash", params={"t": mediatoken, "cid": response["id"], "ct": "program"}, json={"kids":[kid],"type":"temporary"})
+        if rgl.status_code == 403:
+            return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
+
+        gl = rgl.json()["keys"][0]
+
+        kid = gl['kid']
+        k = gl['k']
+        kty = gl['kty']
+        
+        logger.debug("GET KID: {}".format(kid), extra={"service_name": "Abema"})
+        logger.debug("GET K: {}".format(k), extra={"service_name": "Abema"})
+        logger.debug("GET KTY: {}".format(kty), extra={"service_name": "Abema"})
+        
+        k_value = k
+        hash = k_value.split(".")[-1]
+        k_slice = k_value.split(".")[0]
+        y_slice = k_value.split(".")[1]
+        
+        decrypt = pm.require("./abema_util/decrypt")
+        
+        x = decrypt.get_x(k_slice)
+        y = decrypt.get_y(kid, user_id, y_slice)
+        logger.debug("GET X (Uint8Array): {}".format(x), extra={"service_name": "Abema"})
+        logger.debug("GET Y (Uint8Array): {}".format(y), extra={"service_name": "Abema"})
+        
+        t = hash
+        e = [int(z) for z in y]
+        n = [int(z) for z in x]
+        decrypt_json = decrypt.decrypt_key(rgl.json(), t, e, n)
+        temp_d = decrypt_json['keys'][0]['k']
+        temp_f = decrypt_json['keys'][0]['kid']
+        
+        temp_d = temp_d.replace('_', '/').replace('-', '+')
+        temp_f = temp_f.replace('_', '/').replace('-', '+')
+        
+        while len(temp_d) % 4 != 0:
+            temp_d += '='
+        while len(temp_f) % 4 != 0:
+            temp_f += '='
+        
+        raw1 = base64.b64decode(temp_d)
+        raw2 = base64.b64decode(temp_f)
+        
+        result_key = ''.join(format(c, '02x') for c in raw1)
+        result_kid = ''.join(format(c, '02x') for c in raw2)
+        
+        logger.debug("Decrypt Key!", extra={"service_name": "Abema"})
+        logger.debug(f"{result_kid}:{result_key}", extra={"service_name": "Abema"})
+        # Kをdecryptする方法?
+        # Step1. AES-CBC, HMAC-SHA256, Blowfish-ECB, RC4, Base58 encoding (Bitcoin variant)を用いてkからclearkeyを生成する
+        # Step2. mp4decryptを使ってコンテンツ保護を解除
+        
+        # Source: https://forum.videohelp.com/threads/414857-Help-me-to-download-this-video-from-abema
+        
+        return [f"{result_kid}:{result_key}", dash_mpd], "Success"
+#ここまで
+
 class Abema_downloader:
     def __init__(self, session):
         self.session = session

@@ -3,21 +3,15 @@ import os
 import sys
 import yaml
 import time
-import hmac
 import m3u8
-import base64
-import struct
 import shutil
 import logging
-import hashlib
 import datetime
 import traceback
 from tqdm import tqdm
-import pythonmonkey as pm
 from Crypto.Cipher import AES
 from datetime import datetime
 from binascii import unhexlify
-import xml.etree.ElementTree as ET
 
 from ext.utils import abema
 #from abema import abema
@@ -137,6 +131,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
                         for plan_num, i in enumerate(message["subscriptions"]):
                             logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
+                            if "プレミアム" in i["planName"]:
+                                you_premium = True
+                            else:
+                                you_premium = False
+                        user_id = message["profile"]["userId"]
                 else:
                     logger.error("Please input token", extra={"service_name": "Abema"})
                     exit(1)
@@ -154,13 +153,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
                     for plan_num, i in enumerate(message["subscriptions"]):
                         logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
-            user_id = message["profile"]["userId"]
-            if "プレミアム" in message["subscriptions"]:
-                you_premium = True
-            elif message["subscriptions"] == []:
-                you_premium = False
-            else:
-                you_premium = False
+                        if "プレミアム" in i["planName"]:
+                            you_premium = True
+                        else:
+                            you_premium = False
+                    user_id = message["profile"]["userId"]
                  
         else:
             temp_token = abema.Abema_utils.gen_temp_token(session)
@@ -189,6 +186,23 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/contentlist/series/{re.match(r"^(\d+-\d+)", abema_get_series_id).group(1)}?includes=liveEvent%2Cslot").json()
         id_type = response["genre"]["name"]
         title_name = response["title"]
+        
+        resolution_data = {
+            "1080p": ["4000kb/s", "AAC 192kb/s 2ch"],
+            "720p": ["2000kb/s", "AAC 160kb/s 2ch"],
+            "480p": ["900kb/s", "AAC 128kb/s 2ch"],
+            "360p": ["550kb/s", "AAC 128kb/s 2ch"],
+            "240p": ["240kb/s", "AAC 64kb/s 1ch"],
+            "180p": ["120kb/s", "AAC 64kb/s 1ch"]
+        }
+        bitrate_calculation = {
+            "1080p": 5175,
+            "720p": 2373,
+            "480p": 1367,
+            "360p": 878,
+            "240p": 292,
+            "180p": 179
+        }
         
         if abema_get_series_id.__contains__("_p"):
             logger.info("Get Title for 1 Episode", extra={"service_name": "Abema"})
@@ -236,6 +250,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
             if you_premium == False:
                 if content_type == "PREMIUM":
+                    logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Abema"})
                     return
             
             hls = response['playback']['hls']
@@ -244,22 +259,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             m3u8_content = session.get(hls).text
             
             resolution_list = []
-            resolution_data = {
-                "1080p": ["4000kb/s", "AAC 192kb/s 2ch"],
-                "720p": ["2000kb/s", "AAC 160kb/s 2ch"],
-                "480p": ["900kb/s", "AAC 128kb/s 2ch"],
-                "360p": ["550kb/s", "AAC 128kb/s 2ch"],
-                "240p": ["240kb/s", "AAC 64kb/s 1ch"],
-                "180p": ["120kb/s", "AAC 64kb/s 1ch"]
-            }
-            bitrate_calculation = {
-                "1080p": 5175,
-                "720p": 2373,
-                "480p": 1367,
-                "360p": 878,
-                "240p": 292,
-                "180p": 179
-            }
             
             resolution_list = []
             base_link = hls.replace("playlist.m3u8", "")
@@ -369,136 +368,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
-            decrypt_type = "hls" # or dash
+            decrypt_type = "dash" # or dash
             
-            if decrypt_type == "hls":
-                def get_video_key(ticket):
-                    _MEDIATOKEN_API = "https://api.p-c3-e.abema-tv.com/v1/media/token"
-                    _LICENSE_API = "https://license.abema.io/abematv-hls"
-                    
-                    _STRTABLE = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-                    _HKEY = b"3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E"
-                    
-                    _KEYPARAMS = {
-                        "osName": "pc",
-                        "osVersion": "1.0.0",
-                        "osLand": "ja",
-                        "osTimezone": "Asia/Tokyo",
-                        "appVersion": "v25.130.0"
-                    }
-                    restoken = session.get(_MEDIATOKEN_API, params=_KEYPARAMS).json()
-                    mediatoken = restoken['token']
-                    rgl = session.post(_LICENSE_API, params={"t": mediatoken}, json={"kv": "a", "lt": ticket})
-                    if rgl.status_code == 403:
-                        return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
-            
-                    gl = rgl.json()
-            
-                    cid = gl['cid']
-                    k = gl['k']
-                    res = sum([_STRTABLE.find(k[i]) * (58 ** (len(k) - 1 - i)) for i in range(len(k))])
-            
-                    encvk = struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff)
-            
-                    h = hmac.new(unhexlify(_HKEY), (cid + device_id).encode("utf-8"), digestmod=hashlib.sha256)
-                    enckey = h.digest()
-            
-                    aes = AES.new(enckey, AES.MODE_ECB)
-                    vkey = aes.decrypt(encvk)
-            
-                    return vkey, "Success"
-            if decrypt_type == "dash":
-                def get_default_KID(mpd_content):
-                    root = ET.fromstring(mpd_content)
-                
-                    namespaces = {
-                        '': 'urn:mpeg:dash:schema:mpd:2011',
-                        'cenc': 'urn:mpeg:cenc:2013'
-                    }
-                
-                    for elem in root.iterfind('.//{urn:mpeg:dash:schema:mpd:2011}Period//{urn:mpeg:dash:schema:mpd:2011}AdaptationSet//{urn:mpeg:dash:schema:mpd:2011}ContentProtection', namespaces):
-                        default_KID = elem.get('{urn:mpeg:cenc:2013}default_KID')
-                        if default_KID:
-                            return default_KID
-                    return None
-                def get_video_key(null):
-                    global dash_mpd
-                    _KEYPARAMS = {
-                        "osName": "pc",
-                        "osVersion": "1.0.0",
-                        "osLand": "ja",
-                        "osTimezone": "Asia/Tokyo",
-                        "appVersion": "v25.130.0"
-                    }
-                    restoken = session.get("https://api.p-c3-e.abema-tv.com/v1/media/token", params=_KEYPARAMS).json()
-                    mediatoken = restoken['token']                    
-                    
-                    dash_mpd = session.get(response['playback']['dash'], params={"t": mediatoken, "enc": "clear", "dt": "pc_unknown", "ccf": 0, "dtid": "jdwHcemp6THr", "ut": 1}).text
-                    sex_kid = get_default_KID(dash_mpd)
-                    
-                    logger.debug("Get default_kid: {}".format(sex_kid), extra={"service_name": "Abema"})
-                    
-                    kid = base64.b64encode(bytes.fromhex(sex_kid.replace("-", "").upper())).decode('utf-8').replace("==", "").replace("+", "-")
-                    
-                    logger.debug("Gen KID: {}".format(kid), extra={"service_name": "Abema"})
-                    
-                    rgl = session.post("https://license.p-c3-e.abema-tv.com/abematv-dash", params={"t": mediatoken, "cid": response["id"], "ct": "program"}, json={"kids":[kid],"type":"temporary"})
-                    if rgl.status_code == 403:
-                        return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
-            
-                    gl = rgl.json()["keys"][0]
-            
-                    kid = gl['kid']
-                    k = gl['k']
-                    kty = gl['kty']
-                    
-                    logger.debug("GET KID: {}".format(kid), extra={"service_name": "Abema"})
-                    logger.debug("GET K: {}".format(k), extra={"service_name": "Abema"})
-                    logger.debug("GET KTY: {}".format(kty), extra={"service_name": "Abema"})
-                    
-                    k_value = k
-                    hash = k_value.split(".")[-1]
-                    k_slice = k_value.split(".")[0]
-                    y_slice = k_value.split(".")[1]
-                    
-                    decrypt = pm.require("./utils/abema_util/decrypt")
-                    
-                    x = decrypt.get_x(k_slice)
-                    y = decrypt.get_y(kid, user_id, y_slice)
-                    logger.debug("GET X (Uint8Array): {}".format(x), extra={"service_name": "Abema"})
-                    logger.debug("GET Y (Uint8Array): {}".format(y), extra={"service_name": "Abema"})
-                    
-                    t = hash
-                    e = [int(z) for z in y]
-                    n = [int(z) for z in x]
-                    decrypt_json = decrypt.decrypt_key(rgl.json(), t, e, n)
-
-                    temp_d = decrypt_json['keys'][0]['k']
-                    temp_f = decrypt_json['keys'][0]['kid']
-                    
-                    temp_d = temp_d.replace('_', '/').replace('-', '+')
-                    temp_f = temp_f.replace('_', '/').replace('-', '+')
-                    
-                    while len(temp_d) % 4 != 0:
-                        temp_d += '='
-                    while len(temp_f) % 4 != 0:
-                        temp_f += '='
-                    
-                    raw1 = base64.b64decode(temp_d)
-                    raw2 = base64.b64decode(temp_f)
-                    
-                    result_key = ''.join(format(c, '02x') for c in raw1)
-                    result_kid = ''.join(format(c, '02x') for c in raw2)
-                    
-                    logger.debug("Decrypt Key!", extra={"service_name": "Abema"})
-                    logger.debug(f"{result_kid}:{result_key}", extra={"service_name": "Abema"})
-                    # Kをdecryptする方法?
-                    # Step1. AES-CBC, HMAC-SHA256, Blowfish-ECB, RC4, Base58 encoding (Bitcoin variant)を用いてkからclearkeyを生成する
-                    # Step2. mp4decryptを使ってコンテンツ保護を解除
-                    
-                    # Source: https://forum.videohelp.com/threads/414857-Help-me-to-download-this-video-from-abema
-                    
-                    return f"{result_kid}:{result_key}", "Success"
             def setup_decryptor(key, iv):
                 iv = unhexlify(iv)
                 _aes = AES.new(key, AES.MODE_CBC, IV=iv)
@@ -557,23 +428,27 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             pbar.update(1)
             
             try:
-                key, reason = get_video_key(ticket)
+                decrypt_module = getattr(abema, decrypt_type, None)
+                
+                if decrypt_module is None:
+                    raise AttributeError(f"Module 'abema' has no attribute '{decrypt_type}'")
+                key, reason = decrypt_module.get_video_key(session=session, device_id=device_id, ticket=ticket, response=response, logger=logger, user_id=user_id)
                 if not key:
                     logger.error('{}'.format(reason), extra={"service_name": "Abema"})
                 if decrypt_type == "dash":
                     # 720p.1 = video
                     # 720p 2 = audio
-                    segment_list = abema.Abema_utils.get_segment_link_list(dash_mpd, f"{resolution_list[-1][1]}.1", "https://ds-vod-abematv.akamaized.net/")
+                    segment_list = abema.Abema_utils.get_segment_link_list(key[1], f"{resolution_list[-1][1]}.1", "https://ds-vod-abematv.akamaized.net/")
                     files = segment_list[0]["all"]
-                    downloaded_files = download_chunk(files, key, iv)
+                    downloaded_files = download_chunk(files, key[0], iv)
                     temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video_encrypted.mp4")
                     merge_video(downloaded_files, temp_output)
-                    abema.Abema_decrypt.decrypt_content(key, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video.mp4"), config)
+                    abema.Abema_decrypt.decrypt_content(key[0], temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video.mp4"), config)
                     files = [s.replace('p.1', 'p.2') for s in segment_list[1]["all"]]
-                    downloaded_files = download_chunk(files, key, iv)
+                    downloaded_files = download_chunk(files, key[0], iv)
                     temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio_encrypted.mp4")
                     merge_video(downloaded_files, temp_output)
-                    abema.Abema_decrypt.decrypt_content(key, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio.mp4"), config)
+                    abema.Abema_decrypt.decrypt_content(key[0], temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio.mp4"), config)
                     
                     result = abema_downloader.mux_episode("download_video.mp4", "download_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(duration))
                     dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
