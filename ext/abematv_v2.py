@@ -240,19 +240,57 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 "240p": 292,
                 "180p": 179
             }
-            resolutions = re.findall(r"RESOLUTION=(\d+)x(\d+)", m3u8_content)
+            #resolutions = re.findall(r"RESOLUTION=(\d+)x(\d+)", m3u8_content)
             
             resolution_list = []
+            base_link = hls.replace("playlist.m3u8", "")
+            #print(base_link)
+            r_all = m3u8.loads(m3u8_content)
+    
+            play_res = []
+            for r_p in r_all.playlists:
+                temp = []
+                temp.append(r_p.stream_info.resolution)
+                temp.append(base_link + r_p.uri)
+                #print(temp)
+                play_res.append(temp)
+            resgex = re.compile(r'(\d*)(?:\/\w+.ts)')
+    
+            resolution_list = []
+            for resdata in play_res:
+                reswh, m3u8_uri = resdata
+                resw, resh = reswh
+                #self.yuu_logger.debug('Validating {}p resolution'.format(resh))
+                rres = m3u8.loads(session.get(m3u8_uri).text)
+    
+                m3f = rres.files[1:]
+                if not m3f:
+                    return None, 'This video can\'t be downloaded for now.'
+                #self.yuu_logger.debug('Sample link: ' + m3f[5])
+    
+                if 'tsda' in rres.files[5]:
+                    # Assume DRMed
+                    return None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
+    
+                if str(resh) in re.findall(resgex, m3f[5]):
+                    resolution_list.append(
+                        [
+                            '{w}x{h}'.format(w=resw, h=resh),
+                            '{h}p'.format(h=resh),
+                            '{h}'.format(h=resh)
+                        ]
+                    )
+            #for resolution in resolutions:
+            #    width, height = map(int, resolution)
+            #    
+            #    temp_list = []
+            #    
+            #    temp_list.append(f"{width}x{height}")
+            #    temp_list.append(f"{height}p")
+            #        
+            #    resolution_list.append(temp_list)
             
-            for resolution in resolutions:
-                width, height = map(int, resolution)
-                
-                temp_list = []
-                
-                temp_list.append(f"{width}x{height}")
-                temp_list.append(f"{height}p")
-                    
-                resolution_list.append(temp_list)
+            #resolution = None
 
             logger.info('Available resolution:', extra={"service_name": "Abema"})
             #logger.log(0, '{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16), extra={"service_name": "Abema"})
@@ -264,7 +302,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 #logger.log(0, '{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format('>> ' + r_c, wxh, vidq, audq, width=16), extra={"service_name": "Abema"})
                 print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format('>> ' + r_c, wxh, vidq, audq, width=16))
 
-            m3u8_url = '{x}/{r}/playlist.m3u8'.format(x=hls[:hls.rfind('/')], r=resolution[-1])
+            m3u8_url = base_link+resolution_list[-1][2]+"/playlist.m3u8"
 
             logger.debug('Title: {}'.format(title_name_logger), extra={"service_name": "Abema"})
             logger.debug('Total Resolution: {}'.format(resolution_list), extra={"service_name": "Abema"})
@@ -323,7 +361,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 for seg in x.segments:
                     n += seg.duration
         
-                est_filesize = round((round(n) * bitrate_calculation[resolution[-1]+"p"]) / 1024 / 6, 2)
+                est_filesize = round((round(n) * bitrate_calculation[resolution_list[-1][1]]) / 1024 / 6, 2)
         
                 return parsed_files, iv[2:], ticket, est_filesize, 'Success'
             
@@ -337,7 +375,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 filesize = str(filesize)+" MiB"
             
             logger.info('Output: {}'.format(title_name_logger+".mp4"), extra={"service_name": "Abema"})
-            logger.info('Resolution: {}'.format(resolution[-1]+"p"), extra={"service_name": "Abema"})
+            logger.info('Resolution: {}'.format(resolution_list[-1][1]), extra={"service_name": "Abema"})
             logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": "Abema"})
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -537,7 +575,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if decrypt_type == "dash":
                     # 720p.1 = video
                     # 720p 2 = audio
-                    segment_list = abema.Abema_utils.get_segment_link_list(dash_mpd, "720p.1", "https://ds-vod-abematv.akamaized.net/")
+                    segment_list = abema.Abema_utils.get_segment_link_list(dash_mpd, f"{resolution_list[-1][1]}.1", "https://ds-vod-abematv.akamaized.net/")
                     #print(segment_list)
                     files = segment_list[0]["all"]
                     downloaded_files = download_chunk(files, key, iv)
