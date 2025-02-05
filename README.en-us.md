@@ -123,7 +123,7 @@ NHK+ Cancel Reason: [※2](#nhk-issues)
 
 #### Decryption fails in Chinese environment
 
-In this case, use the -rd option or the --randaom-directory option.
+In this case, use the -rd option or the --random-directory option.
 
 #### NHK Issues
 

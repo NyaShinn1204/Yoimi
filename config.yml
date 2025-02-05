@@ -12,5 +12,5 @@ authorization: # option
   token: '' # 'Bearer eyJhbG.....'    token expire is 1day
 
 format:
-  anime: '{seriesname}_{titlename}_{episodename}'
+  anime: '{seriesname}_{titlename}_{episodename}' # seriesname, titlename, episodename are availiable
   movie: '{seriesname}_{titlename}_{episodename}' # if not found episode_name, auto to delete episode_name

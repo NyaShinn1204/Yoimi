@@ -504,8 +504,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         if len(season_response) == 1:
                             if len(episode_group_ontents) == 1:
                                 seriesname = title_name
-                            else:
-                                seriesname = title_name + "_" + i2["name"]
+                            else: 
+                                #seriesname = title_name + "_" + i2["name"] # オプションにする予定  Maybe option?
+                                seriesname = title_name
                         else:
                             seriesname = i["name"]
                             
