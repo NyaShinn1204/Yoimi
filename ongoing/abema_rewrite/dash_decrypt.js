@@ -900,19 +900,12 @@ function wn(r, n, e) {
 
     var Fr = br("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
     //付けたし
-    var H = "Window" // ブラウザ定義
-    var Ur = "String"
-    var Nr = "fromCharCode"
-    var jr = "apply" 
-    var Mr = "parse"
-    var Br = "JSON"
     var qr = "keys"
     var Jr = "kid"
     var Qr = "k"
     var Hr = "slice"
     var Wr = "indexOf"
     var Kr = "."
-    var Xr = "stringify"
 
     //var h = (t = (a = n, String.fromCharCode(null, J(a))), JSON.parse(t))
     var h = {"keys":[{"kty":"oct","k":"GF5kEzJ57JMwj4ANiVjXK96YmupfqKJEGoRxcEr5D2xc.DyE8UXxDHTRoHqSFv8MnVv5.4a9dd24b59a7b15308a1fe46e31c7fa8","kid":"uIFdYNVYShGCkN8ufLd0mA"}],"type":"temporary"}
@@ -924,15 +917,8 @@ function wn(r, n, e) {
     var g = p[Hr](0, p[Wr](Kr))
     var O = p[Hr](f(p[Wr](Kr), 1))
     var x = (s = v, c(J, Fr.d(s)))
-
-    //付けたし
-    var $r = "lib"
-    var rn = "WordArray"
-    var nn = "create"
-    var hn = "ciphertext"
-
-
     var y = (o = r, u = Cr(l, e, g), o["lib"]["WordArray"]["create"](u));
+    
     return d.k = function (r, n, e, t) {
         var i = {};
         i["ciphertext"] = r["lib"]["WordArray"]["create"](n);
@@ -956,7 +942,7 @@ function wn(r, n, e) {
             f[tn] = (c = t,
             r["enc"]["Hex"]["parse"](c)),
             f[on] = r["pad"]["Pkcs7"],
-            (o = r, u = i, s = e, a = f, o["AES"]["decrypt"](u, s, a))[Yr](r[un][dn])
+            (o = r, u = i, s = e, a = f, o["AES"]["decrypt"](u, s, a))[Yr](r["enc"]["Utf8"])
     }(r, x, y, O),
         function (r) {
             var Gr = "length"
@@ -965,7 +951,7 @@ function wn(r, n, e) {
             for (var n = r[Gr], e = J(n), t = 0; t < n; ++t)
                 e[t] = r[Zr](t);
             return e[Vr]
-        }((i = h,H[Br][Xr](i)))
+        }((i = h,["JSON"]["stringify"](i)))
 }
 
 function vn(r) {
@@ -1234,15 +1220,21 @@ function yn(r) {
     })
     extend = function(e) {
         var t = a(this);
+        console.log(t)
         return e && t.mixIn(e),
         t.hasOwnProperty("init") && this.init !== t.init || (t.init = function() {
-            t.$super.init.apply(this, arguments)
-        }
-        ),
+            if (t.$super && typeof t.$super.init === 'function') {
+                console.log("NICE YOU")
+                t.$super.init.apply(this, arguments);
+            } else {
+                console.log("FUCK YOU")
+            }
+        }),
         t.init.prototype = t,
         t.$super = this,
-        t
+        t;
     };
+    
     create = function() {
         var e = this.extend();
         return e.init.apply(e, arguments),
