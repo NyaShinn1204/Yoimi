@@ -240,11 +240,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 "240p": 292,
                 "180p": 179
             }
-            #resolutions = re.findall(r"RESOLUTION=(\d+)x(\d+)", m3u8_content)
             
             resolution_list = []
             base_link = hls.replace("playlist.m3u8", "")
-            #print(base_link)
             r_all = m3u8.loads(m3u8_content)
     
             play_res = []
@@ -252,7 +250,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 temp = []
                 temp.append(r_p.stream_info.resolution)
                 temp.append(base_link + r_p.uri)
-                #print(temp)
                 play_res.append(temp)
             resgex = re.compile(r'(\d*)(?:\/\w+.ts)')
     
@@ -260,16 +257,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             for resdata in play_res:
                 reswh, m3u8_uri = resdata
                 resw, resh = reswh
-                #self.yuu_logger.debug('Validating {}p resolution'.format(resh))
                 rres = m3u8.loads(session.get(m3u8_uri).text)
     
                 m3f = rres.files[1:]
                 if not m3f:
                     return None, 'This video can\'t be downloaded for now.'
-                #self.yuu_logger.debug('Sample link: ' + m3f[5])
     
                 if 'tsda' in rres.files[5]:
-                    # Assume DRMed
                     return None, 'This video has a different DRM method and cannot be decrypted by yuu for now'
     
                 if str(resh) in re.findall(resgex, m3f[5]):
@@ -280,26 +274,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             '{h}'.format(h=resh)
                         ]
                     )
-            #for resolution in resolutions:
-            #    width, height = map(int, resolution)
-            #    
-            #    temp_list = []
-            #    
-            #    temp_list.append(f"{width}x{height}")
-            #    temp_list.append(f"{height}p")
-            #        
-            #    resolution_list.append(temp_list)
-            
-            #resolution = None
-
             logger.info('Available resolution:', extra={"service_name": "Abema"})
-            #logger.log(0, '{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16), extra={"service_name": "Abema"})
             print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16))
             for res in resolution_list:
                 r_c = res[1]
                 wxh = res[0]
                 vidq, audq = resolution_data[r_c]
-                #logger.log(0, '{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format('>> ' + r_c, wxh, vidq, audq, width=16), extra={"service_name": "Abema"})
                 print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format('>> ' + r_c, wxh, vidq, audq, width=16))
 
             m3u8_url = base_link+resolution_list[-1][2]+"/playlist.m3u8"
@@ -309,18 +289,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.debug('M3U8 Link: {}'.format(m3u8_url), extra={"service_name": "Abema"})
             
             def parse_m3u8(m3u8_url):
-                #self.yuu_logger.debug('Requesting m3u8')
                 r = session.get(m3u8_url)
-                #self.yuu_logger.debug('Data requested')
         
                 if 'timeshift forbidden' in r.text:
                     return None, None, None, 'This video can\'t be downloaded for now.'
         
                 if r.status_code == 403:
                     return None, None, None, 'This video is geo-locked for Japan only.'
-        
-                #self.yuu_logger.debug('Parsing m3u8')
-        
+                
                 x = m3u8.loads(r.text)
                 files = x.files[1:]
                 if not files[0]:
@@ -366,7 +342,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 return parsed_files, iv[2:], ticket, est_filesize, 'Success'
             
             files, iv, ticket, filesize, reason = parse_m3u8(m3u8_url)
-            #print(files, iv, ticket, filesize, reason)
             
             if filesize > 1000:
                 filesize = round(filesize / 1000, 1)
@@ -380,7 +355,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
-            decrypt_type = "dash" # or dash
+            decrypt_type = "hls" # or dash
             
             if decrypt_type == "hls":
                 def get_video_key(ticket):
@@ -417,7 +392,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     aes = AES.new(enckey, AES.MODE_ECB)
                     vkey = aes.decrypt(encvk)
             
-                    return vkey
+                    return vkey, "Success"
             if decrypt_type == "dash":
                 def get_default_KID(mpd_content):
                     root = ET.fromstring(mpd_content)
@@ -434,7 +409,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     return None
                 def get_video_key(null):
                     global dash_mpd
-                    #self.yuu_logger.debug('Sending parameter to API')
                     _KEYPARAMS = {
                         "osName": "pc",
                         "osVersion": "1.0.0",
@@ -511,7 +485,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     # Source: https://forum.videohelp.com/threads/414857-Help-me-to-download-this-video-from-abema
                     
                     return f"{result_kid}:{result_key}", "Success"
-            def setup_decryptor(key):
+            def setup_decryptor(key, iv):
                 iv = unhexlify(iv)
                 _aes = AES.new(key, AES.MODE_CBC, IV=iv)
                 return iv, _aes
@@ -522,7 +496,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         iv = iv[2:]
                     else:
                         iv = iv
-                        iv, _aes = setup_decryptor(key)
+                        iv, _aes = setup_decryptor(key, iv)
                 downloaded_files = []
                 try:
                     with tqdm(total=len(files), desc='Downloading', ascii=True, unit='file') as pbar:
@@ -576,7 +550,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     # 720p.1 = video
                     # 720p 2 = audio
                     segment_list = abema.Abema_utils.get_segment_link_list(dash_mpd, f"{resolution_list[-1][1]}.1", "https://ds-vod-abematv.akamaized.net/")
-                    #print(segment_list)
                     files = segment_list[0]["all"]
                     downloaded_files = download_chunk(files, key, iv)
                     temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video_encrypted.mp4")
@@ -610,11 +583,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"))
             except Exception as e:
                 logger.error("Traceback has occurred", extra={"service_name": __service_name__})
-                #print(traceback.format_exc())
-                #print("\n")
                 type_, value, _ = sys.exc_info()
-                #print(type_)
-                #print(value)
                 print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                 print("\n----ERROR LOG----")
                 print("ENative:\n"+traceback.format_exc())
