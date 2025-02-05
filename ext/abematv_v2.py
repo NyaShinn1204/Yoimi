@@ -12,14 +12,14 @@ import hashlib
 import datetime
 import traceback
 from tqdm import tqdm
+import pythonmonkey as pm
 from Crypto.Cipher import AES
 from datetime import datetime
 from binascii import unhexlify
 import xml.etree.ElementTree as ET
 
-#from ext.utils import unext
+from ext.utils import abema
 #from abema import abema
-import abema
 
 __service_name__ = "Abema"
 
@@ -80,7 +80,7 @@ def check_proxie(session):
         
         auth_response = session.get(_ENDPOINT_CHECK_IP, params={"device": "android"})
 
-        from region_check_pb2 import RegionInfo
+        from ext.utils.abema_util.region_check_pb2 import RegionInfo
         from google.protobuf.json_format import MessageToJson
         
         proto_message = RegionInfo()
@@ -152,6 +152,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
                 for plan_num, i in enumerate(message["subscriptions"]):
                     logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
+        
+        user_id = message["profile"]["userId"]
                     
         if url.__contains__("abema.app"):
             temp_url = session.get(url, allow_redirects=False)
@@ -338,11 +340,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
-            decrypt_type = "hls" # or dash
+            decrypt_type = "dash" # or dash
             
             if decrypt_type == "hls":
                 def get_video_key(ticket):
-                    #self.yuu_logger.debug('Sending parameter to API')
                     _MEDIATOKEN_API = "https://api.p-c3-e.abema-tv.com/v1/media/token"
                     _LICENSE_API = "https://license.abema.io/abematv-hls"
                     
@@ -358,9 +359,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     }
                     restoken = session.get(_MEDIATOKEN_API, params=_KEYPARAMS).json()
                     mediatoken = restoken['token']
-                    #self.yuu_logger.debug('Media token: {}'.format(mediatoken))
-            
-                    #self.yuu_logger.debug('Sending ticket and media token to License API')
                     rgl = session.post(_LICENSE_API, params={"t": mediatoken}, json={"kv": "a", "lt": ticket})
                     if rgl.status_code == 403:
                         return None, 'Access to this video are not allowed\nProbably a premium video or geo-locked.'
@@ -369,31 +367,15 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
                     cid = gl['cid']
                     k = gl['k']
-            
-                    #self.yuu_logger.debug('CID: {}'.format(cid))
-                    #self.yuu_logger.debug('K: {}'.format(k))
-            
-                    #self.yuu_logger.debug('Summing up data with STRTABLE')
                     res = sum([_STRTABLE.find(k[i]) * (58 ** (len(k) - 1 - i)) for i in range(len(k))])
             
-                    #self.yuu_logger.debug('Result: {}'.format(res))
-                    #self.yuu_logger.debug('Intepreting data')
-            
                     encvk = struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff)
-            
-                    #self.yuu_logger.debug('Encoded video key: {}'.format(encvk))
-                    #self.yuu_logger.debug('Hashing data')
             
                     h = hmac.new(unhexlify(_HKEY), (cid + device_id).encode("utf-8"), digestmod=hashlib.sha256)
                     enckey = h.digest()
             
-                    #self.yuu_logger.debug('Second Encoded video key: {}'.format(enckey))
-                    #self.yuu_logger.debug('Decrypting result')
-            
                     aes = AES.new(enckey, AES.MODE_ECB)
                     vkey = aes.decrypt(encvk)
-            
-                    #self.yuu_logger.debug('Decrypted, Result: {}'.format(vkey))
             
                     return vkey
             if decrypt_type == "dash":
@@ -410,7 +392,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         if default_KID:
                             return default_KID
                     return None
-                def get_video_key(ticket):
+                def get_video_key(null):
                     #self.yuu_logger.debug('Sending parameter to API')
                     _KEYPARAMS = {
                         "osName": "pc",
@@ -420,14 +402,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         "appVersion": "v25.130.0"
                     }
                     restoken = session.get("https://api.p-c3-e.abema-tv.com/v1/media/token", params=_KEYPARAMS).json()
-                    mediatoken = restoken['token']
-                    #self.yuu_logger.debug('Media token: {}'.format(mediatoken))
-                    
+                    mediatoken = restoken['token']                    
                     
                     mpd = session.get(response['playback']['dash'], params={"t": mediatoken, "enc": "clear", "dt": "pc_unknown", "ccf": 0, "dtid": "jdwHcemp6THr", "ut": 1}).text
                     sex_kid = get_default_KID(mpd)
                     
-                    #print(sex_kid.replace("-", "").upper())
                     logger.debug("Get default_kid: {}".format(sex_kid), extra={"service_name": "Abema"})
                     
                     kid = base64.b64encode(bytes.fromhex(sex_kid.replace("-", "").upper())).decode('utf-8').replace("==", "").replace("+", "-")
@@ -448,30 +427,62 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.debug("GET K: {}".format(k), extra={"service_name": "Abema"})
                     logger.debug("GET KTY: {}".format(kty), extra={"service_name": "Abema"})
                     
-                    logger.info("SET Alg: A128KW", extra={"service_name": "Abema"})
+                    k_value = k
+                    hash = k_value.split(".")[-1]
+                    k_slice = k_value.split(".")[0]
+                    y_slice = k_value.split(".")[1]
                     
-                    logger.info("JS Update KID: {}".format(kid), extra={"service_name": "Abema"})
-                    logger.info("JS Update K: {}".format(kid), extra={"service_name": "Abema"})
+                    decrypt = pm.require("./utils/abema_util/decrypt")
                     
+                    x = decrypt.get_x(k_slice)
+                    y = decrypt.get_y(kid, user_id, y_slice)
+                    logger.debug("GET X (Uint8Array): {}".format(x), extra={"service_name": "Abema"})
+                    logger.debug("GET Y (Uint8Array): {}".format(y), extra={"service_name": "Abema"})
+                    
+                    t = hash
+                    e = [int(z) for z in y]
+                    n = [int(z) for z in x]
+                    decrypt_json = decrypt.decrypt_key(rgl.json(), t, e, n)
+
+                    temp_d = decrypt_json['keys'][0]['k']
+                    temp_f = decrypt_json['keys'][0]['kid']
+                    
+                    temp_d = temp_d.replace('_', '/').replace('-', '+')
+                    temp_f = temp_f.replace('_', '/').replace('-', '+')
+                    
+                    while len(temp_d) % 4 != 0:
+                        temp_d += '='
+                    while len(temp_f) % 4 != 0:
+                        temp_f += '='
+                    
+                    raw1 = base64.b64decode(temp_d)
+                    raw2 = base64.b64decode(temp_f)
+                    
+                    result_key = ''.join(format(c, '02x') for c in raw1)
+                    result_kid = ''.join(format(c, '02x') for c in raw2)
+                    
+                    logger.debug("Decrypt Key!", extra={"service_name": "Abema"})
+                    logger.debug(f"{result_kid}:{result_key}", extra={"service_name": "Abema"})
                     # Kをdecryptする方法?
                     # Step1. AES-CBC, HMAC-SHA256, Blowfish-ECB, RC4, Base58 encoding (Bitcoin variant)を用いてkからclearkeyを生成する
                     # Step2. mp4decryptを使ってコンテンツ保護を解除
                     
                     # Source: https://forum.videohelp.com/threads/414857-Help-me-to-download-this-video-from-abema
                     
-                    return "Coming soon...?"
+                    return f"{result_kid}:{result_key}", "Success"
             def setup_decryptor(key):
                 iv = unhexlify(iv)
                 _aes = AES.new(key, AES.MODE_CBC, IV=iv)
                 return iv, _aes
         
             def download_chunk(files, key, iv):
-                if iv.startswith('0x'):
-                    iv = iv[2:]
-                else:
-                    iv = iv
+                if decrypt_type == "hls":
+                    if iv.startswith('0x'):
+                        iv = iv[2:]
+                    else:
+                        iv = iv
+                        iv, _aes = setup_decryptor(key)
                 downloaded_files = []
-                iv, _aes = setup_decryptor(key) # Initialize a new decryptor
                 try:
                     with tqdm(total=len(files), desc='Downloading', ascii=True, unit='file') as pbar:
                         for tsf in files:
@@ -480,20 +491,20 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                 os.makedirs(output_temp_directory, exist_ok=True)
                             if outputtemp.find('?tver') != -1:
                                 outputtemp = outputtemp[:outputtemp.find('?tver')]
-                            print(outputtemp)
                             with open(outputtemp, 'wb') as outf:
                                 try:
                                     vid = session.get(tsf)
-                                    vid = _aes.decrypt(vid.content)
+                                    if decrypt_type == "hls":
+                                        vid = _aes.decrypt(vid.content)
+                                    else:
+                                        vid = vid.content
                                     outf.write(vid)
                                 except Exception as err:
                                     print(err)
-                                    #yuu_log.error('Problem occured\nreason: {}'.format(err))
                                     return None
                             pbar.update()
                             downloaded_files.append(outputtemp)
                 except KeyboardInterrupt:
-                    #yuu_log.warn('User pressed CTRL+C, cleaning up...')
                     return None
                 return downloaded_files
             def merge_video(path, output):
@@ -509,9 +520,28 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if not key:
                     logger.error('{}'.format(reason), extra={"service_name": "Abema"})
                 downloaded_files = download_chunk(files, key, iv)
-                merge_video(downloaded_files, os.path.join(config["directorys"]["Temp"], "content", unixtime, "fuck_abema.mp4"))
-            except:
-                print("lol")
+                if decrypt_type == "hls":
+                    merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"))
+                if decrypt_type == "dash":
+                    random_string = str(int(time.time() * 1000))
+                    temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, random_string+".mp4")
+                    merge_video(downloaded_files, temp_output)
+                    abema.Abema_decrypt.decrypt_content(key, temp_output, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config)
+            except Exception as e:
+                logger.error("Traceback has occurred", extra={"service_name": __service_name__})
+                #print(traceback.format_exc())
+                #print("\n")
+                type_, value, _ = sys.exc_info()
+                #print(type_)
+                #print(value)
+                print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
+                print("\n----ERROR LOG----")
+                print("ENative:\n"+traceback.format_exc())
+                print("EType:\n"+str(type_))
+                print("EValue:\n"+str(value))
+                print("Service: "+__service_name__)
+                print("Version: "+additional_info[0])
+                print("----END ERROR LOG----")
             
         else:
             logger.info(f"Get Title for Season", extra={"service_name": "Abema"})

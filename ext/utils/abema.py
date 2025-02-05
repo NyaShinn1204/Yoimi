@@ -76,7 +76,46 @@ class Abema_utils:
             return None
 
         return [token, device_id]
-
+class Abema_decrypt:
+    def mp4decrypt(key, config):
+        if os.name == 'nt':
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
+        else:
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
+        
+        mp4decrypt_path = os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe" if os.name == 'nt' else "mp4decrypt")
+        
+        if not os.access(mp4decrypt_path, os.X_OK):
+            try:
+                os.chmod(mp4decrypt_path, 0o755)
+            except Exception as e:
+                raise PermissionError(f"Failed to set executable permissions on {mp4decrypt_path}: {e}")
+            
+        mp4decrypt_command.extend(
+            [
+                "--show-progress",
+                "--key",
+                key,
+            ]
+        )
+        return mp4decrypt_command
+    def decrypt_content(keys, input_file, output_file, config, service_name="Abema"):
+        mp4decrypt_command = Abema_decrypt.mp4decrypt(keys, config)
+        mp4decrypt_command.extend([input_file, output_file])
+        
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
+                for line in process.stdout:
+                    match = re.search(r"(ｲ+)", line)  # 進捗解析
+                    if match:
+                        progress_count = len(match.group(1))
+                        inner_pbar.n = progress_count
+                        inner_pbar.refresh()
+                
+                process.wait()
+                if process.returncode == 0:
+                    inner_pbar.n = 100
+                    inner_pbar.refresh()
 class Abema_downloader:
     def __init__(self, session):
         self.session = session
