@@ -22,11 +22,11 @@ var a = ["Y2hhckF0", "T3RPTWk=", "X19BQk1fTElDRU5TRV9QUk9YWV9f", "QlFWdXo=", "T1
 var i = 181;
 var auidwiaud = (function(r) {
     for (; --r; ) {
-        a.push(a.shift());  // 配列aを回転
+        a.push(a.shift());
     }
-    return a;  // 回転後の配列を返す
+    return a;
 })(++i);
-console.log(auidwiaud);  // 回転後の配列を表示
+console.log(auidwiaud);
 var c, f, h = function(r, n) {
     var e = a[r -= 0];
     void 0 === h.dQYSYC && (!function() {
@@ -82,15 +82,12 @@ var c, f, h = function(r, n) {
     return t
 }, v = function() {
     return l
-}, p = function(r, n) {
-    return r << n | r >>> 32 - n
 }, g = function(r, n) {
     return r >>> n | r << 32 - n
 }
 function br(r) {
     for (var n = function(r, n) { return r < n }, e = function(r, n) { return r / n }, t = function(r, n) { return r - n }, i = function(r, n) { return r >= n }, o = function(r, n) { return r * n }, u = function(r, n) { return r & n }, s = {}, a = r[h("0x2")], c = r.charAt(0), f = 0; n(f, r.length); f++)
         decode_method = h("0x27")
-        //console.log(decode_method)
         s[r[decode_method](f)] = f;
     return {
         e: function(o) {
@@ -122,12 +119,10 @@ function br(r) {
                 'r': 49, 's': 50, 't': 51, 'u': 52, 'v': 53, 'w': 54, 'x': 55, 'y': 56,
                 'z': 57
               };
-            //console.log("r:",r)
             if (0 === r.length)
                 return [];
             for (var n = [0], e = 0; e < r[h("0x2")]; e++) {
                 var t = s[r[e]];
-                //console.log(s)
                 if (void 0 === t)
                     throw new Error("b" + a + "c");
                 for (var i = 0, f = t; i < n.length; ++i)
@@ -899,7 +894,6 @@ function wn(r, n, e) {
     }
 
     var Fr = br("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
-    //付けたし
     var qr = "keys"
     var Jr = "kid"
     var Qr = "k"
@@ -909,7 +903,6 @@ function wn(r, n, e) {
 
     const CryptoJS = require("crypto-js");
 
-    //var h = (t = (a = n, String.fromCharCode(null, J(a))), JSON.parse(t))
     var h = {"keys":[{"kty":"oct","k":"GF5kEzJ57JMwj4ANiVjXK96YmupfqKJEGoRxcEr5D2xc.DyE8UXxDHTRoHqSFv8MnVv5.4a9dd24b59a7b15308a1fe46e31c7fa8","kid":"uIFdYNVYShGCkN8ufLd0mA"}],"type":"temporary"}
     var d = h[qr][0]
     var l = d[Jr]
@@ -920,13 +913,6 @@ function wn(r, n, e) {
     var O = p[Hr](f(p[Wr](Kr), 1))
     var x = (s = v, c(J, Fr.d(s)))
     var y = (u = Cr(l, e, g));
-    
-    //console.log("r:", r)
-    //console.log("x:", x)
-    //console.log("y:", y)
-    //console.log("O:", O)
-    //console.log(c = t,
-    //    r[un][an][Mr](O))
 
     console.log("Decrypting...")
     t = CryptoJS.enc.Hex.parse(O)["words"]
@@ -942,7 +928,6 @@ function wn(r, n, e) {
         key,
         { iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }
     );
-    //console.log(decrypted.toString(CryptoJS.enc.Utf8))
     h.keys[0].k = decrypted.toString(CryptoJS.enc.Utf8);
     h.keys[0].alg = "A128KW"
     i = h;
@@ -956,18 +941,15 @@ function wn(r, n, e) {
 }
 
 function vn(r) {
-    //付けたし
     var Tr = "abm_userId"
     var Ar = "localStorage"
     var Lr = "getItem"
-    //var n, e = (n = Tr,
-    //Ar[Lr](n));
     var n, e = (n=Tr, e="EX4EKv39PYnRJF")
     return function(n) {
         return wn(r, n, e)
     }
 }
-const On = {}; // WeakMap の代わりに普通のオブジェクトを使用
+const On = {};
 
 function yn(r) {
     var a = Object.create || function() {
@@ -981,96 +963,8 @@ function yn(r) {
         }
     }()
     var encryptionObject = {}
-      , s = encryptionObject.lib = {}
-      , c = s.Base = {
-        extend: function(e) {
-            var t = a(this);
-            return e && t.mixIn(e),
-            t.hasOwnProperty("init") && this.init !== t.init || (t.init = function() {
-                t.$super.init.apply(this, arguments)
-            }
-            ),
-            t.init.prototype = t,
-            t.$super = this,
-            t
-        },
-        create: function() {
-            var e = this.extend();
-            return e.init.apply(e, arguments),
-            e
-        },
-        init: function() {},
-        mixIn: function(e) {
-            for (var t in e)
-                e.hasOwnProperty(t) && (this[t] = e[t]);
-            e.hasOwnProperty("toString") && (this.toString = e.toString)
-        },
-        clone: function() {
-            return this.init.prototype.extend(this)
-        }
-    }
-      , u = s.WordArray = c.extend({
-        init: function(e, n) {
-            e = this.words = e || [],
-            this.sigBytes = n != undefined ? n : 4 * e.length//this.sigBytes = n != t ? n : 4 * e.length
-        },
-        toString: function(e) {
-            return (e || _).stringify(this)
-        },
-        concat: function(e) {
-            var t = this.words
-              , n = e.words
-              , r = this.sigBytes
-              , i = e.sigBytes;
-            if (this.clamp(),
-            r % 4)
-                for (var a = 0; a < i; a++) {
-                    var o = n[a >>> 2] >>> 24 - a % 4 * 8 & 255;
-                    t[r + a >>> 2] |= o << 24 - (r + a) % 4 * 8
-                }
-            else
-                for (var s = 0; s < i; s += 4)
-                    t[r + s >>> 2] = n[s >>> 2];
-            return this.sigBytes += i,
-            this
-        },
-        clamp: function() {
-            var t = this.words
-              , n = this.sigBytes;
-            t[n >>> 2] &= 4294967295 << 32 - n % 4 * 8,
-            t.length = e.ceil(n / 4)
-        },
-        clone: function() {
-            var e = c.clone.call(this);
-            return e.words = this.words.slice(0),
-            e
-        },
-        random: function(e) {
-            for (var t = [], n = 0; n < e; n += 4)
-                t.push(i());
-            return new u.init(t,e)
-        }
-    })
 
-    dont_dupe_l_1 = encryptionObject.enc = {}
-    , dont_dupe_l_2 = dont_dupe_l_1.Hex = {
-      stringify: function(e) {
-          for (var t = e.words, n = e.sigBytes, r = [], i = 0; i < n; i++) {
-              var a = t[i >>> 2] >>> 24 - i % 4 * 8 & 255;
-              r.push((a >>> 4).toString(16)),
-              r.push((15 & a).toString(16))
-          }
-          return r.join("")
-      },
-      parse: function(e) {
-          for (var t = e.length, n = [], r = 0; r < t; r += 2)
-              n[r >>> 3] |= parseInt(e.substr(r, 2), 16) << 24 - r % 8 * 4;
-          return new u.init(n,t / 2)
-      }
-  }
-
-    On[r] = vn(encryptionObject); // オブジェクトのキーに r をセット
-
+    On[r] = vn(encryptionObject);
     var n = {
         data: {
             keys: [
@@ -1110,14 +1004,22 @@ function yn(r) {
         }(t);
     }
 
-    var i = JSON.stringify(n.data)
-    , a = i.length
-    , o = new ArrayBuffer(a)
-    , s = new Uint8Array(o);
-    for (e = 0; e < a; e++)
-        s[e] = i.charCodeAt(e);
-    console.log(s)
-    console.log(o)
+    var temp_d = n.data.keys[0].k
+    var temp_f = n.data.keys[0].kid
+    temp_d = temp_d.replace(/_/g, '/').replace(/-/g, '+');
+    temp_f = temp_f.replace(/_/g, '/').replace(/-/g, '+');
+    while (temp_d.length % 4 !== 0) {
+        temp_d += '=';
+    }
+    while (temp_f.length % 4 !== 0) {
+        temp_f += '=';
+    }
+    raw1 = atob(temp_d)
+    raw2 = atob(temp_f)
+    result_key = Array.from(raw1).map(c => ('0' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+    result_kid = Array.from(raw2).map(c => ('0' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+    console.log("Decrypt Key!")
+    console.log(result_kid+":"+result_key)
     return Promise.resolve();
 }
 
