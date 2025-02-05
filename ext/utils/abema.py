@@ -94,8 +94,9 @@ class Abema_utils:
             ns = {'dash': 'urn:mpeg:dash:schema:mpd:2011'}
     
             # SegmentTemplateを探す（最初はvideo、次はaudio）
-            segment_templates = tree.findall('dash:SegmentTemplate', ns)
+            segment_templates = tree.findall('.//dash:SegmentTemplate', ns)
             if not segment_templates:
+                print("not found")
                 return []
             
             result = []
@@ -162,7 +163,7 @@ class Abema_utils:
                 repeat_count = int(r_attr) + 1
     
             for _ in range(repeat_count):
-                segment_file = media_template.replace('$Time$', str(current_time))
+                segment_file = media_template.replace('$Number$', str(len(segment_list)))
                 segment_list.append(urljoin(url, segment_file))
                 segment_all.append(urljoin(url, segment_file))
                 current_time += duration
@@ -201,7 +202,6 @@ class Abema_decrypt:
     def decrypt_content(keys, input_file, output_file, config, service_name="Abema"):
         mp4decrypt_command = Abema_decrypt.mp4decrypt(keys, config)
         mp4decrypt_command.extend([input_file, output_file])
-        print(mp4decrypt_command)
         
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
             with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
@@ -274,3 +274,53 @@ class Abema_downloader:
             return True, user_info_res.json()
         else:
             return False, "Invalid Token"
+        
+    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="Abema"):
+        # 出力ディレクトリを作成
+        os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)
+    
+        # ffmpegコマンド
+        compile_command = [
+            "ffmpeg",
+            "-i",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),
+            "-i",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),
+            "-c:v",
+            "copy",               # 映像はコピー
+            "-c:a",
+            "aac",                # 音声をAAC形式に変換
+            "-b:a",
+            "192k",               # 音声ビットレートを設定（192kbpsに調整）
+            "-strict",
+            "experimental",
+            "-y",
+            "-progress", "pipe:1",  # 進捗を標準出力に出力
+            "-nostats",            # 標準出力を進捗情報のみにする
+            output_name,
+        ]
+
+        # tqdmを使用した進捗表示
+        #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
+            with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
+                for line in process.stdout:    
+                    # "time=" の進捗情報を解析
+                    match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
+                    if match:
+                        hours = int(match.group(1))
+                        minutes = int(match.group(2))
+                        seconds = float(match.group(3))
+                        current_time = hours * 3600 + minutes * 60 + seconds
+    
+                        # 進捗率を計算して更新
+                        progress = (current_time / duration) * 100
+                        pbar.n = int(progress)
+                        pbar.refresh()
+    
+            # プロセスが終了したら進捗率を100%にする
+            process.wait()
+            if process.returncode == 0:  # 正常終了の場合
+                pbar.n = 100
+                pbar.refresh()
+            pbar.close()

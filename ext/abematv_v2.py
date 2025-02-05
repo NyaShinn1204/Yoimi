@@ -7,6 +7,7 @@ import hmac
 import m3u8
 import base64
 import struct
+import shutil
 import logging
 import hashlib
 import datetime
@@ -218,6 +219,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
             
             hls = response['playback']['hls']
+            duration = response['info']['duration']
             
             m3u8_content = session.get(hls).text
             
@@ -533,17 +535,41 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if not key:
                     logger.error('{}'.format(reason), extra={"service_name": "Abema"})
                 if decrypt_type == "dash":
-                    segment_list_video = abema.Abema_utils.get_segment_link_list(dash_mpd, "720p.2", "https://ds-vod-abematv.akamaized.net/mp4vpg/25-147_s1_p1/XqUDeboQA9qCNFTJRCjFg2/720p.2/166.m4s")
-                    print(segment_list_video)
-                    files = None
-                downloaded_files = download_chunk(files, key, iv)
-                if decrypt_type == "hls":
-                    merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"))
-                if decrypt_type == "dash":
-                    random_string = str(int(time.time() * 1000))
-                    temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, random_string+"_encrypted.mp4")
+                    # 720p.1 = video
+                    # 720p 2 = audio
+                    segment_list = abema.Abema_utils.get_segment_link_list(dash_mpd, "720p.1", "https://ds-vod-abematv.akamaized.net/")
+                    #print(segment_list)
+                    files = segment_list[0]["all"]
+                    downloaded_files = download_chunk(files, key, iv)
+                    temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video_encrypted.mp4")
                     merge_video(downloaded_files, temp_output)
-                    abema.Abema_decrypt.decrypt_content(key, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, random_string+".mp4"), config)
+                    abema.Abema_decrypt.decrypt_content(key, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video.mp4"), config)
+                    files = [s.replace('p.1', 'p.2') for s in segment_list[1]["all"]]
+                    downloaded_files = download_chunk(files, key, iv)
+                    temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio_encrypted.mp4")
+                    merge_video(downloaded_files, temp_output)
+                    abema.Abema_decrypt.decrypt_content(key, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio.mp4"), config)
+                    
+                    result = abema_downloader.mux_episode("download_video.mp4", "download_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(duration))
+                    dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                    
+                    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                        for filename in os.listdir(dir_path):
+                            file_path = os.path.join(dir_path, filename)
+                            try:
+                                if os.path.isfile(file_path):
+                                    os.remove(file_path)
+                                elif os.path.isdir(file_path):
+                                    shutil.rmtree(file_path)
+                            except Exception as e:
+                                print(f"削除エラー: {e}")
+                    else:
+                        print(f"指定されたディレクトリは存在しません: {dir_path}")
+                    logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Abema"})
+                    
+                if decrypt_type == "hls":
+                    downloaded_files = download_chunk(files, key, iv)
+                    merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"))
             except Exception as e:
                 logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                 #print(traceback.format_exc())
