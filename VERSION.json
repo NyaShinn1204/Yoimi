@@ -1,5 +1,5 @@
 {
-	"version": "0.9.0",
-	"changelog_ja": "主な変更点 - 0.9\n- [Add] 新しいオプション'-rd', '--random-directory'を追加しました\n- [Fix] うまくURLが解析されない問題の修正\n- [Fix] Dmm-TVでうまくアカウントのチェックがされない問題の修正\n- [Fix] Dmm-TVでうまくエピソードの分類がされていない問題の修正\n- [Fix] 言語設定が中国語の時に、暗号化の解除で失敗する問題の対処\n- [Soon] NHK+の解析が終了したので、現在取り組んでいます",
-    "changelog_en": "What's New? - 0.9\n- [Add] Added new options '-rd” and '--random-directory\n- [Fix] Fixed problem with URL parsing.\n- [Fix] Fixed problem with Dmm-TV not checking accounts properly.\n- [Fix] Fixed an issue where Dmm-TV was not categorizing episodes properly.\n- [Fix] Fixed an issue where decryption would fail when the language setting was set to Chinese.\n- [Soon] Finished analyzing NHK+ and working on it now"
+	"version": "1.0.0",
+	"changelog_ja": "主な変更点 - 1.0.0\n- [Add] Abemaの新しいバージョンV2をリリースしました (DASH,HLSのサポート)\n- [Add] ニコニコのコメントをダウンロードするオプションを追加しました (--get-niconico-comment, --only-download-comment)\n- [Add] ニコニコのコメントをxmlでセーブする機能を追加しました\n- [Add] Anime3rbをサポートしました\n- [Add] バージョンチェック機能を追加しました\n- [Fix] うまく実行できない問題を修正しました\n- [Fix] うまく地域チェックができない問題を修正しました\n- [Fix] 対象のコンテンツが無料かを判定するコードを修正しました\n- [Soon] NHK+のログインシステム上実装は遅くなります",
+    "changelog_en": "What's New? - 1.0.0\n- [Add] Released new version V2 of Abema (DASH,HLS support)\n- [Add] Added option to download Niconico comments (--get-niconico-comment, --only-download-comment)\n- [Add] Added the ability to save NicoNico comments in xml\n- [Add] Supported Anime3rb\n- [Add] Added version check function\n- [Fix] Fixed a problem that could not be executed properly\n- [Fix] Fixed an issue where the region check could not be performed properly.\n- [Fix] Fixed the code that determines whether the target content is free.\n- [Soon] Implementation will be slow due to NHK+ login system"
 }

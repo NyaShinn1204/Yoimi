@@ -2,50 +2,50 @@
 
 [English](./README.md) | [日本語](./README.ja.md)
 
-A simple encrypted content downloader.
+シンプルな暗号化コンテンツダウンローダーです。
 
-Currently, we have confirmed operation with the following devices
+現在以下のデバイスでの動作を確認しています。
 
 - Linux (aarch64, arm64)
 - Windows (10&11)
-- Nintendo Switch(L4T Ubuntu noble)
+- Nintendo Switch(L4T noble)
 
-# Table of contents
+# 目次
 
-- [Installation](#how-to-install)
-    - [Download with Git Clone](#download-with-git-clone)
-    - [Downlaod with Release](#download-with-release)
-- [How to use](#how-to-use)
-    - [Commands](#basic-commands)
-    - [Download](#basic-download)
-    - [Supported Sites](#supported-sites)
-- [Existing Issues](#exsiting-issues)
+- [インストール](#インストール方法)
+    - [Git Cloneでのダウンロード](#git-cloneでのダウンロード)
+    - [リリースからのダウンロード](#リリースからのダウンロード)
+- [使い方](#使い方)
+    - [コマンド](#基本的なコマンド)
+    - [基本的なダウンロード](#基本的なダウンロード)
+    - [サポートされているサイト](#サポートされているサイト)
+- [既存の問題](#既存の問題)
 
 
-## How to Install
+## インストール方法
 
-### Download with Git Clone
+### Git cloneでのダウンロード
 
     git clone https://github.com/nyashinn1204/yoimi
 
-Note: you will need layer3 widevine cdm if downloading from git. (l3.wvd)
+注意: gitからのダウンロードの場合layer3のwidevine cdmが必要となります。(l3.wvd)
 
-If you are able to prepare it, please use this option if at all possible!
+もし用意できるのであればできる限りこのオプションを利用してください
 
 
-### Downlaod with Release
+### リリースからのダウンロード
 
-Download the latest version of Yoimi from [here](https://github.com/NyaShinn1204/Yoimi/releases/latest).
+[こちら](https://github.com/NyaShinn1204/Yoimi/releases/latest) から最新版のYoimiをダウンロードしてください。
 
-This zip contains l3.wvd and other files. If you are having trouble preparing it, use this one.
+このzipにはl3.wvdなどが含まれています。用意がめんどくさいときはこちらを使ってください。
 
-Also, sometimes there are modifications to the Yoimi-hot-fix-0.zip.
+また、たまにですがYoimi-hot-fix-〇.zipという風に修正がされている場合があります。
 
-In that case, please update the file as much as possible.
+その際にはできるだけ更新を行ってください。
 
-## How to use
+## 使い方
 
-### Basic Commands
+### 基本的なコマンド
 
 ```
 >> python yoimi.py download -h
@@ -78,72 +78,72 @@ Options:
   -h, --help                     Show this message and exit.
 ```
 
-- **`--username/-U`**: Username or Email
-- **`--password/-P`**: Password
-- **`--proxies/-p`**: Proxy
-    - Example: `127.0.0.1:1080`, `http://127.0.0.1:1080`, `http://user:pass@127.0.0.1:1080`, `socks5://127.0.0.1:1080`
-- **`--verbose/-v`**: Use debug mode
-- **`--random-directory/-rd`**: Temp folder to random characters [※1](#decryption-fails-in-chinese-environment)
-- **`--get-niconico-comment`**: download niconico comment
-- **`--only-download-comment`**: download only niconico comment
+- **`--username/-U`**: ユーザー名またはメールアドレス
+- **`--password/-P`**: パスワード
+- **`--proxies/-p`**: プロキシ
+    - 例: `127.0.0.1:1080`, `http://127.0.0.1:1080`, `http://user:pass@127.0.0.1:1080`, `socks5://127.0.0.1:1080`
+- **`--verbose/-v`**: デバッグモードを利用する
+- **`--random-directory/-rd`**: tempフォルダをランダム文字にする [※1](#中国語環境で暗号化解除が失敗する)
+- **`--get-niconico-comment`**: ニコニコのコメントをダウンロードする
+- **`--only-download-comment`**: ニコニコのコメントのみダウンロードする
 
-### Basic Download
+### 基本的なダウンロード
 
-Basically
+基本的には
 
-    python yoimi.py download Here is the url of the video
+    python yoimi.py download ここに動画のurl
 
-and it will work. If you need an account
+のようにすると、動作します。アカウントが必要な場合には
 
-    python yoimi.py download here url of video --username here email address --password here password
+    python yoimi.py download ここに動画のurl --username ここにメールアドレス --password ここにパスワード
 
-If you want to use your account, you can use your account as follows. Some cookies may be required.
+のようにすると、アカウントが使われます。一部クッキーが必要なものも出てくるかもしれません。
 
-### Supported Sites
+### サポートされているサイト
 
-We currently support or are working on the following sites
+現在以下のサイトにサポート、または取り組んでいます。
 
-Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
+完了: ✅   |   作成中: 🔄️   |   キャンセル: ❌
 
 |                      | Premium  | Free  | 
 | -------------------- | -------- | ----- |
 | Abema                | ✅      | ✅   |
 | U-Next               | ✅      | ｘ    |
 | Dmm-TV               | ✅      | 🔄️   |
-| Danime               | 🔄️      | 🔄️   |
+| Dアニメ              | 🔄️      | 🔄️   |
 | FOD                  | ✅      | ｘ    |
-| NHK+                 | ❌      |  ❌  | 
+| NHK+                 | ❌      |  ❌  |
 | Anime3rb             |  X       |  ✅  |
 
-NHK+ Cancel Reason: [※2](#nhk-issues)
+NHK+のキャンセル理由: [※2](#nhkでうまくログインできない)
 
-If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
+Abemaで問題が発生したら、urlの最後に"-v1"をつけてみてください。v1のモードでダウンローダーが動きます。
 
-## Existing Issues
+## 既存の問題
 
-#### Decryption fails in Chinese environment
+#### 中国語環境で暗号化解除が失敗する
 
-In this case, use the -rd option or the --random-directory option.
+この場合は-rdオプション、または--random-directoryオプションを利用してください。
 
-#### NHK Issues
+#### nhkでうまくログインできない
 
-I have to give up on nhk+ because I can't match the “fingerprint” used to log in.
-The source code itself is in /ongoing/nhk_plus/, so if you can fix it, please pull requests or whatever.
-Please do so (see below).
+ログインをする際に使う"fingerprint"の照合がどうしてもできないため、nhk+は断念します。
+ソースコード自体は/ongoing/nhk_plus/に入っているので、直せたらpull requestsでも何でもしてください。
+お願いします()
 
-#### Other
+#### その他
 
-Problem with occasional licensing failures and program stoppage
+時々ライセンス取得に失敗し、プログラムが停止してしまう問題
 
 
-## Have you found a problem?
+## 問題を発見しましたか？
 
 discord: nyanyakko005
-or
+または
 telegmra: skidnyarara
 
-Please contact us at
+に連絡をしてください
 
 > [!WARNING]
-> Yoimi is developed from the base part of a package called [Yuu](https://github.com/noaione/yuu). There are many similarities in the code
-> Yoimi also recommends that it be used for educational purposes only.
+> Yoimiは、[Yuu](https://github.com/noaione/yuu) と呼ばれるパッケージのベース部分をもとに開発されています。コードが似ている部分が多くあります
+> またYoimiは、教育目的のみの使用を推奨しています。

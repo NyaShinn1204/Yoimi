@@ -13,7 +13,7 @@ from ext import brainshark as Brainshark
 from ext import fod as FOD
 from ext import anime3rb as Anime3rb
 
-__version__ = "0.9.0"
+__version__ = "1.0.0"
 
 def get_parser(url):
     """
@@ -50,6 +50,14 @@ def get_parser(url):
         return Anime3rb, "anime3rb"
     return None, None
 
+def version_check(session):
+    data = session.get("https://pastebin.com/raw/ajb3We1w").json()
+    if __version__ != data["version"]:
+        print("New Version Detect, Please update! https://github.com/NyaShinn1204/Yoimi/releases/tag/{}".format(data["version"]))
+        print('====== Changelog v{} ======'.format(data["version"]))
+        print(data["changelog_ja"])
+        print("\n")
+        print(data["changelog_en"])
 
 def merge_video(path, output):
     """

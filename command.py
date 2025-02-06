@@ -8,7 +8,7 @@ import click
 import requests
 import subprocess
 
-from common import (__version__, _prepare_yuu_data, get_parser, get_yuu_folder, merge_video, mux_video)
+from common import (__version__, _prepare_yuu_data, get_parser, version_check, get_yuu_folder, merge_video, mux_video)
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], ignore_unknown_options=True)
 
@@ -90,6 +90,9 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         exit(1)
         
     sesi = requests.Session()
+    
+    version_check(sesi)
+    
     if site_text not in ["abemav1", "aniplus", "gyao"]:
         
         if proxy:
@@ -126,7 +129,6 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
     else:
         if site_text == "abemav1":
             input = input.replace("-v1", "")
-        print(input)
         fn_log_output = '{f}/yuu_log-{t}.log'.format(f=get_yuu_folder(), t=datetime.today().strftime("%Y-%m-%d_%HH%MM"))
         logging.basicConfig(level=logging.DEBUG,
                             handlers=[logging.FileHandler(fn_log_output, 'a', 'utf-8')],
