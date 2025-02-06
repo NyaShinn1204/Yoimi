@@ -1,8 +1,6 @@
 ![Yoimi](https://socialify.git.ci/NyaShinn1204/Yoimi/image?description=1&descriptionEditable=%E8%A4%87%E6%95%B0%E3%81%AE%E3%82%B5%E3%82%A4%E3%83%88%E3%81%AE%E5%8B%95%E7%94%BB%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%80%E3%83%BC%0AA%20Simple%20Encrypt%20Content%20Downloader&font=Raleway&language=1&logo=https%3A%2F%2Ffiles.catbox.moe%2Fue535j.png&name=1&pattern=Solid&theme=Light)
 
-日本語: [![jp](https://img.shields.io/badge/README-jp-red.svg)](README.md)
-
-English: [![en](https://img.shields.io/badge/README-en-red.svg)](README.en-us.md)
+[English](./README.md) | [日本語](./README.ja.md)
 
 A simple encrypted content downloader.
 
@@ -118,6 +116,8 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | Anime3rb             |  X       |  ✅  |
 
 NHK+ Cancel Reason: [※2](#nhk-issues)
+
+If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 
 ## Existing Issues
 

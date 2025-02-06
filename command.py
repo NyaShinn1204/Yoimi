@@ -90,7 +90,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         exit(1)
         
     sesi = requests.Session()
-    if site_text not in ["aniplus", "gyao"]:
+    if site_text not in ["abemav1", "aniplus", "gyao"]:
         
         if proxy:
             sesi.proxies = {'http': proxy, 'https': proxy}
@@ -124,6 +124,9 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         except Exception as error:
             print(error)
     else:
+        if site_text == "abemav1":
+            input = input.replace("-v1", "")
+        print(input)
         fn_log_output = '{f}/yuu_log-{t}.log'.format(f=get_yuu_folder(), t=datetime.today().strftime("%Y-%m-%d_%HH%MM"))
         logging.basicConfig(level=logging.DEBUG,
                             handlers=[logging.FileHandler(fn_log_output, 'a', 'utf-8')],

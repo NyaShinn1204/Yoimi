@@ -30,7 +30,9 @@ def get_parser(url):
     valid_fod = r'^["\']?http(?:|s)://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+/?)?["\']?$'
     valid_anime3rb = r'^["\']?http(?:|s)://anime3rb\.com/(?:titles|episode)/([\w-]+)/.*|search\?q=[^"\']+["\']?$'
     
-    if re.match(valid_abema, url):
+    if re.match(valid_abema, url) and url.__contains__("-v1"):
+        return AbemaTV, "abemav1"
+    elif re.match(valid_abema, url):
         return AbemaTV_v2, "abema"
     elif re.match(valid_gyao, url):
         return GYAO, "gyao"
