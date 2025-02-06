@@ -6,6 +6,7 @@ import subprocess
 from tqdm import tqdm
 
 from ext import *
+from ext import abematv_v2 as AbemaTV_v2
 from ext import unext_v2 as Unext_v2
 from ext import dmm_tv as Dmm_tv
 from ext import brainshark as Brainshark
@@ -30,7 +31,7 @@ def get_parser(url):
     valid_anime3rb = r'^["\']?http(?:|s)://anime3rb\.com/(?:titles|episode)/([\w-]+)/.*|search\?q=[^"\']+["\']?$'
     
     if re.match(valid_abema, url):
-        return AbemaTV, "abema"
+        return AbemaTV_v2, "abema"
     elif re.match(valid_gyao, url):
         return GYAO, "gyao"
     elif re.match(valid_aniplus, url):

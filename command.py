@@ -90,7 +90,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         exit(1)
         
     sesi = requests.Session()
-    if site_text not in ["abema", "aniplus", "gyao"]:
+    if site_text not in ["aniplus", "gyao"]:
         
         if proxy:
             sesi.proxies = {'http': proxy, 'https': proxy}
