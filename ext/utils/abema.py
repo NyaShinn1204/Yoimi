@@ -417,7 +417,7 @@ class Abema_downloader:
         _aes = AES.new(key, AES.MODE_CBC, IV=iv)
         return iv, _aes
 
-    def download_chunk(self, files, key, iv, decrypt_type, output_temp_directory):
+    def download_chunk(self, files, key, iv, decrypt_type, output_temp_directory, service_name="Abema"):
         if decrypt_type == "hls":
             if iv.startswith('0x'):
                 iv = iv[2:]
@@ -426,7 +426,7 @@ class Abema_downloader:
                 iv, _aes = self.setup_decryptor(key, iv)
         downloaded_files = []
         try:
-            with tqdm(total=len(files), desc='Downloading', ascii=True, unit='file') as pbar:
+            with tqdm(total=len(files), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit='file') as pbar:
                 for tsf in files:
                     outputtemp = os.path.join(output_temp_directory, os.path.basename(tsf))
                     if not os.path.exists(output_temp_directory):
@@ -449,7 +449,7 @@ class Abema_downloader:
         except KeyboardInterrupt:
             return None
         return downloaded_files
-    def merge_video(self, path, output, service_name="Abema"):
+    def merge_video(self, path, output, output_directory, service_name="Abema"):
         """
         m4sファイルを結合して1つの動画ファイルにする関数
         
@@ -458,6 +458,9 @@ class Abema_downloader:
             output_file (str): 出力する結合済みのファイル名
         """
         total_files = len(path)
+        
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory, exist_ok=True)
         
         # バイナリモードでファイルを結合
         with open(output, "wb") as outfile:
