@@ -76,6 +76,13 @@ def streams_list():
 @click.option('--random-directory', '-rd', 'use_rd', is_flag=True, default=False, help="Make temp a random directory")
 @click.option('--get-niconico-comment', '-gnc', 'use_gnc', is_flag=True, default=False, help="Get Niconico Commment for Title # Unsupported Abema, Anime3rb")
 @click.option('--only-download-comment', '-odc', 'use_odc', is_flag=True, default=False, help="Only Download Niconico Commment # Unsupported Abema, Anime3rb")
+# TODO: Coming Option list (maybe only available: abema or unext?)
+# "--add-metadata"
+# "--write-description"
+# "--embed-thumbnail"
+# "--embed-metadata"
+# "--embed-subs"
+# "--embed-chapters"
 def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd, use_gnc, use_odc):
     #print(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose)
     """
