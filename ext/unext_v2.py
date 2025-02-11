@@ -509,8 +509,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     values[missing_key] = ""
                     title_name_logger = format_string.format(**values)
             logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
-
-
+            
             if additional_info[2]:        
                 sate = {}
                 sate["info"] = {

@@ -248,9 +248,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 content_type = "PREMIUM"
                 content_status_lol = ""
             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
-            if episode_message["content_type"] == "PREMIUM" and you_premium == False:
+            if content_type == "PREMIUM" and you_premium == False:
                 logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Abema"})
                 return
+                                 
+            abema_downloader.download_niconico_comment(logger, additional_info, title_name, response["episode"].get("title", ""), response["episode"]["number"], config, title_name_logger)
             
             hls = response['playback']['hls']
             duration = response['info']['duration']
@@ -486,6 +488,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     temp_json["content_id"] = message["id"]
                     temp_json["content_type"] = content_type
                     temp_json["content_status"] = content_status_lol
+                    temp_json["episode_title"] = message["episode"].get("title", "")
+                    temp_json["episode_number"] = message["episode"]["number"]
                     temp_json["title_name_logger"] = title_name_logger
                     
                     total_episode_json.append(temp_json)
@@ -497,6 +501,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     if episode_message["content_type"] == "PREMIUM" and you_premium == False:
                         logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Abema"})
                         continue
+                    abema_downloader.download_niconico_comment(logger, additional_info, title_name, episode_message["episode_title"], episode_message["episode_number"], config, episode_message["title_name_logger"])
                     title_name_logger = episode_message["title_name_logger"]
                     response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/video/programs/{episode_message["content_id"]}?division=0&include=tvod").json() # Example: https://abema.tv/video/episode/25-147_s1_p1
                     hls = response['playback']['hls']
@@ -748,12 +753,17 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             temp_json["content_id"] = message["id"]
                             temp_json["content_type"] = content_type
                             temp_json["content_status"] = content_status_lol
+                            temp_json["episode_title"] = message["episode"].get("title", "")
+                            temp_json["episode_number"] = message["episode"]["number"]
                             temp_json["title_name_logger"] = title_name_logger
                             
                             total_episode_json.append(temp_json)
                                 
                             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
                 for i, episode_message in enumerate(total_episode_json):
+                    
+                    abema_downloader.download_niconico_comment(logger, additional_info, title_name, episode_message["episode_title"], episode_message["episode_number"], config, episode_message["title_name_logger"])
+                    
                     logger.info("Get Title for Episode", extra={"service_name": "Abema"})
                     logger.info(f" + {episode_message["content_type"]} | {episode_message["title_name_logger"]} {episode_message["content_status"]}", extra={"service_name": "Abema"})
                     if episode_message["content_type"] == "PREMIUM" and you_premium == False:
