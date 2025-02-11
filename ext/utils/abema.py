@@ -602,10 +602,10 @@ class Abema_downloader:
                     chat.set("date_usec", "0")
                     chat.set("user_id", item["userId"])
                     
-                    if len(item["commands"]) > 1:
-                        chat.set("mail", "small shita")
-                    else:
-                        chat.set("mail", " ".join(item["commands"]))
+                    #if len(item["commands"]) > 1:
+                    #    chat.set("mail", "small shita")
+                    #else:
+                    chat.set("mail", " ".join(item["commands"]))
                     
                     chat.set("premium", "1" if item["isPremium"] else "0")
                     chat.set("anonymity", "0")
