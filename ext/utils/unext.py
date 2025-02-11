@@ -605,22 +605,22 @@ class Unext_downloader:
         # ffmpegコマンド
         compile_command = [
             "ffmpeg",
-            "-i",
-            os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),
-            "-i",
-            os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),
-            "-c:v",
-            "copy",
-            "-c:a",
-            "copy",
-            "-strict",
-            "experimental",
+            "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
+            "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),  # 音声
+            #"-i", os.path.join(config["directorys"]["Temp"], "content", "thumbnail.png"),  # サムネイル
+            "-map", "0:v:0",  # 動画ストリームを選択
+            "-map", "1:a:0",  # 音声ストリームを選択
+            #"-map", "2:v:0",  # サムネイル画像をメタデータとして追加
+            "-c:v", "copy",  # 映像の再エンコードなし
+            "-c:a", "copy",  # 音声の再エンコードなし
+            #"-c:v:2", "png",  # サムネイル画像を PNG 形式で埋め込み
+            #"-disposition:v:2", "attached_pic",  # サムネイルを動画のカバーアートとして設定
+            "-strict", "experimental",
             "-y",
             "-progress", "pipe:1",  # 進捗を標準出力に出力
-            "-nostats",            # 標準出力を進捗情報のみにする
+            "-nostats",  # 標準出力を進捗情報のみにする
             output_name,
         ]
-    
         # tqdmを使用した進捗表示
         #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
@@ -871,7 +871,6 @@ class Unext_downloader:
                 return_json = metadata_response.json()
                 if return_json["data"]["webfront_title_titleEpisodes"] is not None:
                     episodes = return_json["data"]["webfront_title_titleEpisodes"]["episodes"]
-                    title_id = "SID0104147"  # タイトルIDを指定
             
                     # tqdmを使ってプログレスバーを表示
                     with tqdm(total=len(episodes), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{"U=Next"}{COLOR_RESET} : ") as pbar:
