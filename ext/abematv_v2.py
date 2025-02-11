@@ -253,7 +253,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 return
                                  
             abema_downloader.download_niconico_comment(logger, additional_info, title_name, response["episode"].get("title", ""), response["episode"]["number"], config, title_name_logger)
-            
+                        
             hls = response['playback']['hls']
             duration = response['info']['duration']
             

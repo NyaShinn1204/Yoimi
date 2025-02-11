@@ -472,27 +472,67 @@ class Abema_downloader:
                     pbar.set_postfix(file=f, refresh=True)
                     pbar.update(1)
             
-    def download_niconico_comment(self, logger, additional_info, title_name, episode_title, episode_number, config, title_name_logger):
+    def download_niconico_comment(self, logger, additional_info, title_name, episode_title, episode_number, config, title_name_logger, service_type="Abema"):
+        def convert_kanji_to_int(string):
+            """
+            Return "漢数字" to "算用数字"
+            """
+            result = string.translate(str.maketrans("零〇一壱二弐三参四五六七八九拾", "00112233456789十", ""))
+            convert_table = {"十": "0", "百": "00", "千": "000"}
+            unit_list = "|".join(convert_table.keys())
+            while re.search(unit_list, result):
+                for unit in convert_table.keys():
+                    zeros = convert_table[unit]
+                    for numbers in re.findall(rf"(\d+){unit}(\d+)", result):
+                        result = result.replace(numbers[0] + unit + numbers[1], numbers[0] + zeros[len(numbers[1]):len(zeros)] + numbers[1])
+                    for number in re.findall(rf"(\d+){unit}", result):
+                        result = result.replace(number + unit, number + zeros)
+                    for number in re.findall(rf"{unit}(\d+)", result):
+                        result = result.replace(unit + number, "1" + zeros[len(number):len(zeros)] + number)
+                    result = result.replace(unit, "1" + zeros)
+            return result
+        def convert_int_to_kanji(num: int) -> str:
+            """
+            Return "算用数字" to "漢数字"
+            """
+            kanji_units = ['', '十', '百', '千']
+            kanji_large_units = ['', '万', '億', '兆', '京']
+            kanji_digits = '零一二三四五六七八九'
+            
+            if num == 0:
+                return kanji_digits[0]
+            
+            result = ''
+            str_num = str(num)
+            length = len(str_num)
+            
+            for i, digit in enumerate(str_num):
+                if digit != '0':
+                    result += kanji_digits[int(digit)] + kanji_units[(length - i - 1) % 4]
+                if (length - i - 1) % 4 == 0:
+                    result += kanji_large_units[(length - i - 1) // 4]
+            
+            result = result.replace('一十', '十')  # 「一十」は「十」に置き換え、バグ対策
+            return result
         if additional_info[2]:        
             sate = {}
-            episode_text = re.sub(r'^最終(?:回|話)(?=\s)', f'第{episode_number}話', episode_title)
-            
+            episode_text = re.sub(r'^第\d+話\s*', '', episode_title)
             sate["info"] = {
                 "work_title": title_name,
                 "episode_title": episode_title,
                 "raw_text": f"{title_name} {episode_title}",
                 "series_title": title_name,
-                "episode_text": episode_text,
+                "episode_text": episode_title.replace(episode_text, ""),
                 "episode_number": episode_number,
-                "subtitle": episode_title.replace(episode_text, ""),
+                "subtitle": episode_text,
             }
-            
+                        
             def get_niconico_info(stage, data):
                 if stage == 1:
                     querystring = {
                         "q": data,
                         "_sort": "-startTime",
-                        "_context": "NCOverlay/3.23.0/Mod For Yoimi",
+                        "_context": "NCOverlay/3.24.0/Mod For Yoimi",
                         "targets": "title,description",
                         "fields": "contentId,title,userId,channelId,viewCounter,lengthSeconds,thumbnailUrl,startTime,commentCounter,categoryTags,tags",
                         "filters[commentCounter][gt]": 0,
@@ -522,8 +562,8 @@ class Abema_downloader:
                     result = self.session.post(f"https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
                     return result
                 
-            logger.info(f"Getting Niconico Comment", extra={"service_name": "U-Next"})
-            return_meta = get_niconico_info(1, sate["info"]["raw_text"])
+            logger.info(f"Getting Niconico Comment", extra={"service_name": service_type})
+            return_meta = get_niconico_info(1, f'{sate["info"]["work_title"]} {sate["info"]["episode_number"]}話 OR {convert_int_to_kanji(sate["info"]["episode_number"])}話 OR エピソード{sate["info"]["episode_number"]} OR episode{sate["info"]["episode_number"]} OR ep{sate["info"]["episode_number"]} OR #{sate["info"]["episode_number"]} OR 第{sate["info"]["episode_number"]}話 OR "{sate["info"]["subtitle"]}"')
             
             base_content_id = return_meta["data"][0]["contentId"]
             
@@ -591,12 +631,12 @@ class Abema_downloader:
             
             tree = generate_xml(total_comment_json)
             
-            logger.info(f" + Hit Channel: {', '.join(total_tv)}", extra={"service_name": "U-Next"})
-            logger.info(f" + Total Comment: {str(total_comment)}", extra={"service_name": "U-Next"})
+            logger.info(f" + Hit Channel: {', '.join(total_tv)}", extra={"service_name": service_type})
+            logger.info(f" + Total Comment: {str(total_comment)}", extra={"service_name": service_type})
             
             saved_filename = save_xml_to_file(tree, base_filename=os.path.join(config["directorys"]["Downloads"], title_name, "niconico_comment", f"{title_name_logger}_[{base_content_id}]"+".xml"))
             
-            logger.info(f" + XML data saved to: {saved_filename}", extra={"service_name": "U-Next"})
+            logger.info(f" + XML data saved to: {saved_filename}", extra={"service_name": service_type})
             
             if additional_info[3]:
                 return
