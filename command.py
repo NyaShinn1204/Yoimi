@@ -74,8 +74,10 @@ def streams_list():
 @click.option("--output", "-o", required=False, default=None, help="Output filename")
 @click.option('--verbose', '-v', is_flag=True, help="Enable verbosity")
 @click.option('--random-directory', '-rd', 'use_rd', is_flag=True, default=False, help="Make temp a random directory")
-@click.option('--get-niconico-comment', '-gnc', 'use_gnc', is_flag=True, default=False, help="Get Niconico Commment for Title # Unsupported Abema, Anime3rb")
-@click.option('--only-download-comment', '-odc', 'use_odc', is_flag=True, default=False, help="Only Download Niconico Commment # Unsupported Abema, Anime3rb")
+@click.option('--get-niconico-comment', '-gnc', 'use_gnc', is_flag=True, default=False, help="Get Niconico Commment for Title # Unsupported Anime3rb")
+@click.option('--only-download-comment', '-odc', 'use_odc', is_flag=True, default=False, help="Only Download Niconico Commment # Unsupported Anime3rb")
+
+@click.option('--write-thumbnail', '-wthumb', 'write_thumbnail', is_flag=True, default=False, help="Coming soon") # TODO
 # TODO: Coming Option list (maybe only available: abema or unext?)
 # "--add-metadata"
 # "--write-description"
@@ -83,7 +85,7 @@ def streams_list():
 # "--embed-metadata"
 # "--embed-subs"
 # "--embed-chapters"
-def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd, use_gnc, use_odc):
+def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd, use_gnc, use_odc, write_thumbnail):
     #print(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose)
     """
     Main command to access downloader
@@ -130,7 +132,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                 LOG_LEVEL = "DEBUG"
             else:
                 LOG_LEVEL = "INFO"
-            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, [__version__, use_rd, use_gnc, use_odc])
+            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, [__version__, use_rd, use_gnc, use_odc, write_thumbnail])
         except Exception as error:
             print(error)
     else:

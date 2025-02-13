@@ -72,9 +72,9 @@ Options:
   -v, --verbose                  Enable verbosity
   -rd, --random-directory        Make temp a random directory
   -gnc, --get-niconico-comment   Get Niconico Commment for Title # Unsupported
-                                 Abema, Anime3rb
+                                 Anime3rb
   -odc, --only-download-comment  Only Download Niconico Commment # Unsupported
-                                 Abema, Anime3rb
+                                 Anime3rb
   -h, --help                     Show this message and exit.
 ```
 
