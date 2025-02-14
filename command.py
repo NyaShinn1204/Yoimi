@@ -77,8 +77,17 @@ def streams_list():
 @click.option('--get-niconico-comment', '-gnc', 'use_gnc', is_flag=True, default=False, help="Get Niconico Commment for Title # Unsupported Anime3rb")
 @click.option('--only-download-comment', '-odc', 'use_odc', is_flag=True, default=False, help="Only Download Niconico Commment # Unsupported Anime3rb")
 
-@click.option('--write-thumbnail', '-wthumb', 'write_thumbnail', is_flag=True, default=False, help="Coming soon") # TODO
+# TODO
+@click.option('--write-thumbnail', '-wthumb', 'write_thumbnail', is_flag=True, default=False, help="Coming soon")
+@click.option('--write-description', '-wtdesc', 'write_description', is_flag=True, default=False, help="Coming soon")
+@click.option('--embed-thumbnail', '-ebthumb', 'embed_thumbnail', is_flag=True, default=False, help="Coming soon")
+@click.option('--embed-metadata', '-ebmeta', 'embed_metadata', is_flag=True, default=False, help="Coming soon")
+@click.option('--embed-subs', '-ebsubs', 'embed_subs', is_flag=True, default=False, help="Coming soon")
+@click.option('--embed-chapters', '-ebchap', 'embed_chapters', is_flag=True, default=False, help="Coming soon")
+
 # TODO: Coming Option list (maybe only available: abema or unext?)
+# how to include metadata? idk
+# sub is found only availiable nhk+
 # "--add-metadata"
 # "--write-description"
 # "--embed-thumbnail"
