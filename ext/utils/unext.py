@@ -480,7 +480,7 @@ class Unext_downloader:
                     movieparts = return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["moviePartsPositionList"]
                 else:
                     movieparts = None
-                return True, return_json["data"]["webfront_playlistUrl"]["playToken"], return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"], [return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["endrollStartPosition"], movieparts]
+                return True, return_json["data"]["webfront_playlistUrl"]["playToken"], return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"], [movieparts]
             else:
                 return False, None, None
         except Exception as e:
@@ -615,7 +615,7 @@ class Unext_downloader:
 
         return os.path.join(config["directorys"]["Temp"], "content", unixtime, output_file_name)
     
-    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, title_name_logger, service_name="U-Next"):
+    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, title_name_logger, episode_number, additional_info, service_name="U-Next"):
         if os.name != 'nt':
             os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)
             output_name = os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4")
@@ -626,25 +626,38 @@ class Unext_downloader:
             os.makedirs(os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name)), exist_ok=True)
             output_name = os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name), sanitize_filename(title_name_logger+".mp4"))
         
-        # ffmpegコマンド
-        compile_command = [
-            "ffmpeg",
-            "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
-            "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),  # 音声
-            #"-i", os.path.join(config["directorys"]["Temp"], "content", "thumbnail.png"),  # サムネイル
-            "-map", "0:v:0",  # 動画ストリームを選択
-            "-map", "1:a:0",  # 音声ストリームを選択
-            #"-map", "2:v:0",  # サムネイル画像をメタデータとして追加
-            "-c:v", "copy",  # 映像の再エンコードなし
-            "-c:a", "copy",  # 音声の再エンコードなし
-            #"-c:v:2", "png",  # サムネイル画像を PNG 形式で埋め込み
-            #"-disposition:v:2", "attached_pic",  # サムネイルを動画のカバーアートとして設定
-            "-strict", "experimental",
-            "-y",
-            "-progress", "pipe:1",  # 進捗を標準出力に出力
-            "-nostats",  # 標準出力を進捗情報のみにする
-            output_name,
-        ]
+        if additional_info[7] or additional_info[9]:
+            compile_command = [
+                "ffmpeg",
+                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
+                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),  # 音声
+                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, "metadata", episode_number+"_metadata.txt"),  # メタデータ
+                "-map", "0:v:0",  # 動画ストリームを選択
+                "-map", "1:a:0",  # 音声ストリームを選択
+                "-map_metadata", "2",  # メタデータを適用
+                "-c:v", "copy",  # 映像の再エンコードなし
+                "-c:a", "copy",  # 音声の再エンコードなし
+                "-strict", "experimental",
+                "-y",
+                "-progress", "pipe:1",  # 進捗を標準出力に出力
+                "-nostats",  # 標準出力を進捗情報のみにする
+                output_name,
+            ]
+        else:
+            compile_command = [
+                "ffmpeg",
+                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
+                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),  # 音声
+                "-map", "0:v:0",  # 動画ストリームを選択
+                "-map", "1:a:0",  # 音声ストリームを選択
+                "-c:v", "copy",  # 映像の再エンコードなし
+                "-c:a", "copy",  # 音声の再エンコードなし
+                "-strict", "experimental",
+                "-y",
+                "-progress", "pipe:1",  # 進捗を標準出力に出力
+                "-nostats",  # 標準出力を進捗情報のみにする
+                output_name,
+            ]
         # tqdmを使用した進捗表示
         #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
@@ -694,7 +707,7 @@ class Unext_downloader:
                 else:
                     maybe_genre = "劇場"
                 
-                return True, [return_json["data"]["webfront_title_stage"]["mainGenreId"], return_json["data"]["webfront_title_stage"]["mainGenreName"], maybe_genre]
+                return True, [return_json["data"]["webfront_title_stage"]["mainGenreId"], return_json["data"]["webfront_title_stage"]["mainGenreName"], maybe_genre, return_json["data"]["webfront_title_stage"]["productionYear"]]
             else:
                 return False, None
         except Exception as e:
@@ -920,3 +933,44 @@ class Unext_downloader:
                     print("No episodes found.")
             except Exception as e:
                 print(f"Error: {e}")
+                
+    def create_ffmetadata(self, productionYear, title, unixtime, chapter, episode_number, episode_duration, additional_info):
+        if additional_info[9]:
+            chapter_text = ""
+            #print(chapter)
+        
+            # チャプター情報を取得
+            chapters = chapter[0]
+        
+            # OPENING の前の謎空間
+            if chapters[0]["fromSeconds"] > 0:
+                chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND={chapters[0]['fromSeconds']*1000}\ntitle=\n"
+        
+            for i in range(len(chapters)):
+                current_chapter = chapters[i]
+                
+                # 現在のチャプターを追加
+                chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART={current_chapter['fromSeconds']*1000}\nEND={current_chapter['endSeconds']*1000}\ntitle={current_chapter['type']}\n"
+        
+                # OPENING と ENDING の間の MAIN チャプター
+                if i < len(chapters) - 1:
+                    next_chapter = chapters[i + 1]
+                    if current_chapter["endSeconds"] < next_chapter["fromSeconds"]:
+                        chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART={current_chapter['endSeconds']*1000}\nEND={next_chapter['fromSeconds']*1000}\ntitle=\n"
+        
+            # ENDING の後の謎空間
+            last_chapter = chapters[-1]
+            if last_chapter["endSeconds"] < episode_duration:
+                chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART={last_chapter['endSeconds']*1000}\nEND={episode_duration*1000}\ntitle=\n"
+        
+        # メタデータファイルの作成
+        original_metadata = f";FFMETADATA1\ndate={productionYear}\ntitle={title}\n\n"
+        if additional_info[9]:
+            original_metadata = original_metadata + chapter_text
+        filename = episode_number + "_metadata.txt"
+        directory = os.path.join(self.config["directorys"]["Temp"], "content", unixtime, "metadata")
+        file_path = os.path.join(directory, filename)
+        os.makedirs(directory, exist_ok=True)
+        
+        with open(file_path, "w", encoding="utf-8") as meta_file:
+            meta_file.write(original_metadata)

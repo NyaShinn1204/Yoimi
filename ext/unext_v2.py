@@ -166,6 +166,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
             exit(1)
         logger.info(f" + Video Type: {id_type}", extra={"service_name": "U-Next"})
+        productionYear = id_type[3]
         if status == False:
             logger.info("Get Title for Season", extra={"service_name": "U-Next"})
             status, messages = unext_downloader.get_title_parse_all(url)
@@ -389,7 +390,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
                     exit(1)
                 else:
-                    print(additional_meta)
+                    if additional_info[7] or additional_info[9]:
+                        unext_downloader.create_ffmetadata(productionYear, title_name_logger, unixtime, additional_meta, message.get("displayNo", ""), message["duration"], additional_info)
                     
                     logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
                     status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
@@ -446,12 +448,15 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
                     
-                    result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, sanitize_filename(title_name), int(message["duration"]), title_name_logger)
+                    result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, sanitize_filename(title_name), int(message["duration"]), title_name_logger, message.get("displayNo", ""), additional_info)
                         
                     dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                     
                     if os.path.exists(dir_path) and os.path.isdir(dir_path):
                         for filename in os.listdir(dir_path):
+                            if filename == "metadata":
+                                continue
+                            
                             file_path = os.path.join(dir_path, filename)
                             try:
                                 if os.path.isfile(file_path):
@@ -653,6 +658,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
                 exit(1)
             else:
+                if additional_info[7] or additional_info[9]:
+                    unext_downloader.create_ffmetadata(productionYear, title_name_logger, unixtime, additional_meta, message.get("displayNo", ""), message["duration"], additional_info)
                 logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
                 status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
                 if status == False:
@@ -710,7 +717,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
                 
-                result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(message["duration"]), title_name_logger)
+                result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(message["duration"]), title_name_logger, message.get("displayNo", ""), additional_info)
                 
                 dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                 

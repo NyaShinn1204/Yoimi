@@ -6,10 +6,11 @@ directorys:
   Temp: './temp'
   Downloads: './downloads'
   Binaries: './binaries'
+  Service_util: './ext/utils/{servicename}_util'
 
 authorization: # option
   use_token: False
-  token: '' # 'Bearer eyJhbG.....'    token expire is 1day
+  token: '' # 'Bearer eyJhbG.....' this option is not recomended
 
 format:
   anime: '{seriesname}_{titlename}_{episodename}' # seriesname, titlename, episodename are availiable
