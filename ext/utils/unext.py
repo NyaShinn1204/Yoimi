@@ -17,6 +17,19 @@ COLOR_GRAY = "\033[90m"
 COLOR_RESET = "\033[0m"
 COLOR_BLUE = "\033[94m"
 
+def config_load(config, service_name="unext"):
+    global load_command
+    path1 = os.path.join(config["directorys"]["Service_util"])
+    test1 = open(os.path.join(path1.replace("{servicename}", service_name), "command_list.json"), "r")
+    load_command = json.load(test1)
+    
+def find_entry_by_name(json_data, target_name):
+    for entry in json_data.get("operations", []):
+        if entry.get("name") == target_name:
+            entry["body"] = entry["body"].replace("\\n", "\n")
+            return entry
+    return None
+
 class mpd_parse:
     @staticmethod
     def extract_video_info(mpd_content, value):
@@ -266,8 +279,10 @@ class Unext_decrypt:
                     inner_pbar.refresh()
     
 class Unext_downloader:
-    def __init__(self, session):
+    def __init__(self, session, config):
         self.session = session
+        self.config = config
+        config_load(self.config)
     def authorize(self, email_or_id, password):
         _ENDPOINT_CC = 'https://cc.unext.jp'
         _ENDPOINT_CHALLENG_ID = 'https://oauth.unext.jp/oauth2/auth?state={state}&scope=offline%20unext&nonce={nonce}&response_type=code&client_id=unextAndroidApp&redirect_uri=jp.unext%3A%2F%2Fpage%3Doauth_callback'
@@ -447,16 +462,25 @@ class Unext_downloader:
         
     def get_playtoken(self, episode_id):
         '''メタデータを取得するコード'''
+        operation_name = "cosmo_getPlaylistUrl"
+        return_commandlist = find_entry_by_name(load_command, operation_name)
         meta_json = {
             "operationName": "cosmo_getPlaylistUrl",
             "variables": {"code": episode_id, "playMode": "dub", "bitrateLow": 1500},
-            "query": "query cosmo_getPlaylistUrl($code: String, $playMode: String, $bitrateLow: Int, $bitrateHigh: Int, $validationOnly: Boolean) {\n  webfront_playlistUrl(\n    code: $code\n    playMode: $playMode\n    bitrateLow: $bitrateLow\n    bitrateHigh: $bitrateHigh\n    validationOnly: $validationOnly\n  ) {\n    subTitle\n    playToken\n    playTokenHash\n    beaconSpan\n    result {\n      errorCode\n      errorMessage\n      __typename\n    }\n    resultStatus\n    licenseExpireDate\n    urlInfo {\n      code\n      startPoint\n      resumePoint\n      endPoint\n      endrollStartPosition\n      holderId\n      saleTypeCode\n      sceneSearchList {\n        IMS_AD1\n        IMS_L\n        IMS_M\n        IMS_S\n        __typename\n      }\n      movieProfile {\n        cdnId\n        type\n        playlistUrl\n        movieAudioList {\n          audioType\n          __typename\n        }\n        licenseUrlList {\n          type\n          licenseUrl\n          __typename\n        }\n        __typename\n      }\n      umcContentId\n      movieSecurityLevelCode\n      captionFlg\n      dubFlg\n      commodityCode\n      movieAudioList {\n        audioType\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n",
+            "query": return_commandlist["body"]
         }
         try:   
             metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
             return_json = metadata_response.json()
             if return_json["data"]["webfront_playlistUrl"] != None:
-                return True, return_json["data"]["webfront_playlistUrl"]["playToken"], return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"] 
+                try:
+                    print(return_json["data"]["webfront_playlistUrl"]["urlInfo"][0])
+                    print("moviePartsPositionList" in return_json["data"]["webfront_playlistUrl"]["urlInfo"][0])
+                    print("found")
+                except Exception as e:
+                    print(e)
+                    print("notfound")
+                return True, return_json["data"]["webfront_playlistUrl"]["playToken"], return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"], [return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["endrollStartPosition"]]
             else:
                 return False, None, None
         except Exception as e:

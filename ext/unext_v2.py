@@ -113,12 +113,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         global media_code, playtoken
         #url = "https://video.unext.jp/title/SID0104147"
         #url = "https://video.unext.jp/play/SID0104147/ED00570918"
+        #additional_info = [__version__, use_rd, use_gnc, use_odc, write_thumbnail, write_description, embed_thumbnail, embed_metadata, embed_subs, embed_chapters]
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt U-Next, Abema Content for Everyone", extra={"service_name": "Yoimi"})
         if session.proxies != {}:
             check_proxie(session)
         
-        unext_downloader = unext.Unext_downloader(session)
+        unext_downloader = unext.Unext_downloader(session, config)
         
         if config["authorization"]["use_token"]:
             if config["authorization"]["token"] != "":
@@ -383,7 +384,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             logger.info(f"Coming soon", extra={"service_name": "U-Next"})
                             return
                     
-                status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
+                status, playtoken, media_code, additional_meta = unext_downloader.get_playtoken(message["id"])
                 if status == False:
                     logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
                     exit(1)
@@ -512,7 +513,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 sate["info"] = {
                     "work_title": title_name,
                     "episode_title": f"{message.get("displayNo", "")} {message.get("episodeName", "")}",
-                #    "duration": 1479,
                     "raw_text": f"{title_name} {message.get("displayNo", "")} {message.get("episodeName", "")}",
                     "series_title": title_name,
                     "episode_text": message.get("displayNo", ""),
@@ -646,7 +646,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         logger.info(f"Coming soon", extra={"service_name": "U-Next"})
                         return
             
-            status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
+            status, playtoken, media_code, additional_meta = unext_downloader.get_playtoken(message["id"])
             if status == False:
                 logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
                 exit(1)
@@ -707,9 +707,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 unext.Unext_decrypt.decrypt_all_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
                 
                 logger.info("Muxing Episode...", extra={"service_name": "U-Next"})
-                                 
+                
                 result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(message["duration"]), title_name_logger)
-                    
+                
                 dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                 
                 if os.path.exists(dir_path) and os.path.isdir(dir_path):
