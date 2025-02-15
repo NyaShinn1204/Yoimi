@@ -94,7 +94,7 @@ def streams_list():
 # "--embed-metadata"
 # "--embed-subs"
 # "--embed-chapters"
-def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd, use_gnc, use_odc, write_thumbnail):
+def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd, use_gnc, use_odc, write_thumbnail, write_description, embed_thumbnail, embed_metadata, embed_subs, embed_chapters):
     #print(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose)
     """
     Main command to access downloader
@@ -141,7 +141,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                 LOG_LEVEL = "DEBUG"
             else:
                 LOG_LEVEL = "INFO"
-            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, [__version__, use_rd, use_gnc, use_odc, write_thumbnail])
+            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, [__version__, use_rd, use_gnc, use_odc, write_thumbnail, write_description, embed_thumbnail, embed_metadata, embed_subs, embed_chapters])
         except Exception as error:
             print(error)
     else:

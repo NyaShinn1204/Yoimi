@@ -209,7 +209,6 @@ class Unext_license:
         response_video = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_video)    
         if response_video.text == "Possibly compromised client":
             print("THIS WVD IS NOT ALLOWED")
-            #return None
         response_video.raise_for_status()
         response_audio = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_audio)    
         response_audio.raise_for_status()
@@ -495,7 +494,6 @@ class Unext_downloader:
             else:
                 return True, metadata_response.text
         except Exception as e:
-            #print(e)
             return False, e
         
     def update_progress(self, process, service_name="U-Next"):
@@ -649,7 +647,6 @@ class Unext_downloader:
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
             with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
                 for line in process.stdout:   
-                    #print(line) 
                     # "time=" の進捗情報を解析
                     match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
                     if match:
@@ -910,11 +907,7 @@ class Unext_downloader:
                     print("No episodes found.")
             except Exception as e:
                 print(f"Error: {e}")
-                
-                
-
-
-
+    
 def set_variable(session, LOG_LEVEL):
     global logger, config, unixtime
     
@@ -967,8 +960,6 @@ def check_proxie(session):
             "scope": ["offline", "unext"],
         }
         auth_response = session.post(_ENDPOINT_RES, json=payload_).json()
-        #    
-        #
         end = time.time()
         time_elapsed = end - start
         time_elapsed = time_elapsed * 1000
@@ -992,8 +983,6 @@ def check_proxie(session):
 def main_command(session, url, email, password, LOG_LEVEL, additional_info):
     try:
         global media_code, playtoken
-        #url = "https://video.unext.jp/title/SID0104147"
-        #url = "https://video.unext.jp/play/SID0104147/ED00570918"
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt U-Next, Abema Content for Everyone", extra={"service_name": "Yoimi"})
         if session.proxies != {}:
@@ -1103,7 +1092,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     sate["info"] = {
                         "work_title": title_name,
                         "episode_title": f"{message.get("displayNo", "")} {message.get("episodeName", "")}",
-                    #    "duration": 1479,
                         "raw_text": f"{title_name} {message.get("displayNo", "")} {message.get("episodeName", "")}",
                         "series_title": title_name,
                         "episode_text": message.get("displayNo", ""),
@@ -1186,10 +1174,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             chat.set("date_usec", "0")
                             chat.set("user_id", item["userId"])
                             
-                            if len(item["commands"]) > 1:
-                                chat.set("mail", "small shita")
-                            else:
-                                chat.set("mail", " ".join(item["commands"]))
+                            chat.set("mail", " ".join(item["commands"]))
                             
                             chat.set("premium", "1" if item["isPremium"] else "0")
                             chat.set("anonymity", "0")
@@ -1259,8 +1244,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 append_data_to_global(i+1, license_key)
                 session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
                 session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
-            #print(global_license_json)
-            #return
             def worker_for_this(episode_num, message):
                 episode_num = f"{episode_num +1}"
                 if id_type[2] == "ノーマルアニメ":
@@ -1310,7 +1293,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             logger.info(f"Coming soon", extra={"service_name": "U-Next"})
                             return
                     
-                #status, playtoken, media_code = unext_downloader.get_playtoken(message["id"])
                 status = True
                 playtoken = None
                 media_code = global_license_json.get(episode_num)["media_code"]
@@ -1321,24 +1303,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
                     status = True
                     mpd_content = global_license_json.get(episode_num)["mpd_content"]
-                    #status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
                     if status == False:
                         logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "U-Next"})
                         logger.error(f"Reason: {mpd_content}", extra={"service_name": "U-Next"})
                         session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
                         session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
                         exit(1)
-                    #mpd_lic = Unext_utils.parse_mpd_logic(mpd_content)
-        #
-                    #logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": "U-Next"})
-                    #logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": "U-Next"})
-                    #
-                    #license_key = Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
-                    #
-                    #logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "U-Next"})
-                    #
-                    #logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
-                    #logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
+                        
                     license_key = global_license_json.get(episode_num)
                                         
                     logger.info("Checking resolution...", extra={"service_name": "U-Next"})
@@ -1423,6 +1394,3 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         print(traceback.format_tb(error.__traceback__))
         session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
         session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
-
-import requests        
-main_command(requests.Session(), "https://video.unext.jp/title/SID0003189/", "newunext@paicha.jp", "Newunext0", "INFO", ["0.9.0", False, False, False])
