@@ -389,6 +389,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
                     exit(1)
                 else:
+                    print(additional_meta)
+                    
                     logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
                     status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
                     if status == False:

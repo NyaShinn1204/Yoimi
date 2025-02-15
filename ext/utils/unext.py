@@ -473,14 +473,14 @@ class Unext_downloader:
             metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
             return_json = metadata_response.json()
             if return_json["data"]["webfront_playlistUrl"] != None:
-                try:
-                    print(return_json["data"]["webfront_playlistUrl"]["urlInfo"][0])
-                    print("moviePartsPositionList" in return_json["data"]["webfront_playlistUrl"]["urlInfo"][0])
-                    print("found")
-                except Exception as e:
-                    print(e)
-                    print("notfound")
-                return True, return_json["data"]["webfront_playlistUrl"]["playToken"], return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"], [return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["endrollStartPosition"]]
+                #print(return_json["data"]["webfront_playlistUrl"]["urlInfo"][0])
+                #print("moviePartsPositionList" in return_json["data"]["webfront_playlistUrl"]["urlInfo"][0])
+                #print("found")
+                if ("moviePartsPositionList" in return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]):
+                    movieparts = return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["moviePartsPositionList"]
+                else:
+                    movieparts = None
+                return True, return_json["data"]["webfront_playlistUrl"]["playToken"], return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"], [return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["endrollStartPosition"], movieparts]
             else:
                 return False, None, None
         except Exception as e:
@@ -674,10 +674,12 @@ class Unext_downloader:
     def get_id_type(self, url):
         matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)
         '''映像タイプを取得するコード'''
+        operation_name = "cosmo_getVideoTitle"
+        return_commandlist = find_entry_by_name(load_command, operation_name)
         meta_json = {
             "operationName": "cosmo_getVideoTitle",
             "variables": {"code": [match[0] for match in matches1 if match[0]][0]},
-            "query": "query cosmo_getVideoTitle($code: ID!) {\n  webfront_title_stage(id: $code) {\n    id\n    titleName\n    rate\n    userRate\n    productionYear\n    country\n    catchphrase\n    attractions\n    story\n    check\n    seriesCode\n    seriesName\n    publicStartDate\n    displayPublicEndDate\n    restrictedCode\n    copyright\n    mainGenreId\n    bookmarkStatus\n    thumbnail {\n      standard\n      secondary\n      __typename\n    }\n    mainGenreName\n    isNew\n    exclusive {\n      typeCode\n      isOnlyOn\n      __typename\n    }\n    isOriginal\n    lastEpisode\n    updateOfWeek\n    nextUpdateDateTime\n    productLineupCodeList\n    hasMultiprice\n    minimumPrice\n    country\n    productionYear\n    paymentBadgeList {\n      id\n      name\n      code\n      __typename\n    }\n    nfreeBadge\n    hasDub\n    hasSubtitle\n    saleText\n    currentEpisode {\n      id\n      interruption\n      duration\n      completeFlag\n      displayDurationText\n      existsRelatedEpisode\n      playButtonName\n      purchaseEpisodeLimitday\n      __typename\n    }\n    publicMainEpisodeCount\n    comingSoonMainEpisodeCount\n    missingAlertText\n    sakuhinNotices\n    hasPackRights\n    __typename\n  }\n}\n"
+            "query": return_commandlist["body"]
         }
         try:   
             metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
@@ -685,9 +687,9 @@ class Unext_downloader:
             if return_json["data"]["webfront_title_stage"] != None:
                 maybe_genre = None
                                 
-                if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"] == "再生":
+                if return_json["data"]["webfront_title_stage"]["keyEpisodes"]["current"]["playButtonName"] == "再生":
                     maybe_genre = "劇場"
-                if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("第") or return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("#"):
+                if return_json["data"]["webfront_title_stage"]["keyEpisodes"]["current"]["playButtonName"].__contains__("第") or return_json["data"]["webfront_title_stage"]["keyEpisodes"]["current"]["playButtonName"].__contains__("#") or return_json["data"]["webfront_title_stage"]["keyEpisodes"]["current"]["playButtonName"].__contains__("を再生"):
                     maybe_genre = "ノーマルアニメ"
                 else:
                     maybe_genre = "劇場"
@@ -702,10 +704,12 @@ class Unext_downloader:
     def check_buyed(self, url):
         matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)
         '''購入済みか確認するコード'''
+        operation_name = "cosmo_getVideoTitle"
+        return_commandlist = find_entry_by_name(load_command, operation_name)
         meta_json = {
             "operationName": "cosmo_getVideoTitle",
             "variables": {"code": [match[0] for match in matches1 if match[0]][0]},
-            "query": "query cosmo_getVideoTitle($code: ID!) {\n  webfront_title_stage(id: $code) {\n    id\n    titleName\n    rate\n    userRate\n    productionYear\n    country\n    catchphrase\n    attractions\n    story\n    check\n    seriesCode\n    seriesName\n    publicStartDate\n    displayPublicEndDate\n    restrictedCode\n    copyright\n    mainGenreId\n    bookmarkStatus\n    thumbnail {\n      standard\n      secondary\n      __typename\n    }\n    mainGenreName\n    isNew\n    exclusive {\n      typeCode\n      isOnlyOn\n      __typename\n    }\n    isOriginal\n    lastEpisode\n    updateOfWeek\n    nextUpdateDateTime\n    productLineupCodeList\n    hasMultiprice\n    minimumPrice\n    country\n    productionYear\n    paymentBadgeList {\n      id\n      name\n      code\n      __typename\n    }\n    nfreeBadge\n    hasDub\n    hasSubtitle\n    saleText\n    currentEpisode {\n      id\n      interruption\n      duration\n      completeFlag\n      displayDurationText\n      existsRelatedEpisode\n      playButtonName\n      purchaseEpisodeLimitday\n      __typename\n    }\n    publicMainEpisodeCount\n    comingSoonMainEpisodeCount\n    missingAlertText\n    sakuhinNotices\n    hasPackRights\n    __typename\n  }\n}\n"
+            "query": return_commandlist["body"]
         }
         try:   
             metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
@@ -722,6 +726,8 @@ class Unext_downloader:
         
     def buy_episode(self, title_id, episode_id):
         '''購入またはレンタルするコード'''
+        operation_name = "cosmo_videoProductList"
+        return_commandlist = find_entry_by_name(load_command, operation_name)
         meta_json = {
             "operationName": "cosmo_videoProductList",
             "variables": {
@@ -729,20 +735,21 @@ class Unext_downloader:
                 "episodeCode": episode_id,
                 "deviceType": "700"
             },
-            "query": "query cosmo_videoProductList($titleCode: ID!, $episodeCode: ID!, $deviceType: String!) {\n  webfront_title_stage(id: $titleCode) {\n    id\n    titleName\n    episode(id: $episodeCode) {\n      episodeName\n      displayNo\n      __typename\n    }\n    __typename\n  }\n  webfront_videoProductList(titleCode: $titleCode, episodeCode: $episodeCode) {\n    ppvProducts {\n      code\n      name\n      saleTypeCode\n      discountRate\n      displayButtonText\n      displayName\n      purchaseDescription\n      displaySaleType\n      displayValidityDurationText\n      discountRate\n      originalPrice\n      price\n      isSale\n      publicEndDate\n      svodAvailableFromText\n      __typename\n    }\n    contractProducts {\n      code\n      name\n      typeCode\n      price\n      displaySaleType\n      displayButtonText\n      ruleTitle\n      ruleNote\n      packDescription {\n        url {\n          browser\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  webfront_pointBack {\n    setting {\n      percentage\n      maxPercentage\n      productList\n      scheduleDate\n      isRestrictedToPoint\n      canIncreasePercentage\n      __typename\n    }\n    point\n    isAnnouncedIos\n    hasVideoSubscription\n    __typename\n  }\n  productsForVideoContent(deviceType: $deviceType, id: $episodeCode) {\n    subscriptions {\n      ... on UnextSubscriptionBundle {\n        name\n        subscriptionType\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+            "query": return_commandlist["body"]
         }
         try:   
             metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
             return_json = metadata_response.json()
             if return_json["data"]["webfront_videoProductList"] != None:
                 if return_json["data"]["webfront_videoProductList"]["ppvProducts"][0]["code"]:
-                    #return True
+                    operation_name = "cosmo_videoProductList"
+                    return_commandlist = find_entry_by_name(load_command, operation_name)
                     meta_json = {
                         "operationName": "cosmo_purchaseVideoProduct",
                         "variables": {
                             "productCode": return_json["data"]["webfront_videoProductList"]["ppvProducts"][0]["code"],
                         },
-                        "mutation": "mutation cosmo_purchaseVideoProduct($productCode: ID, $liveTicketCode: ID, $useCooperationPoints: CooperationPointsPolicy) {\n  webfront_purchaseVideoProduct(\n    productCode: $productCode\n    liveTicketCode: $liveTicketCode\n    useCooperationPoints: $useCooperationPoints\n  ) {\n    product {\n      code\n      __typename\n    }\n    __typename\n  }\n}\n"
+                        "mutation": return_commandlist["body"]
                     }
                     try:   
                         metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
@@ -764,6 +771,8 @@ class Unext_downloader:
         output_temp_directory = os.path.join(config["directorys"]["Temp"], "thumbnail", unixtime)
         if not os.path.exists(output_temp_directory):
             os.makedirs(output_temp_directory, exist_ok=True)
+        operation_name = "cosmo_getVideoTitle"
+        return_commandlist = find_entry_by_name(load_command, operation_name)
         if id_type[2] == "劇場":
             # movie 
             def download_image(url, index):
@@ -780,13 +789,12 @@ class Unext_downloader:
                         print(f"[-] Error downloading {url}, attempt {attempt + 1} of {tries}")
                         if attempt == tries - 1:
                             return url, False
-            
             meta_json = {
                 "operationName":"cosmo_getVideoTitle",
                 "variables":{
                     "code":title_id
                 },
-                "query": "query cosmo_getVideoTitle($code: ID!) {\n  webfront_title_stage(id: $code) {\n    id\n    titleName\n    rate\n    userRate\n    productionYear\n    country\n    catchphrase\n    attractions\n    story\n    check\n    seriesCode\n    seriesName\n    publicStartDate\n    displayPublicEndDate\n    restrictedCode\n    copyright\n    mainGenreId\n    bookmarkStatus\n    thumbnail {\n      standard\n      secondary\n      __typename\n    }\n    mainGenreName\n    isNew\n    exclusive {\n      typeCode\n      isOnlyOn\n      __typename\n    }\n    isOriginal\n    lastEpisode\n    updateOfWeek\n    nextUpdateDateTime\n    productLineupCodeList\n    hasMultiprice\n    minimumPrice\n    country\n    productionYear\n    paymentBadgeList {\n      id\n      name\n      code\n      __typename\n    }\n    nfreeBadge\n    hasDub\n    hasSubtitle\n    saleText\n    currentEpisode {\n      id\n      interruption\n      duration\n      completeFlag\n      displayDurationText\n      existsRelatedEpisode\n      playButtonName\n      purchaseEpisodeLimitday\n      __typename\n    }\n    publicMainEpisodeCount\n    comingSoonMainEpisodeCount\n    missingAlertText\n    sakuhinNotices\n    hasPackRights\n    __typename\n  }\n}\n"
+                "query": return_commandlist["body"]
             }
             try:   
                 metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
@@ -836,7 +844,7 @@ class Unext_downloader:
                 "variables":{
                     "code":title_id
                 },
-                "query": "query cosmo_getVideoTitle($code: ID!) {\n  webfront_title_stage(id: $code) {\n    id\n    titleName\n    rate\n    userRate\n    productionYear\n    country\n    catchphrase\n    attractions\n    story\n    check\n    seriesCode\n    seriesName\n    publicStartDate\n    displayPublicEndDate\n    restrictedCode\n    copyright\n    mainGenreId\n    bookmarkStatus\n    thumbnail {\n      standard\n      secondary\n      __typename\n    }\n    mainGenreName\n    isNew\n    exclusive {\n      typeCode\n      isOnlyOn\n      __typename\n    }\n    isOriginal\n    lastEpisode\n    updateOfWeek\n    nextUpdateDateTime\n    productLineupCodeList\n    hasMultiprice\n    minimumPrice\n    country\n    productionYear\n    paymentBadgeList {\n      id\n      name\n      code\n      __typename\n    }\n    nfreeBadge\n    hasDub\n    hasSubtitle\n    saleText\n    currentEpisode {\n      id\n      interruption\n      duration\n      completeFlag\n      displayDurationText\n      existsRelatedEpisode\n      playButtonName\n      purchaseEpisodeLimitday\n      __typename\n    }\n    publicMainEpisodeCount\n    comingSoonMainEpisodeCount\n    missingAlertText\n    sakuhinNotices\n    hasPackRights\n    __typename\n  }\n}\n"
+                "query": return_commandlist["body"]
             }
             try:   
                 metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
@@ -880,6 +888,8 @@ class Unext_downloader:
                             return url, False
             
             # メイン処理
+            operation_name = "cosmo_getVideoTitleEpisodes"
+            return_commandlist = find_entry_by_name(load_command, operation_name)
             meta_json = {
                 "operationName": "cosmo_getVideoTitleEpisodes",
                 "variables": {
@@ -887,7 +897,7 @@ class Unext_downloader:
                     "page": 1,
                     "pageSize": 100
                 },
-                "query": "query cosmo_getVideoTitleEpisodes($code: ID!, $page: Int, $pageSize: Int) {\n  webfront_title_titleEpisodes(id: $code, page: $page, pageSize: $pageSize) {\n    episodes {\n      id\n      episodeName\n      purchaseEpisodeLimitday\n      thumbnail {\n        standard\n        __typename\n      }\n      duration\n      displayNo\n      interruption\n      completeFlag\n      saleTypeCode\n      introduction\n      saleText\n      episodeNotices\n      isNew\n      hasPackRights\n      minimumPrice\n      hasMultiplePrices\n      productLineupCodeList\n      isPurchased\n      purchaseEpisodeLimitday\n      __typename\n    }\n    pageInfo {\n      results\n      __typename\n    }\n    __typename\n  }\n}\n",
+                "query": return_commandlist["body"]
             }
             
             try:
