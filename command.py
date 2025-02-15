@@ -88,12 +88,12 @@ def streams_list():
 # TODO: Coming Option list (maybe only available: abema or unext?)
 # how to include metadata? idk
 # sub is found only availiable nhk+
-# "--add-metadata"
-# "--write-description"
-# "--embed-thumbnail"
-# "--embed-metadata"
-# "--embed-subs"
-# "--embed-chapters"
+# "--add-metadata" // What's metadata
+# "--write-description" // ???? description is nani?
+# "--embed-thumbnail"// fuck you this option, fffmpeg is suck
+# "--embed-metadata" // done for unext
+# "--embed-subs"     // maybe only availiable for nhk+ (but nkh+ is not done)
+# "--embed-chapters" // done for unext
 def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd, use_gnc, use_odc, write_thumbnail, write_description, embed_thumbnail, embed_metadata, embed_subs, embed_chapters):
     #print(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose)
     """
