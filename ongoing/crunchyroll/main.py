@@ -24,6 +24,7 @@ class Crunchyroll_utils:
 class Crunchyroll_downloader:
     def __init__(self, session):
         self.session = session
+        self.language = "ja-JP"
     def authorize(self, email, password):
         retries = 0
         while retries < 3:
@@ -91,14 +92,26 @@ class Crunchyroll_downloader:
         default_info = self.session.get(f"https://www.crunchyroll.com/content/v2/cms/series/{self.series_content_id}?preferred_audio_language=en-US&locale=en-US").json()
         seasons_info = self.session.get(f"https://www.crunchyroll.com/content/v2/cms/series/{self.series_content_id}/seasons?force_locale=&preferred_audio_language=en-US&locale=en-US").json()
         
-        self.season_content_id = Crunchyroll_utils.find_guid_by_locale(seasons_info["data"][0], "ja-JP")
+        self.season_content_id = Crunchyroll_utils.find_guid_by_locale(seasons_info["data"][0], self.language)
         
         season_id_info = self.session.get(f"https://www.crunchyroll.com/content/v2/cms/seasons/{self.season_content_id}/episodes?preferred_audio_language=en-US&locale=en-US").json()
         
         print("total episode:", season_id_info["total"])
         for i in season_id_info["data"]:
             #season_number episode_number
-            print(i["season_title"] + " " + "S" + str(i["season_number"]).zfill(2) + "E" + str(i["episode_number"]).zfill(2) + " - " + i["title"])
+            print(i["season_title"] + " " + "S" + str(i["season_number"]).zfill(2) + "E" + str(i["episode_number"]).zfill(2) + " - " + i["title"] + " " + f"[{self.language}_ID: {i["id"]}]")
+            
+            player_info = self.session.get(f"https://www.crunchyroll.com/playback/v2/{i["id"]}/web/chrome/play").json()
+            print(player_info)
+            payload = {
+                "content_id": i["id"],
+                "playhead": 1
+            }
+            headers = {
+                "Content-Type": "application/json"
+            }
+            self.session.post(f"https://www.crunchyroll.com/content/v2/{account_id}/playheads?preferred_audio_language=en-US&locale=en-US", json=payload, headers=headers)
+            self.session.delete(f"https://www.crunchyroll.com/playback/v1/token/{i["id"]}/{player_info["token"]}", json={}, headers=headers)
             #print("title:", i["title"], "ID:", i["id"])
 
 session = requests.Session()
@@ -115,6 +128,7 @@ if status == False:
     print(message)
     exit(1)
 else:
+    account_id = message["account_id"]
     print("Loggined Account")
     print(" + ID: "+message["account_id"][:10]+"*****")
 
