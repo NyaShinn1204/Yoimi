@@ -934,7 +934,21 @@ class Unext_downloader:
             except Exception as e:
                 print(f"Error: {e}")
                 
-    def create_ffmetadata(self, productionYear, title, unixtime, chapter, episode_number, episode_duration, comment, copyright, additional_info):
+    def create_ffmetadata(self, productionYear, meta_info, unixtime, chapter, episode_number, episode_duration, comment, copyright, additional_info):
+        # meta_info = [id_type, series_name, title_name, episodename]
+        format_string = self.config["format"]["metadata_title"]
+        values = {
+            "seriesname": meta_info[1],
+            "titlename": meta_info[2],
+            "episodename": meta_info[3]
+        }
+        try:
+            title = format_string.format(**values)
+        except KeyError as e:
+            missing_key = e.args[0]
+            values[missing_key] = ""
+            title = format_string.format(**values)
+        #logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
         if additional_info[8]:
             chapter_text = ""
             #print(chapter)

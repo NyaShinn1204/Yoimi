@@ -15,3 +15,4 @@ authorization: # option
 format:
   anime: '{seriesname}_{titlename}_{episodename}' # seriesname, titlename, episodename are availiable
   movie: '{seriesname}_{titlename}_{episodename}' # if not found episode_name, auto to delete episode_name
+  metadata_title: '{episodename}' # this config only work for --embed-metadata
