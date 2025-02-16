@@ -102,7 +102,7 @@ class Crunchyroll_downloader:
             print(i["season_title"] + " " + "S" + str(i["season_number"]).zfill(2) + "E" + str(i["episode_number"]).zfill(2) + " - " + i["title"] + " " + f"[{self.language}_ID: {i["id"]}]")
             
             player_info = self.session.get(f"https://www.crunchyroll.com/playback/v2/{i["id"]}/web/chrome/play").json()
-            print(player_info)
+            #print(player_info)
             payload = {
                 "content_id": i["id"],
                 "playhead": 1
@@ -112,6 +112,7 @@ class Crunchyroll_downloader:
             }
             self.session.post(f"https://www.crunchyroll.com/content/v2/{account_id}/playheads?preferred_audio_language=en-US&locale=en-US", json=payload, headers=headers)
             self.session.delete(f"https://www.crunchyroll.com/playback/v1/token/{i["id"]}/{player_info["token"]}", json={}, headers=headers)
+            print("mpd_link:", player_info["url"])
             #print("title:", i["title"], "ID:", i["id"])
 
 session = requests.Session()
