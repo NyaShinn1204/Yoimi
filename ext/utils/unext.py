@@ -658,10 +658,11 @@ class Unext_downloader:
                 "-nostats",  # 標準出力を進捗情報のみにする
                 output_name,
             ]
+        #print(" ".join(compile_command))
         # tqdmを使用した進捗表示
         #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
-            with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
+            with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace") as process:
                 for line in process.stdout:   
                     #print(line) 
                     # "time=" の進捗情報を解析
@@ -951,31 +952,34 @@ class Unext_downloader:
         #logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
         if additional_info[8]:
             chapter_text = ""
-            #print(chapter)
-        
-            # チャプター情報を取得
-            chapters = chapter[0]
-        
-            # OPENING の前の謎空間
-            if chapters[0]["fromSeconds"] > 0:
-                chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND={chapters[0]['fromSeconds']*1000}\ntitle=\n"
-        
-            for i in range(len(chapters)):
-                current_chapter = chapters[i]
-                
-                # 現在のチャプターを追加
-                chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART={current_chapter['fromSeconds']*1000}\nEND={current_chapter['endSeconds']*1000}\ntitle={current_chapter['type']}\n"
-        
-                # OPENING と ENDING の間の MAIN チャプター
-                if i < len(chapters) - 1:
-                    next_chapter = chapters[i + 1]
-                    if current_chapter["endSeconds"] < next_chapter["fromSeconds"]:
-                        chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART={current_chapter['endSeconds']*1000}\nEND={next_chapter['fromSeconds']*1000}\ntitle=\n"
-        
-            # ENDING の後の謎空間
-            last_chapter = chapters[-1]
-            if last_chapter["endSeconds"] < episode_duration:
-                chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART={last_chapter['endSeconds']*1000}\nEND={episode_duration*1000}\ntitle=\n"
+            if chapter == [[]]:
+                pass
+            else:
+                #print(chapter)
+            
+                # チャプター情報を取得
+                chapters = chapter[0]
+            
+                # OPENING の前の謎空間
+                if chapters[0]["fromSeconds"] > 0:
+                    chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND={chapters[0]['fromSeconds']*1000}\ntitle=\n"
+            
+                for i in range(len(chapters)):
+                    current_chapter = chapters[i]
+                    
+                    # 現在のチャプターを追加
+                    chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART={current_chapter['fromSeconds']*1000}\nEND={current_chapter['endSeconds']*1000}\ntitle={current_chapter['type']}\n"
+            
+                    # OPENING と ENDING の間の MAIN チャプター
+                    if i < len(chapters) - 1:
+                        next_chapter = chapters[i + 1]
+                        if current_chapter["endSeconds"] < next_chapter["fromSeconds"]:
+                            chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART={current_chapter['endSeconds']*1000}\nEND={next_chapter['fromSeconds']*1000}\ntitle=\n"
+            
+                # ENDING の後の謎空間
+                last_chapter = chapters[-1]
+                if last_chapter["endSeconds"] < episode_duration:
+                    chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART={last_chapter['endSeconds']*1000}\nEND={episode_duration*1000}\ntitle=\n"
         
         # メタデータファイルの作成
         additional_meta = f"comment={comment}\ncopyright={copyright}\n"
