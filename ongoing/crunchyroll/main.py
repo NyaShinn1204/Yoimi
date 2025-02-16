@@ -39,8 +39,9 @@ class Crunchyroll_downloader:
                 if response.status_code == 200:
                     token = response.json()["access_token"]
                     if token:
-                        self.session.headers['Authorization'] = f"Bearer {token}"
-                        return token
+                        self.session.headers["Authorization"] = f"Bearer {token}"
+                        user_info = self.get_account_info()
+                        return True, user_info
                     return None
                 if response.status_code == 401:
                     print(f"Invalid credentials. {response.text}")
@@ -68,8 +69,23 @@ class Crunchyroll_downloader:
                     time.sleep(2)
                     continue
         return None
-        
-crunchyroll_downloader = Crunchyroll_downloader(requests.Session())
+    def get_account_info(self):
+       user_info = self.session.get("https://www.crunchyroll.com/accounts/v1/me").json()
+       return user_info
+
+session = requests.Session()
+crunchyroll_downloader = Crunchyroll_downloader(session)
 email = ""
 password = ""
-crunchyroll_downloader.authorize(email, password)
+#print(crunchyroll_downloader.authorize(email, password))
+status, message = crunchyroll_downloader.authorize(email, password)
+try:
+    print("Get Token: "+session.headers["Authorization"])
+except:
+    print("Failed to login")
+if status == False:
+    print(message)
+    exit(1)
+else:
+    print("Loggined Account")
+    print(" + ID: "+message["account_id"][:10]+"*****")
