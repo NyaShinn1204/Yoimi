@@ -88,7 +88,7 @@ def streams_list():
 # TODO: Coming Option list (maybe only available: abema or unext?)
 # how to include metadata? idk
 # sub is found only availiable nhk+
-# "--add-metadata" // What's metadata
+# "--write-thumbnail" // done for unext
 # "--write-description" // ???? description is nani?
 # "--embed-thumbnail"// fuck you this option, fffmpeg is suck
 # "--embed-metadata" // done for unext

@@ -174,9 +174,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.error("Failed to Get Episode Json", extra={"service_name": "U-Next"})
                 exit(1)
                 
-            logger.info("Downloading All Episode Thumbnails...", extra={"service_name": "U-Next"})
-            
-            unext_downloader.get_thumbnail_list(meta_response["id"], message["id"], id_type, config, unixtime)
+            if additional_info[4]: 
+                logger.info("Downloading All Episode Thumbnails...", extra={"service_name": "U-Next"})
+                unext_downloader.get_thumbnail_list(meta_response["id"], message["id"], id_type, config, unixtime)
                 
             for message in messages:
                 if id_type[2] == "ノーマルアニメ":
@@ -702,9 +702,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
                     title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
                 
-                logger.info("Downloading All Episode Thumbnails...", extra={"service_name": "U-Next"})
-                
-                unext_downloader.get_thumbnail_list(meta_response["id"], message["id"], id_type, config, unixtime)
+                if additional_info[4]: 
+                    logger.info("Downloading All Episode Thumbnails...", extra={"service_name": "U-Next"})
+                    unext_downloader.get_thumbnail_list(meta_response["id"], message["id"], id_type, config, unixtime)
                 
                 logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": "U-Next"})
                 
