@@ -626,7 +626,7 @@ class Unext_downloader:
             os.makedirs(os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name)), exist_ok=True)
             output_name = os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name), sanitize_filename(title_name_logger+".mp4"))
         
-        if additional_info[7] or additional_info[9]:
+        if additional_info[6] or additional_info[8]:
             compile_command = [
                 "ffmpeg",
                 "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
@@ -707,7 +707,7 @@ class Unext_downloader:
                 else:
                     maybe_genre = "劇場"
                 
-                return True, [return_json["data"]["webfront_title_stage"]["mainGenreId"], return_json["data"]["webfront_title_stage"]["mainGenreName"], maybe_genre, return_json["data"]["webfront_title_stage"]["productionYear"]]
+                return True, [return_json["data"]["webfront_title_stage"]["mainGenreId"], return_json["data"]["webfront_title_stage"]["mainGenreName"], maybe_genre, return_json["data"]["webfront_title_stage"]["productionYear"], return_json["data"]["webfront_title_stage"]["copyright"]]
             else:
                 return False, None
         except Exception as e:
@@ -934,8 +934,8 @@ class Unext_downloader:
             except Exception as e:
                 print(f"Error: {e}")
                 
-    def create_ffmetadata(self, productionYear, title, unixtime, chapter, episode_number, episode_duration, additional_info):
-        if additional_info[9]:
+    def create_ffmetadata(self, productionYear, title, unixtime, chapter, episode_number, episode_duration, comment, copyright, additional_info):
+        if additional_info[8]:
             chapter_text = ""
             #print(chapter)
         
@@ -964,8 +964,9 @@ class Unext_downloader:
                 chapter_text += f"\n[CHAPTER]\nTIMEBASE=1/1000\nSTART={last_chapter['endSeconds']*1000}\nEND={episode_duration*1000}\ntitle=\n"
         
         # メタデータファイルの作成
-        original_metadata = f";FFMETADATA1\ndate={productionYear}\ntitle={title}\n\n"
-        if additional_info[9]:
+        additional_meta = f"comment={comment}\ncopyright={copyright}\n"
+        original_metadata = f";FFMETADATA1\ndate={productionYear}\ntitle={title}\n"+additional_meta+"\n"
+        if additional_info[8]:
             original_metadata = original_metadata + chapter_text
         filename = episode_number + "_metadata.txt"
         directory = os.path.join(self.config["directorys"]["Temp"], "content", unixtime, "metadata")

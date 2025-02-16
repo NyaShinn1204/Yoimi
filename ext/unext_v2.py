@@ -167,6 +167,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             exit(1)
         logger.info(f" + Video Type: {id_type}", extra={"service_name": "U-Next"})
         productionYear = id_type[3]
+        copyright = id_type[4]
         if status == False:
             logger.info("Get Title for Season", extra={"service_name": "U-Next"})
             status, messages = unext_downloader.get_title_parse_all(url)
@@ -390,8 +391,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
                     exit(1)
                 else:
-                    if additional_info[7] or additional_info[9]:
-                        unext_downloader.create_ffmetadata(productionYear, title_name_logger, unixtime, additional_meta, message.get("displayNo", ""), message["duration"], additional_info)
+                    if additional_info[6] or additional_info[8]:
+                        unext_downloader.create_ffmetadata(productionYear, title_name_logger, unixtime, additional_meta, message.get("displayNo", ""), message["duration"], message["introduction"], copyright, additional_info)
                     
                     logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
                     status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
@@ -658,8 +659,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
                 exit(1)
             else:
-                if additional_info[7] or additional_info[9]:
-                    unext_downloader.create_ffmetadata(productionYear, title_name_logger, unixtime, additional_meta, message.get("displayNo", ""), message["duration"], additional_info)
+                if additional_info[6] or additional_info[8]:
+                    unext_downloader.create_ffmetadata(productionYear, title_name_logger, unixtime, additional_meta, message.get("displayNo", ""), message["duration"], message["introduction"], copyright, additional_info)
                 logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
                 status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
                 if status == False:

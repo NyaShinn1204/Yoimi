@@ -79,7 +79,7 @@ def streams_list():
 
 # TODO
 @click.option('--write-thumbnail', '-wthumb', 'write_thumbnail', is_flag=True, default=False, help="Coming soon")
-@click.option('--write-description', '-wtdesc', 'write_description', is_flag=True, default=False, help="Coming soon")
+#@click.option('--write-description', '-wtdesc', 'write_description', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-thumbnail', '-ebthumb', 'embed_thumbnail', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-metadata', '-ebmeta', 'embed_metadata', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-subs', '-ebsubs', 'embed_subs', is_flag=True, default=False, help="Coming soon")
@@ -89,12 +89,12 @@ def streams_list():
 # how to include metadata? idk
 # sub is found only availiable nhk+
 # "--write-thumbnail" // done for unext
-# "--write-description" // ???? description is nani?
+# "--write-description" // ???? description is nani?  これ消して--embed-metadataに結合予定
 # "--embed-thumbnail"// fuck you this option, fffmpeg is suck
 # "--embed-metadata" // done for unext
 # "--embed-subs"     // maybe only availiable for nhk+ (but nkh+ is not done)
 # "--embed-chapters" // done for unext
-def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd, use_gnc, use_odc, write_thumbnail, write_description, embed_thumbnail, embed_metadata, embed_subs, embed_chapters):
+def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd, use_gnc, use_odc, write_thumbnail, embed_thumbnail, embed_metadata, embed_subs, embed_chapters):
     #print(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose)
     """
     Main command to access downloader
@@ -141,7 +141,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                 LOG_LEVEL = "DEBUG"
             else:
                 LOG_LEVEL = "INFO"
-            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, [__version__, use_rd, use_gnc, use_odc, write_thumbnail, write_description, embed_thumbnail, embed_metadata, embed_subs, embed_chapters])
+            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, [__version__, use_rd, use_gnc, use_odc, write_thumbnail, embed_thumbnail, embed_metadata, embed_subs, embed_chapters])
         except Exception as error:
             print(error)
     else:
