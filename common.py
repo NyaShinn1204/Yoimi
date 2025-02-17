@@ -12,6 +12,7 @@ from ext import dmm_tv as Dmm_tv
 from ext import brainshark as Brainshark
 from ext import fod as FOD
 from ext import anime3rb as Anime3rb
+from ext import crunchyroll as Crunchyroll
 
 __version__ = "1.0.0"
 
@@ -48,6 +49,8 @@ def get_parser(url):
         return FOD, "fod"
     elif re.match(valid_anime3rb, url) or url.__contains__("anime3rb.com/search?q="):
         return Anime3rb, "anime3rb"
+    elif url.__contains__("crunchyroll.com/series/G1XHJV0XM/alya-sometimes-hides-her-feelings-in-russian"):
+        return Crunchyroll, "Crunchyroll"
     return None, None
 
 def version_check(session):
