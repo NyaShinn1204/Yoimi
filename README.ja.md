@@ -114,7 +114,7 @@ Options:
 | FOD                  | ✅      | ｘ    |
 | NHK+                 | ❌      |  ❌  |
 | Anime3rb             |  X       |  ✅  |
-| Crunchyroll          |  🔄️     |  ✅  |
+| Crunchyroll          |  🔄️     |  🔄️  |
 
 NHK+のキャンセル理由: [※2](#nhkでうまくログインできない)
 
