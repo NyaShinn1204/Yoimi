@@ -441,3 +441,9 @@ class Crunchyroll_downloader:
                 pbar.n = 100
                 pbar.refresh()
             pbar.close()
+            
+    def update_token(self):
+        response = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"device_id={str(uuid.uuid4())}&device_type=Chrome%20on%20Windows&grant_type=etp_rt_cookie")
+        update_token = response.json()["access_token"]
+        self.session.headers.update({"Authorization": "Bearer "+update_token})
+        return update_token

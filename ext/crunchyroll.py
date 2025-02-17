@@ -151,6 +151,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 crunchyroll_downloader.download_segment(segment_list_video["all"], config, unixtime, "download_encrypt_video.mp4")
                 crunchyroll_downloader.download_segment(segment_list_audio["all"], config, unixtime, "download_encrypt_audio.m4s")
+                
+                logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": "Crunchyroll"})
                 #exit(1)
                 #crunchyroll_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
                 #
@@ -179,6 +181,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             print(f"削除エラー: {e}")
                 else:
                     print(f"指定されたディレクトリは存在しません: {dir_path}")
+                update_token = crunchyroll_downloader.update_token()
+                session.headers.update({"Authorization": "Bearer "+update_token})
                 logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Crunchyroll"})
             except Exception as e:
                 import sys, traceback
