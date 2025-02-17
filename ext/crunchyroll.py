@@ -156,13 +156,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 #
                 crunchyroll.Crunchyroll_decrypt.decrypt_all_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.m4s"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.m4s"), config)
                 
-                logger.info("Muxing Episode...", extra={"service_name": "Dmm-TV"})
+                logger.info("Muxing Episode...", extra={"service_name": "Crunchyroll"})
                 
                 title_name = meta_i["season_title"]
                 
                 video_duration = meta_i["duration_ms"] / 1000
                 
-                title_name_logger = meta_i["season_title"] + " " + "S" + str(meta_i["season_number"]).zfill(2) + "E" + str(meta_i["episode_number"]).zfill(2) + " - " + meta_i["title"] + " " + f"[{language}_ID: {meta_i["id"]}]"
+                title_name_logger = meta_i["season_title"] + " " + "S" + str(meta_i["season_number"]).zfill(2) + "E" + str(meta_i["episode_number"]).zfill(2) + " - " + meta_i["title"]
                 
                 result = crunchyroll_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.m4s", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(video_duration))
                 dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -179,7 +179,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             print(f"削除エラー: {e}")
                 else:
                     print(f"指定されたディレクトリは存在しません: {dir_path}")
-                logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Dmm-TV"})
+                logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Crunchyroll"})
             except Exception as e:
                 import sys, traceback
                 type_, value, _ = sys.exc_info()
