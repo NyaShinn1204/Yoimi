@@ -67,7 +67,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt Content for Everyone", extra={"service_name": "Yoimi"})
         
-        nhkplus_downloader = nhk_plus.NHKplus_downloader(session)
+        nhkplus_downloader = nhk_plus.NHKplus_downloader(session, logger)
         
         if email and password != "":
             status, message = nhkplus_downloader.authorize(email, password)
@@ -75,11 +75,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.error(message, extra={"service_name": "NHK+"})
                 exit(1)
             else:
-                logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "NHK+"})
-                plan_status = message["planStatus"]["planType"]
                 logger.info("Loggined Account", extra={"service_name": "NHK+"})
-                logger.info(" + ID: "+message["id"], extra={"service_name": "NHK+"})
-                logger.info(" + PlanType: "+plan_status, extra={"service_name": "NHK+"})
+                logger.info(" + ID: "+message["disp_login_id"], extra={"service_name": "NHK+"})
+                logger.info(" + Member Type: "+str(message["member_type"]), extra={"service_name": "NHK+"})
         else:
             plan_status = "No Logined"
         

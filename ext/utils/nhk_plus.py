@@ -4,8 +4,9 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs, unquote
 
 class NHKplus_downloader:
-    def __init__(self, session):
+    def __init__(self, session, logger):
         self.session = session
+        self.logger = logger
         self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         self.common_headers = {
             "Connection": "keep-alive",
@@ -34,7 +35,7 @@ class NHKplus_downloader:
                 url = response.headers["Location"]
                 if "login.auth.nhkid.jp" in url: #special case for login redirect
                   break
-                print(f"Redirect: {response.status_code} to {url}") #print redirect status
+                self.logger.debug(f"Redirect: {response.status_code} to {url}", extra={"service_name": "NHK+"}) #print redirect status
             else:
                 raise Exception("Too many redirects or no redirect URL found.")
             
@@ -65,7 +66,7 @@ class NHKplus_downloader:
                 "Accept": "application/json, text/plain, */*",
             })
             response = self.session.post(url, data=payload, headers=headers, allow_redirects=False)
-            print(f"Login Step 1: {response.status_code}")
+            self.logger.debug(f"Login Step 1: {response.status_code}", extra={"service_name": "NHK+"})
 
             # Step 7: Authentication with Email and Password
             payload = {
@@ -78,7 +79,7 @@ class NHKplus_downloader:
                 "lowLevelSessionFlg": "undefined"
             }
             response = self.session.post(url, data=payload, headers=headers, allow_redirects=False)
-            print(f"Login Step 2: {response.status_code}")
+            self.logger.debug(f"Login Step 2: {response.status_code}", extra={"service_name": "NHK+"})
 
             if response.json()["resultCode"] != "CO-SC0003":
                 raise Exception(f"Login failed: {response.json().get('resultMessage', 'Unknown error')}")
@@ -90,12 +91,12 @@ class NHKplus_downloader:
                 response = self.session.get(url, headers=self.common_headers, allow_redirects=False)
                 if response.status_code not in (301, 302):
                     break #exit the loop if there is no redirect
-                print(i)
+                self.logger.debug(i, extra={"service_name": "NHK+"})
                 if i == 0:
                     url = "https://agree.auth.nhkid.jp"+response.headers["Location"]
                 else:
                     url = response.headers["Location"]
-                print(f"Redirect: {response.status_code} to {url}") #print redirect status
+                self.logger.debug(f"Redirect: {response.status_code} to {url}", extra={"service_name": "NHK+"}) #print redirect status
             else:
                 raise Exception("Too many redirects or no redirect URL found.")
 
@@ -111,21 +112,21 @@ class NHKplus_downloader:
                 "Referer": "https://pid.nhk.or.jp/account/update/info.do",
             })
             response = self.session.post(url, data=payload, headers=headers, allow_redirects=False)
-            print(f"Password reset check: {response.status_code}")
+            self.logger.debug(f"Password reset check: {response.status_code}", extra={"service_name": "NHK+"})
 
 
             url = "https://pid.nhk.or.jp/pid23/getPCSummaryListAll3.do"
             response = self.session.get(url, headers=self.common_headers)
-            print("GET USER INFO:", response.text)
+            self.logger.debug("GET USER INFO:", response.text, extra={"service_name": "NHK+"})
 
             response = self.session.get("https://hh.pid.nhk.or.jp/pidh01/portal/getMemInfo.do?callback=USER_INFO")
             data = response.text.replace("true", "True")
             json_part = data[data.find("(") + 1: data.rfind(")")]
             parsed_json = ast.literal_eval(json_part)
-            print("GET USER INFO2:", parsed_json)
+            self.logger.debug("GET USER INFO2:", parsed_json, extra={"service_name": "NHK+"})
 
-            return parsed_json # Return the user info
+            return True, parsed_json # Return the user info
 
         except Exception as e:
-            print(f"An error occurred: {e}")
-            return None  # Or raise the exception if you prefer
+            self.logger.debug(f"An error occurred: {e}", extra={"service_name": "NHK+"})
+            return False, e  # Or raise the exception if you prefer

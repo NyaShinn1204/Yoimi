@@ -13,6 +13,7 @@ from ext import brainshark as Brainshark
 from ext import fod as FOD
 from ext import anime3rb as Anime3rb
 from ext import crunchyroll as Crunchyroll
+from ext import nhk_plus as Nhk_plus
 
 __version__ = "1.0.0"
 
@@ -51,6 +52,8 @@ def get_parser(url):
         return Anime3rb, "anime3rb"
     elif url.__contains__("crunchyroll.com"):
         return Crunchyroll, "Crunchyroll"
+    elif url.__contains__("plus.nhk.jp"):
+        return Nhk_plus, "NHK+"
     return None, None
 
 def version_check(session):
