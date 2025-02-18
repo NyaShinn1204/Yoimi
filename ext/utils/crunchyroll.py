@@ -32,6 +32,11 @@ class Crunchyroll_utils:
                 en_us_guid = version["guid"]
         
         return en_us_guid
+    def find_locale_by_guid(data, guid):
+        for version in data:
+            if version["guid"] == guid:
+                return version["audio_locale"]
+        return None
     def parse_mpd_logic(content):
         try:
             # Ensure the content is in bytes
@@ -373,6 +378,11 @@ class Crunchyroll_downloader:
         
         return season_id_info
         #print("total episode:", season_id_info["total"])
+        
+    def get_single_info(self, id):
+        single_info = self.session.get(f"https://www.crunchyroll.com/content/v2/cms/objects/{id}?ratings=true&locale=en-US").json()
+        
+        return single_info
 
     def download_segment(self, segment_links, config, unixtime, name, service_name="Crunchyroll"):
         base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -443,7 +453,8 @@ class Crunchyroll_downloader:
             pbar.close()
             
     def update_token(self):
-        response = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"device_id={str(uuid.uuid4())}&device_type=Chrome%20on%20Windows&grant_type=etp_rt_cookie")
+        response = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"device_id={str(uuid.uuid4())}&device_type=Chrome%20on%20Windows&grant_type=etp_rt_cookie", headers={"Authorization": "Basic bm9haWhkZXZtXzZpeWcwYThsMHE6"})
+        response = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"grant_type=client_id", headers={"Authorization": "Basic Y3Jfd2ViOg=="})
         update_token = response.json()["access_token"]
         self.session.headers.update({"Authorization": "Bearer "+update_token})
         return update_token

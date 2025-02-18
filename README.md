@@ -114,7 +114,7 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | FOD                  | ✅      | ｘ    |
 | NHK+                 | ❌      |  ❌  | 
 | Anime3rb             |  X       |  ✅  |
-| Crunchyroll          |  🔄️     |  🔄️  |
+| Crunchyroll          | ✅      |  🔄️  |
 
 NHK+ Cancel Reason: [※2](#nhk-issues)
 
