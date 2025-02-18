@@ -452,9 +452,9 @@ class Crunchyroll_downloader:
                 pbar.refresh()
             pbar.close()
             
-    def update_token(self):
+    def generate_random_token(self):
         response = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"device_id={str(uuid.uuid4())}&device_type=Chrome%20on%20Windows&grant_type=etp_rt_cookie", headers={"Authorization": "Basic bm9haWhkZXZtXzZpeWcwYThsMHE6"})
         response = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"grant_type=client_id", headers={"Authorization": "Basic Y3Jfd2ViOg=="})
         update_token = response.json()["access_token"]
         self.session.headers.update({"Authorization": "Bearer "+update_token})
-        return update_token
+        return True

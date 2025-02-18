@@ -49,7 +49,7 @@ def get_parser(url):
         return FOD, "fod"
     elif re.match(valid_anime3rb, url) or url.__contains__("anime3rb.com/search?q="):
         return Anime3rb, "anime3rb"
-    elif url.__contains__("crunchyroll.com/series/G1XHJV0XM/alya-sometimes-hides-her-feelings-in-russian"):
+    elif url.__contains__("crunchyroll.com"):
         return Crunchyroll, "Crunchyroll"
     return None, None
 

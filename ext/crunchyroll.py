@@ -68,11 +68,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         crunchyroll_downloader = crunchyroll.Crunchyroll_downloader(session)
         
-        status, message = crunchyroll_downloader.authorize(email, password)
-        try:
-            logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Crunchyroll"})
-        except:
-            logger.info("Failed to login", extra={"service_name": "Crunchyroll"})
+        if email and password != None:
+            status, message = crunchyroll_downloader.authorize(email, password)
+            try:
+                logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Crunchyroll"})
+            except:
+                logger.info("Failed to login", extra={"service_name": "Crunchyroll"})
+        else:
+            status = crunchyroll_downloader.generate_random_token()
         if status == False:
             logger.info(message, extra={"service_name": "Crunchyroll"})
             exit(1)
@@ -271,7 +274,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     #update_token = crunchyroll_downloader.update_token()
                     #session.headers.update({"Authorization": "Bearer "+update_token})
                     logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Crunchyroll"})
-                    crunchyroll_downloader.update_token()
+                    #crunchyroll_downloader.update_token()
                 except Exception as e:
                     import sys, traceback
                     type_, value, _ = sys.exc_info()
