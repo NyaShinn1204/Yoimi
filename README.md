@@ -112,11 +112,9 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | Dmm-TV               | ✅      | 🔄️   |
 | Danime               | 🔄️      | 🔄️   |
 | FOD                  | ✅      | ｘ    |
-| NHK+                 | ❌      |  ❌  | 
+| NHK+                 | 🔄️      | 🔄️   | 
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
-
-NHK+ Cancel Reason: [※2](#nhk-issues)
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 
@@ -125,12 +123,6 @@ If you have problems with Abema, try adding “-v1” to the end of the url, and
 #### Decryption fails in Chinese environment
 
 In this case, use the -rd option or the --random-directory option.
-
-#### NHK Issues
-
-I have to give up on nhk+ because I can't match the “fingerprint” used to log in.
-The source code itself is in /ongoing/nhk_plus/, so if you can fix it, please pull requests or whatever.
-Please do so (see below).
 
 #### Other
 
