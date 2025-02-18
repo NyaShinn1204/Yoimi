@@ -1739,13 +1739,15 @@ get_fingerprint = fingerprint_selenium()
 print("GEN FINGERPRINT:", get_fingerprint)
 
 headers["Referer"] = end_login_url
+headers["content-type"] = "application/x-www-form-urlencoded;charset=UTF-8"
+headers["host"] = "login.auth.nhkid.jp"
 payload = {
     "AUTH_TYPE":"AUTH_OP",
     "SITE_ID":"co_site",
     "MESSAGE_AUTH":response_parameter["MESSAGE_AUTH"],
     "AUTHENTICATED":response_parameter["AUTHENTICATED"],
     "snsid":"undefined",
-    "Fingerprint":get_fingerprint
+    "Fingerprint":"NULL"
 }
 #なんか失敗する。謎です
 payload = f"AUTH_TYPE=AUTH_OP&SITE_ID=co_site&MESSAGE_AUTH={quote(response_parameter["MESSAGE_AUTH"])}&AUTHENTICATED={quote(response_parameter["AUTHENTICATED"])}&snsid=undefined&Fingerprint={get_fingerprint}"

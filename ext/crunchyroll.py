@@ -75,14 +75,19 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             except:
                 logger.info("Failed to login", extra={"service_name": "Crunchyroll"})
         else:
-            status = crunchyroll_downloader.generate_random_token()
+            status, message = crunchyroll_downloader.generate_random_token()
+            session.headers.update({"Authorization": "Bearer "+ message["access_token"]})
         if status == False:
             logger.info(message, extra={"service_name": "Crunchyroll"})
             exit(1)
         else:
-            account_id = message["account_id"]
-            logger.info("Loggined Account", extra={"service_name": "Crunchyroll"})
-            logger.info(" + ID: "+account_id[:10]+"*****", extra={"service_name": "Crunchyroll"})
+            if email and password != None:
+                account_id = message["account_id"]
+                logger.info("Loggined Account", extra={"service_name": "Crunchyroll"})
+                logger.info(" + ID: "+account_id[:10]+"*****", extra={"service_name": "Crunchyroll"})
+            else:
+                logger.info("Using Temp Account", extra={"service_name": "Crunchyroll"})
+                logger.info(" + Expire: "+str(message["expires_in"]), extra={"service_name": "Crunchyroll"})
             
         status, message = crunchyroll_downloader.login_check()
         if status == False:
@@ -178,7 +183,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 session.delete(f"https://www.crunchyroll.com/playback/v1/token/{i["id"]}/{player_info["token"]}", json={}, headers=headers)
         else:
             logger.info("Get Title for Season", extra={"service_name": "Crunchyroll"})
-            season_id_info = crunchyroll_downloader.get_info(url)
+            season_id_info, default_info = crunchyroll_downloader.get_info(url)
             #logger.debug(f"Total Episode: {season_id_info["total"]}", extra={"service_name": "Crunchyroll"})
             for i in season_id_info["data"]:
                 #season_number episode_number
@@ -271,8 +276,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                 print(f"削除エラー: {e}")
                     else:
                         print(f"指定されたディレクトリは存在しません: {dir_path}")
-                    #update_token = crunchyroll_downloader.update_token()
-                    #session.headers.update({"Authorization": "Bearer "+update_token})
+                    update_token = crunchyroll_downloader.update_token()
+                    session.headers.update({"Authorization": "Bearer "+update_token})
                     logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Crunchyroll"})
                     #crunchyroll_downloader.update_token()
                 except Exception as e:
@@ -286,6 +291,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     print("EType:\n"+str(type_))
                     print("EValue:\n"+str(value))
                     session.delete(f"https://www.crunchyroll.com/playback/v1/token/{i["id"]}/{player_info["token"]}", json={}, headers=headers)
+            logger.info("Finished download Series: {}".format(default_info["data"][0]["title"]), extra={"service_name": "Crunchyroll"})
     except Exception as error:
         import traceback
         import sys
