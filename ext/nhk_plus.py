@@ -80,7 +80,23 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(" + Member Type: "+str(message["member_type"]), extra={"service_name": "NHK+"})
         else:
             plan_status = "No Logined"
+            
+        #logger.info("Get or Gen Video Access Token...", extra={"service_name": "NHK+"})
+        if email and password != "":
+            status, video_access_token = nhkplus_downloader.create_access_token(email, password)
+        else:
+            video_access_token = nhkplus_downloader.gen_access_token()
         
+        logger.debug("Get VAT_TEMP: "+video_access_token, extra={"service_name": "NHK+"})
+        
+        logger.info("Got Video Access Token For Temp", extra={"service_name": "NHK+"})
+        logger.info("+ Video Access Token (Temp): "+video_access_token[:10]+"*****", extra={"service_name": "NHK+"})
+        
+        logger.debug("Open Get access key", extra={"service_name": "NHK+"})
+        
+        drm_token = nhkplus_downloader.get_drm_token(video_access_token)
+        logger.info("Got Drm Token", extra={"service_name": "NHK+"})
+        logger.info("+ Drm Token: "+drm_token[:10]+"*****", extra={"service_name": "NHK+"})
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         #print(traceback.format_exc())
