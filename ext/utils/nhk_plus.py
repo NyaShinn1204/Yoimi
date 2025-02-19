@@ -1,3 +1,4 @@
+import re
 import jwt
 import ast
 import uuid
@@ -28,6 +29,16 @@ class NHKplus_utils:
         return_dec = header + return_dec + footer
                 
         return return_dec
+    
+    def extract_nhk_ids(url):
+        st_match = re.search(r"https?://plus\.nhk\.jp/watch/st/([^/?]+)", url)
+        st_id = st_match.group(1) if st_match else None
+        
+        # playlist_id の部分を抽出 (UUID形式)
+        playlist_match = re.search(r"playlist_id=([a-f0-9\-]{36})", url)
+        playlist_id = playlist_match.group(1) if playlist_match else None
+        
+        return st_id, playlist_id
 
 class NHKplus_downloader:
     def __init__(self, session, logger):
@@ -265,3 +276,11 @@ class NHKplus_downloader:
         accesskey_json = self.session.post("https://ctl.npd.plus.nhk.jp/create-accesskey", json={}, headers={"Authorization": token}).json()
         
         return accesskey_json["drmToken"]
+    
+    def get_playlist_info(self, st_id, playlist_id):
+        meta_response = self.session.get(f"https://api-plus.nhk.jp/d5/pl2/recommend/{playlist_id}.json").json()
+       
+        for single_meta in meta_response["body"]:
+            if single_meta["stream_id"] == st_id:
+               return True, single_meta
+        return False, "Not found"

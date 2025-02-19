@@ -97,6 +97,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         drm_token = nhkplus_downloader.get_drm_token(video_access_token)
         logger.info("Got Drm Token", extra={"service_name": "NHK+"})
         logger.info("+ Drm Token: "+drm_token[:10]+"*****", extra={"service_name": "NHK+"})
+        
+        if url.__contains__("playlist_id"):
+            st_id, playlist_id = nhk_plus.NHKplus_utils.extract_nhk_ids(url)
+            
+            status, metadata = nhkplus_downloader.get_playlist_info(st_id, playlist_id)
+            if status == False:
+                logger.info("Failed to Get Video Info. Reason: Playlist id not found", extra={"service_name": "NHK+"})
+        
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         #print(traceback.format_exc())
