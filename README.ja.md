@@ -107,12 +107,12 @@ Options:
 
 |                      | Premium  | Free  | 
 | -------------------- | -------- | ----- |
-| Abema                | ✅      | ✅   |
-| U-Next               | ✅      | ｘ    |
-| Dmm-TV               | ✅      | 🔄️   |
-| Dアニメ              | 🔄️      | 🔄️   |
-| FOD                  | ✅      | ｘ    |
-| NHK+                 | 🔄️      |  🔄️  |
+| Abema                | ✅      |  ✅  |
+| U-Next               | ✅      |  ｘ   |
+| Dmm-TV               | ✅      |  🔄️  |
+| Dアニメ              | 🔄️      |  🔄️  |
+| FOD                  | ✅      |  ｘ   |
+| NHK+                 | ✅      |  🔄️  |
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
 
