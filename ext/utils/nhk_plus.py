@@ -1,13 +1,57 @@
 import re
+import os
 import jwt
 import ast
 import uuid
+import m3u8
 import base64
+import random
+import string
+import requests
+import subprocess
+from tqdm import tqdm
 from bs4 import BeautifulSoup
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse, parse_qs, unquote, urljoin
+
+COLOR_GREEN = "\033[92m"
+COLOR_GRAY = "\033[90m"
+COLOR_RESET = "\033[0m"
+COLOR_BLUE = "\033[94m"
+
+class NHKplus_license:
+    def license_vd_ad(pssh, session, drm_token):
+        _WVPROXY = "https://drm.npd.plus.nhk.jp/widevine/license"
+        from pywidevine.cdm import Cdm
+        from pywidevine.device import Device
+        from pywidevine.pssh import PSSH
+        device = Device.load(
+            "./l3.wvd"
+        )
+        cdm = Cdm.from_device(device)
+        session_id = cdm.open()
+    
+        challenge = cdm.get_license_challenge(session_id, PSSH(pssh))
+        response = session.post(f"{_WVPROXY}", data=bytes(challenge), headers={"authorization": "Bearer "+ drm_token})
+        response.raise_for_status()
+        if response.text == "Possibly compromised client":
+            print("THIS WVD IS NOT ALLOWED")
+            #return None
+        cdm.parse_license(session_id, response.content)
+        keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id)
+        ]
+    
+        cdm.close(session_id)
+                
+        keys = {
+            "key": keys,
+        }
+        
+        return keys
 
 class NHKplus_utils:
     def parse_private_key():
@@ -39,7 +83,62 @@ class NHKplus_utils:
         playlist_id = playlist_match.group(1) if playlist_match else None
         
         return st_id, playlist_id
-
+    
+class NHKplus_decrypt:
+    def mp4decrypt(keys, config):
+        if os.name == 'nt':
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
+        else:
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
+        
+        mp4decrypt_path = os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe" if os.name == 'nt' else "mp4decrypt")
+        
+        if not os.access(mp4decrypt_path, os.X_OK):
+            try:
+                os.chmod(mp4decrypt_path, 0o755)
+            except Exception as e:
+                raise PermissionError(f"Failed to set executable permissions on {mp4decrypt_path}: {e}")
+            
+        mp4decrypt_command.extend(
+            [
+                "--show-progress",
+            ]
+        )
+        
+        for key in keys:
+            mp4decrypt_command.extend(
+                [
+                    "--key",
+                    key[0],
+                ]
+            )
+        return mp4decrypt_command
+    def decrypt_all_content(keys, video_input_file, video_output_file, audio_input_file, audio_output_file, config, service_name="NHK+"):
+        with tqdm(total=2, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ") as outer_pbar:
+            NHKplus_decrypt.decrypt_content(keys, video_input_file, video_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 1つ目の進捗を更新
+    
+            NHKplus_decrypt.decrypt_content(keys, audio_input_file, audio_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 2つ目の進捗を更新
+    
+    def decrypt_content(keys, input_file, output_file, config, service_name="NHK+"):
+        mp4decrypt_command = NHKplus_decrypt.mp4decrypt(keys, config)
+        mp4decrypt_command.extend([input_file, output_file])
+        
+        
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
+                for line in process.stdout:
+                    match = re.search(r"(ｲ+)", line)  # 進捗解析
+                    if match:
+                        progress_count = len(match.group(1))
+                        inner_pbar.n = progress_count
+                        inner_pbar.refresh()
+                
+                process.wait()
+                if process.returncode == 0:
+                    inner_pbar.n = 100
+                    inner_pbar.refresh()
 class NHKplus_downloader:
     def __init__(self, session, logger):
         self.session = session
@@ -284,3 +383,117 @@ class NHKplus_downloader:
             if single_meta["stream_id"] == st_id:
                return True, single_meta
         return False, "Not found"
+    
+    def m3u8_downlaoder(self, content_text, title_name, config, unixtime, service_name="NHK+"):
+        output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+
+        if not os.path.exists(output_temp_directory):
+            os.makedirs(output_temp_directory, exist_ok=True)
+        
+            
+        output_file = os.path.join(output_temp_directory, title_name)
+        download_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+        
+        # 一時フォルダを作成
+        if not os.path.exists(download_dir):
+            os.makedirs(download_dir)
+        
+        # m3u8を解析
+        m3u8_obj = m3u8.loads(content_text)
+        
+        video_url = re.search(r'#EXT-X-MAP:URI="(https?://[^"]+)"', content_text).group(1)
+        
+        segment_urls = [seg.uri for seg in m3u8_obj.segments]
+        segment_urls.insert(0, video_url)
+        
+        random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+        
+        # 各セグメントをダウンロード
+        #print("ダウンロード中...")
+        for i, segment_url in enumerate(tqdm(segment_urls, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ")):
+            ts_file = os.path.join(download_dir, f"{random_string}_segment_{i}.ts")
+            if not os.path.exists(ts_file):
+                res = requests.get(segment_url, stream=True)
+                with open(ts_file, "wb") as f:
+                    for chunk in res.iter_content(chunk_size=1024):
+                        if chunk:
+                            f.write(chunk)
+        
+        # 結合
+        #print("結合中...")
+        with open(output_file, "wb") as output:
+            for i in tqdm(range(len(segment_urls)), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : "):
+                ts_file = os.path.join(download_dir, f"{random_string}_segment_{i}.ts")
+                with open(ts_file, "rb") as f:
+                    output.write(f.read())
+        
+       # print(f"動画のダウンロードが完了しました： {output_file}")
+        return os.path.join(config["directorys"]["Temp"], "content", unixtime, title_name)
+    
+    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, duration, title_name_logger, episode_number, additional_info, service_name="NHK+"):
+        if os.name != 'nt':
+            output_name = os.path.join(config["directorys"]["Downloads"], title_name_logger+".mp4")
+        else:
+            def sanitize_filename(filename):
+                filename = filename.replace(":", "：").replace("?", "？")
+                return re.sub(r'[<>"/\\|*]', "_", filename)
+            output_name = os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name_logger+".mp4"))
+        
+        if additional_info[6] or additional_info[8]:
+            compile_command = [
+                "ffmpeg",
+                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
+                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),  # 音声
+                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, "metadata", episode_number+"_metadata.txt"),  # メタデータ
+                "-map", "0:v:0",  # 動画ストリームを選択
+                "-map", "1:a:0",  # 音声ストリームを選択
+                "-map_metadata", "2",  # メタデータを適用
+                "-c:v", "copy",  # 映像の再エンコードなし
+                "-c:a", "copy",  # 音声の再エンコードなし
+                "-strict", "experimental",
+                "-y",
+                "-progress", "pipe:1",  # 進捗を標準出力に出力
+                "-nostats",  # 標準出力を進捗情報のみにする
+                output_name,
+            ]
+        else:
+            compile_command = [
+                "ffmpeg",
+                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
+                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),  # 音声
+                "-map", "0:v:0",  # 動画ストリームを選択
+                "-map", "1:a:0",  # 音声ストリームを選択
+                "-c:v", "copy",  # 映像の再エンコードなし
+                "-c:a", "copy",  # 音声の再エンコードなし
+                "-strict", "experimental",
+                "-y",
+                "-progress", "pipe:1",  # 進捗を標準出力に出力
+                "-nostats",  # 標準出力を進捗情報のみにする
+                output_name,
+            ]
+        #print(" ".join(compile_command))
+        # tqdmを使用した進捗表示
+        #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
+            with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace") as process:
+                for line in process.stdout:   
+                    #print(line) 
+                    # "time=" の進捗情報を解析
+                    match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
+                    if match:
+                        hours = int(match.group(1))
+                        minutes = int(match.group(2))
+                        seconds = float(match.group(3))
+                        current_time = hours * 3600 + minutes * 60 + seconds
+    
+                        # 進捗率を計算して更新
+                        progress = (current_time / duration) * 100
+                        pbar.n = int(progress)
+                        pbar.refresh()
+    
+            # プロセスが終了したら進捗率を100%にする
+            process.wait()
+            if process.returncode == 0:  # 正常終了の場合
+                pbar.n = 100
+                pbar.refresh()
+            pbar.close()
