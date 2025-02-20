@@ -112,7 +112,7 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | Dmm-TV               | ✅      |  🔄️  |
 | Danime               | 🔄️      |  🔄️  |
 | FOD                  | ✅      |  ｘ   |
-| NHK+                 | ✅      |  🔄️  | 
+| NHK+                 | ✅      |  ✅  | 
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
 

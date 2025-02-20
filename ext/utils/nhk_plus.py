@@ -6,6 +6,8 @@ import uuid
 import m3u8
 import base64
 import random
+import struct
+import base64
 import string
 import requests
 import subprocess
@@ -139,6 +141,197 @@ class NHKplus_decrypt:
                 if process.returncode == 0:
                     inner_pbar.n = 100
                     inner_pbar.refresh()
+
+class NHKplus_tracks:
+    def __init__(self):
+        pass
+    def find_moov_box(self, mp4_data):
+        """MP4バイナリデータからmoovボックスをうあーする"""
+        f = mp4_data
+        i = 0
+        while i < len(f):
+            box_size, box_type = struct.unpack('>I4s', f[i:i+8])
+            i += 8
+    
+            if box_type == b'moov':
+                return f[i:i+box_size-8]
+    
+            i += box_size - 8
+    
+        return None
+    
+    def parse_box(self, data, index=0):
+        """指定されたデータからボックスをうあーして返す"""
+        boxes = []
+        while index < len(data):
+            box_size, box_type = struct.unpack('>I4s', data[index:index+8])
+            index += 8
+    
+            box = {
+                'size': box_size,
+                'type': box_type.decode('utf-8'),
+                'data': data[index:index+box_size-8]
+            }
+    
+            boxes.append(box)
+    
+            index += box_size - 8
+        return boxes
+    
+    def remove_duplicates_and_count(self, tracks):
+        # ここでダブってるやつをぶっ飛ばす
+        unique_tracks = {}
+        duplicates_count = 0
+    
+        for track in tracks:
+            try:
+                if track["content_type"] == "video":
+                    track_key = (
+                        track.get("url"),
+                        track.get("bitrate"),
+                    )
+                elif track["content_type"] == "audio":
+                    track_key = (
+                        track.get("url"),
+                        track.get("bitrate"),
+                    )
+                elif track["content_type"] == "text":
+                    track_key = (
+                        track.get("language"),
+                    )
+                else:
+                    print("wtf", str(track))
+        
+                if track_key in unique_tracks:
+                    duplicates_count += 1  # 重複カウント
+                else:
+                    unique_tracks[track_key] = track
+            except:
+                print("wtf", str(track))
+    
+        unique_track_list = list(unique_tracks.values())
+    
+        return unique_track_list
+    
+    def select_tracks(self, tracks):
+        # ここでビットレートが一番高いやつを盗んでreturnで殴る
+        highest_bitrate_video = max(tracks["video_track"], key=lambda x: x["bitrate"])
+    
+        # オーディオトラックのnameがmainのやつを引っ張る。 mainっていうのは主音声、subは副音声優先のやつらしい
+        main_audio = next((audio for audio in tracks["audio_track"] if audio["name"] == "main"), None)
+    
+        return {
+            "video": highest_bitrate_video,
+            "audio": main_audio
+        }
+    
+    
+    def parse_m3u8(self, file_content):
+        video_tracks = []
+        audio_tracks = []
+        text_tracks = []
+        
+        CODEC_MAP = {
+            "avc1": "H.264",
+            "mp4a": "AAC",
+        }
+        
+        lines = file_content.splitlines()
+        
+        for i, line in enumerate(lines):
+            if line.startswith("#EXT-X-STREAM-INF"):
+                attributes = re.findall(r'([A-Z0-9\-]+)=("[^"]+"|[^,]+)', line)
+                attr_dict = {key: value.strip('"') for key, value in attributes}
+                bitrate = int(attr_dict.get("BANDWIDTH", 0)) // 1000  # bps to kbpsに変換
+                codec = attr_dict.get("CODECS", "").split(",")[1]
+                
+                # なぜかvideoのやつだけurlが次の行に書かれてるので仕方なくやります。
+                video_url = lines[i + 1] if i + 1 < len(lines) else "unknown"
+                
+                video_tracks.append({
+                    "content_type": "video",
+                    "bitrate": bitrate,
+                    "codec": CODEC_MAP.get(codec.split(".")[0], codec),
+                    "url": video_url,
+                })
+            elif line.startswith("#EXT-X-MEDIA"):
+                attributes = re.findall(r'([A-Z0-9\-]+)=("[^"]+"|[^,]+)', line)
+                attr_dict = {key: value.strip('"') for key, value in attributes}
+                if attr_dict.get("TYPE") == "AUDIO":
+                    audio_tracks.append({
+                        "content_type": "audio",
+                        "language": attr_dict.get("LANGUAGE", "unknown"),
+                        "name": attr_dict.get("NAME", "unknown"),
+                        "url": attr_dict.get("URI", "unknown"),
+                    })
+                elif attr_dict.get("TYPE") == "SUBTITLES":
+                    text_tracks.append({
+                        "content_type": "text",
+                        "language": attr_dict.get("LANGUAGE", "unknown"),
+                        "name": attr_dict.get("NAME", "unknown"),
+                        "url": attr_dict.get("URI", "unknown"),
+                    })
+    
+        return {
+            "video_track": video_tracks,
+            "audio_track": self.remove_duplicates_and_count(audio_tracks),  # 重複してるうやつをどか～ん
+            "text_track": text_tracks,
+        }
+    
+    def print_tracks(self, tracks):
+        output = ""
+        # Video tracks まぁvideoやな
+        output += f"{len(tracks['video_track'])} Video Tracks:\n"
+        for i, video in enumerate(tracks["video_track"]):
+            output += f"├─ VID | [{video['codec']}] | {video['bitrate']} kbps\n"
+        
+        # Audio tracks まぁaudioやな
+        output += f"\n{len(tracks['audio_track'])} Audio Tracks:\n"
+        for i, audio in enumerate(tracks["audio_track"]):
+            output += f"├─ AUD | {audio['language']} | {audio['name']}\n"
+    
+        # Text tracks まぁsubやな
+        output += f"\n{len(tracks['text_track'])} Text Tracks:\n"
+        for i, text in enumerate(tracks["text_track"]):
+            output += f"├─ SUB | [VTT] | {text['language']} | {text['name']}\n"
+        
+        #print(output)
+        return output
+    def transform_metadata(self, manifests):
+        transformed = []
+    
+        for manifest in manifests:
+            drm_type = manifest.get("drm_type", "")
+            bitrate_limit_type = manifest.get("bitrate_limit_type", "")
+            url = manifest.get("url", "")
+            video_codec = manifest.get("video_codec", "H.264")
+            dynamic_range = manifest.get("dynamic_range", "SDR")
+    
+            # birtareの文字の最初にmがついてればMulti、泣ければSingleらしい。
+            bitrate_type = "Multi" if bitrate_limit_type.startswith("m") else "Single"
+            bitrate_limit = int(bitrate_limit_type[1:]) if bitrate_limit_type[1:].isdigit() else 0
+    
+            # 取得したデータを整形
+            transformed_manifest = {
+                "drmType": drm_type,
+                "bitrateLimit": bitrate_limit,
+                "bitrateType": bitrate_type,
+                "url": url,
+                "videoCodec": "H.265" if video_codec == "H.265" else "H.264",
+                "dynamicRange": "HDR" if dynamic_range == "HDR" else "SDR",
+            }
+    
+            transformed.append(transformed_manifest)
+    
+        return transformed
+    
+    def get_highest_bitrate_manifest(self, manifests):
+        transformed = self.transform_metadata(manifests)
+        if not transformed:
+            return None
+        return max(transformed, key=lambda x: x["bitrateLimit"])
+            
+
 class NHKplus_downloader:
     def __init__(self, session, logger):
         self.session = session
@@ -384,7 +577,7 @@ class NHKplus_downloader:
                return True, single_meta
         return False, "Not found"
     
-    def m3u8_downlaoder(self, content_text, title_name, config, unixtime, service_name="NHK+"):
+    def m3u8_downlaoder(self, content_text, login_status, base_url, title_name, config, unixtime, service_name="NHK+"):
         output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
 
         if not os.path.exists(output_temp_directory):
@@ -400,8 +593,13 @@ class NHKplus_downloader:
         
         # m3u8を解析
         m3u8_obj = m3u8.loads(content_text)
+                
+        video_url = re.search(r'#EXT-X-MAP:URI="([^"]+)"', content_text).group(1)
         
-        video_url = re.search(r'#EXT-X-MAP:URI="(https?://[^"]+)"', content_text).group(1)
+        if login_status == False:
+            video_url = video_url
+        else:
+            base_url = ""
         
         segment_urls = [seg.uri for seg in m3u8_obj.segments]
         segment_urls.insert(0, video_url)
@@ -413,7 +611,7 @@ class NHKplus_downloader:
         for i, segment_url in enumerate(tqdm(segment_urls, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ")):
             ts_file = os.path.join(download_dir, f"{random_string}_segment_{i}.ts")
             if not os.path.exists(ts_file):
-                res = requests.get(segment_url, stream=True)
+                res = requests.get(base_url+segment_url, stream=True)
                 with open(ts_file, "wb") as f:
                     for chunk in res.iter_content(chunk_size=1024):
                         if chunk:

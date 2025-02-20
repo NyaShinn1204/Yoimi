@@ -112,7 +112,7 @@ Options:
 | Dmm-TV               | ✅      |  🔄️  |
 | Dアニメ              | 🔄️      |  🔄️  |
 | FOD                  | ✅      |  ｘ   |
-| NHK+                 | ✅      |  🔄️  |
+| NHK+                 | ✅      |  ✅  |
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
 
