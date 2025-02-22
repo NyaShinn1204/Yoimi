@@ -40,6 +40,18 @@ def login(email, password):
     common_headers["Host"] = "cfg.smt.docomo.ne.jp"
     tempsession_id_response = session.get(baseauth_url, headers=common_headers)
     temp_session_id = BeautifulSoup(tempsession_id_response.text, "html.parser").find("input", {"id": "tempSessionId"})["value"]
-    print("Temp Session Id", temp_session_id)
+    print("Temp Session Id:", temp_session_id)
+    
+    payload = {
+        "operationName":"authenticationIdConfirm",
+        "variables":{
+            "tempSessionId":temp_session_id,
+            "dAccountId":"aaaaa@gmail.com"
+        },
+        "query":"mutation authenticationIdConfirm($tempSessionId: String!, $dAccountId: String!) {\n  authenticationIdConfirm(\n    input: {tempSessionId: $tempSessionId, dAccountId: $dAccountId}\n  ) {\n    code\n    errorReason\n    resultData {\n      authList\n      twoStepAuthMethod\n      activationFlg\n      __typename\n    }\n    __typename\n  }\n}"}
+    email_check = session.post("https://cfg.smt.docomo.ne.jp/aif/pub/flow/v1.0/bff/graphql", json=payload)
+    if email_check.json()["data"]["authenticationIdConfirm"]["code"] == "1001":
+        print("email or id is not valid")        
+    print(email_check.text)
 
 login(None, None)

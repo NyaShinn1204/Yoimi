@@ -26,7 +26,7 @@ def get_parser(url):
     valid_abema = r'^["\']?http(?:|s)://(?:abema\.tv)/(?:channels|video)/(?:\w*)(?:/|-\w*/)((?P<slot>slots/)|)(?P<video_id>.*[^-_])["\']?$'
     valid_gyao = r'(?isx)^["\']?http(?:|s)://gyao.yahoo.co.jp/(?:player|p|title[\w])/(?P<p1>[\w]*.*)["\']?$'
     valid_aniplus = r'^["\']?http(?:|s)://(?:www\.|)aniplus-asia\.com/episode/(?P<video_id>[\w]*.*)["\']?$'
-    valid_unext = r'^["\']?http(?:|s)://video\.unext\.jp/(?:play|title|freeword).*(?:SID(?P<sid>[0-9]+)|ED(?P<ed>[0-9]+))["\']?$'
+    valid_unext = r'^["\']?http(?:|s)://(?:video|video-share)\.unext\.jp/(?:play|title|freeword).*(?:SID(?P<sid>[0-9]+)|ED(?P<ed>[0-9]+))["\']?$'
     valid_dmm_tv = r'^["\']?http(?:s)?://tv\.dmm\.com/vod(?:/playback)?/\?.*season=(?P<season>[^&?]+)(?:&.*content=(?P<content>[^&?]+)|)["\']?$'
     valid_brainshark = r'^["\']?https?://www\.brainshark\.com/brainshark/brainshark\.services\.player/api/v1\.0/Presentation\?([^&]*&)*pi=(?P<pi>[^&]+)(&|$)'
     valid_fod = r'^["\']?http(?:|s)://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+/?)?["\']?$'
