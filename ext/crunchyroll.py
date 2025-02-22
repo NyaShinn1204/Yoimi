@@ -63,8 +63,8 @@ def set_variable(session, LOG_LEVEL):
     
 def main_command(session, url, email, password, LOG_LEVEL, additional_info):
     try:
-        #url = "https://video.unext.jp/title/SID0104147"
-        #url = "https://video.unext.jp/play/SID0104147/ED00570918"
+        #url = "https://www.crunchyroll.com/series/G9VHN9QXQ/unnamed-memory"
+        #url = "https://www.crunchyroll.com/watch/GG1U2JW3V/cursed-words-and-the-azure-tower"
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt Content for Everyone", extra={"service_name": "Yoimi"})
         
@@ -97,7 +97,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             exit(1)
             
         language = "ja-JP" # Default Language
-        
+                
         if url.__contains__("watch"):
             match = re.search(r'"?https?://www\.crunchyroll\.com/(?:series|watch)/([^/"]+)', url)
             content_id =  match.group(1) if match else None
@@ -107,7 +107,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(single_info["episode_metadata"]["season_title"] + " " + "S" + str(single_info["episode_metadata"]["season_number"]).zfill(2) + "E" + str(single_info["episode_metadata"]["episode_number"]).zfill(2) + " - " + single_info["title"] + " " + f"[{language}_ID: {single_info["id"]}]", extra={"service_name": __service_name__})
             try:
                 logger.info("Downloading 1 episode", extra={"service_name": __service_name__})
-                #print(i["season_title"] + " " + "S" + str(i["season_number"]).zfill(2) + "E" + str(i["episode_number"]).zfill(2) + " - " + i["title"] + " " + f"[{self.language}_ID: {i["id"]}]")
                 player_info = session.get(f"https://www.crunchyroll.com/playback/v2/{single_info["id"]}/web/chrome/play").json()
                 mpd_content = session.get(player_info["url"]).text
                 headers = {
@@ -177,6 +176,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     print(f"指定されたディレクトリは存在しません: {dir_path}")
                 logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
             except Exception as e:
+                logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                 print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                 print("\n----ERROR LOG----")
                 console.print_exception()
@@ -187,27 +187,17 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         else:
             logger.info("Get Title for Season", extra={"service_name": __service_name__})
             season_id_info, default_info = crunchyroll_downloader.get_info(url)
-            #logger.debug(f"Total Episode: {season_id_info["total"]}", extra={"service_name": __service_name__})
             for i in season_id_info["data"]:
-                #season_number episode_number
                 logger.info(i["season_title"] + " " + "S" + str(i["season_number"]).zfill(2) + "E" + str(i["episode_number"]).zfill(2) + " - " + i["title"] + " " + f"[{language}_ID: {i["id"]}]", extra={"service_name": __service_name__})
             for meta_i in season_id_info["data"]:
                 try:
-                    #season_number episode_number
                     logger.info("Downloading 1 episode", extra={"service_name": __service_name__})
-                    #print(i["season_title"] + " " + "S" + str(i["season_number"]).zfill(2) + "E" + str(i["episode_number"]).zfill(2) + " - " + i["title"] + " " + f"[{self.language}_ID: {i["id"]}]")
                     player_info = session.get(f"https://www.crunchyroll.com/playback/v2/{meta_i["id"]}/web/chrome/play").json()
-                    #print(player_info)
                     mpd_content = session.get(player_info["url"]).text
-                    #payload = {
-                    #    "content_id": meta_i["id"],
-                    #    "playhead": 1
-                    #}
+
                     headers = {
                         "Content-Type": "application/json"
-                    }
-                    #self.session.post(f"https://www.crunchyroll.com/content/v2/{account_id}/playheads?preferred_audio_language=en-US&locale=en-US", json=payload, headers=headers)
-                    
+                    }                    
                     
                     mpd_lic = crunchyroll.Crunchyroll_utils.parse_mpd_logic(mpd_content)
                     logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": __service_name__})
@@ -221,20 +211,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     logger.info("Get Segment URL", extra={"service_name": __service_name__})
                     segemnt_content = crunchyroll.Crunchyroll_utils.parse_mpd_content(mpd_content)
-                    #logger.info(segemnt_content)
-                    #logger.info(segemnt_content)
-                    
-                    #logger.info(hd_link_base)
-                    
-                    #mpd_base = player_info["url"].replace("manifest.mpd", "")
                     
                     segment_list_video = crunchyroll.Crunchyroll_utils.get_segment_link_list(mpd_content, segemnt_content["video"]["name"], segemnt_content["video"]["base_url"])
-                    #logger.info(segment_list_video)
                     for i in segment_list_video["segments"]:
                         logger.debug(" + Video Segment URL "+i, extra={"service_name": __service_name__})
                     
                     segment_list_audio = crunchyroll.Crunchyroll_utils.get_segment_link_list(mpd_content, segemnt_content["audio"]["name"], segemnt_content["audio"]["base_url"])
-                    #logger.debug(segment_list_audio)
                     for i in segment_list_audio["segments"]:
                         logger.debug(" + Audio Segment URL "+i, extra={"service_name": __service_name__})
                     
@@ -243,17 +225,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": __service_name__})
                     logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
                     
-                    #print(segemnt_content["video"]["base_url"])
-                    #print(segment_list_video)
-                    #print(segment_list_video["all"])
-                    
                     crunchyroll_downloader.download_segment(segment_list_video["all"], config, unixtime, "download_encrypt_video.mp4")
                     crunchyroll_downloader.download_segment(segment_list_audio["all"], config, unixtime, "download_encrypt_audio.m4s")
                     
                     logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
-                    #exit(1)
-                    #crunchyroll_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
-                    #
+                    
                     crunchyroll.Crunchyroll_decrypt.decrypt_all_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.m4s"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.m4s"), config)
                     
                     logger.info("Muxing Episode...", extra={"service_name": __service_name__})
@@ -283,11 +259,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                 print(f"削除エラー: {e}")
                     else:
                         print(f"指定されたディレクトリは存在しません: {dir_path}")
+                    
+                    # Token expire bypass. lol crunchyroll
                     update_token = crunchyroll_downloader.update_token()
                     session.headers.update({"Authorization": "Bearer "+update_token})
+                    
                     logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
-                    #crunchyroll_downloader.update_token()
                 except Exception as e:
+                    logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                     print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                     print("\n----ERROR LOG----")
                     console.print_exception()
@@ -297,6 +276,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     session.delete(f"https://www.crunchyroll.com/playback/v1/token/{i["id"]}/{player_info["token"]}", json={}, headers=headers)
             logger.info("Finished download Series: {}".format(default_info["data"][0]["title"]), extra={"service_name": __service_name__})
     except Exception:
+        logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")
         console.print_exception()

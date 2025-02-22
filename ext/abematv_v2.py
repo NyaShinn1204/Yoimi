@@ -8,13 +8,13 @@ import shutil
 import logging
 import datetime
 import traceback
-from tqdm import tqdm
-from Crypto.Cipher import AES
+
 from datetime import datetime
-from binascii import unhexlify
+from rich.console import Console
 
 from ext.utils import abema
-#from abema import abema
+
+console = Console()
 
 __service_name__ = "Abema"
 
@@ -122,37 +122,37 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if config["authorization"]["token"] != "":
                     status, message = abema_downloader.check_token(config["authorization"]["token"])
                     if status == False:
-                        logger.error(message, extra={"service_name": "Abema"})
+                        logger.error(message, extra={"service_name": __service_name__})
                         exit(1)
                     else:
                         session.headers.update({"Authorization": config["authorization"]["token"]})
-                        logger.debug("Get Token: "+config["authorization"]["token"], extra={"service_name": "Abema"})
-                        logger.info("Loggined Account", extra={"service_name": "Abema"})
-                        logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
+                        logger.debug("Get Token: "+config["authorization"]["token"], extra={"service_name": __service_name__})
+                        logger.info("Loggined Account", extra={"service_name": __service_name__})
+                        logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": __service_name__})
                         for plan_num, i in enumerate(message["subscriptions"]):
-                            logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
+                            logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": __service_name__})
                             if "プレミアム" in i["planName"]:
                                 you_premium = True
                             else:
                                 you_premium = False
                         user_id = message["profile"]["userId"]
                 else:
-                    logger.error("Please input token", extra={"service_name": "Abema"})
+                    logger.error("Please input token", extra={"service_name": __service_name__})
                     exit(1)
             else:
                 status, message, device_id = abema_downloader.authorize(email, password)
                 try:
-                    logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Abema"})
+                    logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": __service_name__})
                 except:
-                    logger.info("Failed to login", extra={"service_name": "Abema"})
+                    logger.info("Failed to login", extra={"service_name": __service_name__})
                 if status == False:
-                    logger.error(message, extra={"service_name": "Abema"})
+                    logger.error(message, extra={"service_name": __service_name__})
                     exit(1)
                 else:
-                    logger.info("Loggined Account", extra={"service_name": "Abema"})
-                    logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": "Abema"})
+                    logger.info("Loggined Account", extra={"service_name": __service_name__})
+                    logger.info(" + ID: "+message["profile"]["userId"], extra={"service_name": __service_name__})
                     for plan_num, i in enumerate(message["subscriptions"]):
-                        logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": "Abema"})
+                        logger.info(f" + Plan {f"{plan_num+1}".zfill(2)}: "+i["planName"], extra={"service_name": __service_name__})
                         if "プレミアム" in i["planName"]:
                             you_premium = True
                         else:
@@ -165,7 +165,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             device_id = temp_token[1]
             status, message = abema_downloader.check_token('Bearer ' + temp_token[0])
             if status == False:
-                logger.error(message, extra={"service_name": "Abema"})
+                logger.error(message, extra={"service_name": __service_name__})
                 exit(1)
             user_id = message["profile"]["userId"]
             you_premium = False
@@ -205,7 +205,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         }
         
         if abema_get_series_id.__contains__("_p"):
-            logger.info("Get Title for 1 Episode", extra={"service_name": "Abema"})
+            logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
             print("episode download")
             response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/video/programs/{abema_get_series_id}?division=0&include=tvod").json()
             if id_type == "アニメ":
@@ -247,9 +247,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             else:
                 content_type = "PREMIUM"
                 content_status_lol = ""
-            logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
+            logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": __service_name__})
             if content_type == "PREMIUM" and you_premium == False:
-                logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Abema"})
+                logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": __service_name__})
                 return
                                  
             abema_downloader.download_niconico_comment(logger, additional_info, title_name, response["episode"].get("title", ""), response["episode"]["number"], config, title_name_logger)
@@ -294,7 +294,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             '{h}'.format(h=resh)
                         ]
                     )
-            logger.info('Available resolution:', extra={"service_name": "Abema"})
+            logger.info('Available resolution:', extra={"service_name": __service_name__})
             print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16))
             for res in resolution_list:
                 r_c = res[1]
@@ -304,9 +304,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
 
             m3u8_url = base_link+resolution_list[-1][2]+"/playlist.m3u8"
 
-            logger.debug('Title: {}'.format(title_name_logger), extra={"service_name": "Abema"})
-            logger.debug('Total Resolution: {}'.format(resolution_list), extra={"service_name": "Abema"})
-            logger.debug('M3U8 Link: {}'.format(m3u8_url), extra={"service_name": "Abema"})
+            logger.debug('Title: {}'.format(title_name_logger), extra={"service_name": __service_name__})
+            logger.debug('Total Resolution: {}'.format(resolution_list), extra={"service_name": __service_name__})
+            logger.debug('M3U8 Link: {}'.format(m3u8_url), extra={"service_name": __service_name__})
             
             def parse_m3u8(m3u8_url):
                 r = session.get(m3u8_url)
@@ -343,9 +343,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         f = 'https://ds-vod-abematv.akamaized.net' + f
                     parsed_files.append(f)
         
-                logger.debug('Total files: {}'.format(len(files)), extra={"service_name": "Abema"})
-                logger.debug('IV: {}'.format(iv), extra={"service_name": "Abema"})
-                logger.debug('Ticket key: {}'.format(ticket), extra={"service_name": "Abema"})
+                logger.debug('Total files: {}'.format(len(files)), extra={"service_name": __service_name__})
+                logger.debug('IV: {}'.format(iv), extra={"service_name": __service_name__})
+                logger.debug('Ticket key: {}'.format(ticket), extra={"service_name": __service_name__})
         
                 n = 0.0
                 for seg in x.segments:
@@ -363,9 +363,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             else:
                 filesize = str(filesize)+" MiB"
             
-            logger.info('Output: {}'.format(title_name_logger+".mp4"), extra={"service_name": "Abema"})
-            logger.info('Resolution: {}'.format(resolution_list[-1][1]), extra={"service_name": "Abema"})
-            logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": "Abema"})
+            logger.info('Output: {}'.format(title_name_logger+".mp4"), extra={"service_name": __service_name__})
+            logger.info('Resolution: {}'.format(resolution_list[-1][1]), extra={"service_name": __service_name__})
+            logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": __service_name__})
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
@@ -378,7 +378,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     raise AttributeError(f"Module 'abema' has no attribute '{decrypt_type}'")
                 key, reason = decrypt_module.get_video_key(session=session, device_id=device_id, ticket=ticket, response=response, logger=logger, user_id=user_id)
                 if not key:
-                    logger.error('{}'.format(reason), extra={"service_name": "Abema"})
+                    logger.error('{}'.format(reason), extra={"service_name": __service_name__})
                 if decrypt_type == "dash":
                     # 720p.1 = video
                     # 720p 2 = audio
@@ -414,7 +414,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     downloaded_files = abema_downloader.download_chunk(files, key, iv, decrypt_type, output_temp_directory)
                     abema_downloader.merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), os.path.join(config["directorys"]["Downloads"], title_name))
                     
-                logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Abema"})
+                logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
             except Exception as e:
                 logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                 type_, value, _ = sys.exc_info()
@@ -428,7 +428,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 print("----END ERROR LOG----")
             
         else:
-            logger.info(f"Get Title for Season", extra={"service_name": "Abema"})
+            logger.info(f"Get Title for Season", extra={"service_name": __service_name__})
             print("series download")
             content_id = re.match(r"^(\d+-\d+)", abema_get_series_id).group(1)
             if abema_get_series_id.__contains__("_s"):
@@ -494,12 +494,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     total_episode_json.append(temp_json)
                         
-                    logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
+                    logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": __service_name__})
                 for i, episode_message in enumerate(total_episode_json):
-                    logger.info("Get Title for Episode", extra={"service_name": "Abema"})
-                    logger.info(f" + {episode_message["content_type"]} | {episode_message["title_name_logger"]} {episode_message["content_status"]}", extra={"service_name": "Abema"})
+                    logger.info("Get Title for Episode", extra={"service_name": __service_name__})
+                    logger.info(f" + {episode_message["content_type"]} | {episode_message["title_name_logger"]} {episode_message["content_status"]}", extra={"service_name": __service_name__})
                     if episode_message["content_type"] == "PREMIUM" and you_premium == False:
-                        logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Abema"})
+                        logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": __service_name__})
                         continue
                     abema_downloader.download_niconico_comment(logger, additional_info, title_name, episode_message["episode_title"], episode_message["episode_number"], config, episode_message["title_name_logger"])
                     title_name_logger = episode_message["title_name_logger"]
@@ -544,7 +544,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                     '{h}'.format(h=resh)
                                 ]
                             )
-                    logger.info('Available resolution:', extra={"service_name": "Abema"})
+                    logger.info('Available resolution:', extra={"service_name": __service_name__})
                     print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16))
                     for res in resolution_list:
                         r_c = res[1]
@@ -554,9 +554,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
                     m3u8_url = base_link+resolution_list[-1][2]+"/playlist.m3u8"
         
-                    logger.debug('Title: {}'.format(title_name_logger), extra={"service_name": "Abema"})
-                    logger.debug('Total Resolution: {}'.format(resolution_list), extra={"service_name": "Abema"})
-                    logger.debug('M3U8 Link: {}'.format(m3u8_url), extra={"service_name": "Abema"})
+                    logger.debug('Title: {}'.format(title_name_logger), extra={"service_name": __service_name__})
+                    logger.debug('Total Resolution: {}'.format(resolution_list), extra={"service_name": __service_name__})
+                    logger.debug('M3U8 Link: {}'.format(m3u8_url), extra={"service_name": __service_name__})
                     
                     def parse_m3u8(m3u8_url):
                         r = session.get(m3u8_url)
@@ -593,9 +593,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                 f = 'https://ds-vod-abematv.akamaized.net' + f
                             parsed_files.append(f)
                 
-                        logger.debug('Total files: {}'.format(len(files)), extra={"service_name": "Abema"})
-                        logger.debug('IV: {}'.format(iv), extra={"service_name": "Abema"})
-                        logger.debug('Ticket key: {}'.format(ticket), extra={"service_name": "Abema"})
+                        logger.debug('Total files: {}'.format(len(files)), extra={"service_name": __service_name__})
+                        logger.debug('IV: {}'.format(iv), extra={"service_name": __service_name__})
+                        logger.debug('Ticket key: {}'.format(ticket), extra={"service_name": __service_name__})
                 
                         n = 0.0
                         for seg in x.segments:
@@ -613,9 +613,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     else:
                         filesize = str(filesize)+" MiB"
                     
-                    logger.info('Output: {}'.format(title_name_logger+".mp4"), extra={"service_name": "Abema"})
-                    logger.info('Resolution: {}'.format(resolution_list[-1][1]), extra={"service_name": "Abema"})
-                    logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": "Abema"})
+                    logger.info('Output: {}'.format(title_name_logger+".mp4"), extra={"service_name": __service_name__})
+                    logger.info('Resolution: {}'.format(resolution_list[-1][1]), extra={"service_name": __service_name__})
+                    logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": __service_name__})
                     
                     output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                     
@@ -628,7 +628,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             raise AttributeError(f"Module 'abema' has no attribute '{decrypt_type}'")
                         key, reason = decrypt_module.get_video_key(session=session, device_id=device_id, ticket=ticket, response=response, logger=logger, user_id=user_id)
                         if not key:
-                            logger.error('{}'.format(reason), extra={"service_name": "Abema"})
+                            logger.error('{}'.format(reason), extra={"service_name": __service_name__})
                         if decrypt_type == "dash":
                             # 720p.1 = video
                             # 720p 2 = audio
@@ -664,19 +664,16 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             downloaded_files = abema_downloader.download_chunk(files, key, iv, decrypt_type, output_temp_directory)
                             abema_downloader.merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), os.path.join(config["directorys"]["Downloads"], title_name))
                         
-                        logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Abema"})
+                        logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
                     except Exception as e:
                         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
-                        type_, value, _ = sys.exc_info()
                         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                         print("\n----ERROR LOG----")
-                        print("ENative:\n"+traceback.format_exc())
-                        print("EType:\n"+str(type_))
-                        print("EValue:\n"+str(value))
+                        console.print_exception()
                         print("Service: "+__service_name__)
                         print("Version: "+additional_info[0])
                         print("----END ERROR LOG----")
-                logger.info("Finished download Series: {}".format(title_name), extra={"service_name": "Abema"})
+                logger.info("Finished download Series: {}".format(title_name), extra={"service_name": __service_name__})
             else:
                 response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/video/series/{content_id}", params={"includeSlot": "true"}).json()
                 
@@ -685,7 +682,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 total_episode_json = []
                 
                 for season_num, i in enumerate(season_response):
-                    logger.info(f"Processing season {str(season_num+1)} | {i["name"]}", extra={"service_name": "Abema"})
+                    logger.info(f"Processing season {str(season_num+1)} | {i["name"]}", extra={"service_name": __service_name__})
                     for i2 in i["episodeGroups"]:
                         #print(i2["id"])
                         query_string = {
@@ -759,15 +756,15 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             
                             total_episode_json.append(temp_json)
                                 
-                            logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Abema"})
+                            logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": __service_name__})
                 for i, episode_message in enumerate(total_episode_json):
                     
                     abema_downloader.download_niconico_comment(logger, additional_info, title_name, episode_message["episode_title"], episode_message["episode_number"], config, episode_message["title_name_logger"])
                     
-                    logger.info("Get Title for Episode", extra={"service_name": "Abema"})
-                    logger.info(f" + {episode_message["content_type"]} | {episode_message["title_name_logger"]} {episode_message["content_status"]}", extra={"service_name": "Abema"})
+                    logger.info("Get Title for Episode", extra={"service_name": __service_name__})
+                    logger.info(f" + {episode_message["content_type"]} | {episode_message["title_name_logger"]} {episode_message["content_status"]}", extra={"service_name": __service_name__})
                     if episode_message["content_type"] == "PREMIUM" and you_premium == False:
-                        logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Abema"})
+                        logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": __service_name__})
                         continue
                     title_name_logger = episode_message["title_name_logger"]
                     response = session.get(f"https://api.p-c3-e.abema-tv.com/v1/video/programs/{episode_message["content_id"]}?division=0&include=tvod").json() # Example: https://abema.tv/video/episode/25-147_s1_p1
@@ -811,7 +808,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                     '{h}'.format(h=resh)
                                 ]
                             )
-                    logger.info('Available resolution:', extra={"service_name": "Abema"})
+                    logger.info('Available resolution:', extra={"service_name": __service_name__})
                     print('{0: <{width}}{1: <{width}}{2: <{width}}{3: <{width}}'.format("   Key", "Resolution", "Video Quality", "Audio Quality", width=16))
                     for res in resolution_list:
                         r_c = res[1]
@@ -821,9 +818,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
                     m3u8_url = base_link+resolution_list[-1][2]+"/playlist.m3u8"
         
-                    logger.debug('Title: {}'.format(title_name_logger), extra={"service_name": "Abema"})
-                    logger.debug('Total Resolution: {}'.format(resolution_list), extra={"service_name": "Abema"})
-                    logger.debug('M3U8 Link: {}'.format(m3u8_url), extra={"service_name": "Abema"})
+                    logger.debug('Title: {}'.format(title_name_logger), extra={"service_name": __service_name__})
+                    logger.debug('Total Resolution: {}'.format(resolution_list), extra={"service_name": __service_name__})
+                    logger.debug('M3U8 Link: {}'.format(m3u8_url), extra={"service_name": __service_name__})
                     
                     def parse_m3u8(m3u8_url):
                         r = session.get(m3u8_url)
@@ -860,9 +857,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                 f = 'https://ds-vod-abematv.akamaized.net' + f
                             parsed_files.append(f)
                 
-                        logger.debug('Total files: {}'.format(len(files)), extra={"service_name": "Abema"})
-                        logger.debug('IV: {}'.format(iv), extra={"service_name": "Abema"})
-                        logger.debug('Ticket key: {}'.format(ticket), extra={"service_name": "Abema"})
+                        logger.debug('Total files: {}'.format(len(files)), extra={"service_name": __service_name__})
+                        logger.debug('IV: {}'.format(iv), extra={"service_name": __service_name__})
+                        logger.debug('Ticket key: {}'.format(ticket), extra={"service_name": __service_name__})
                 
                         n = 0.0
                         for seg in x.segments:
@@ -880,9 +877,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     else:
                         filesize = str(filesize)+" MiB"
                     
-                    logger.info('Output: {}'.format(title_name_logger+".mp4"), extra={"service_name": "Abema"})
-                    logger.info('Resolution: {}'.format(resolution_list[-1][1]), extra={"service_name": "Abema"})
-                    logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": "Abema"})
+                    logger.info('Output: {}'.format(title_name_logger+".mp4"), extra={"service_name": __service_name__})
+                    logger.info('Resolution: {}'.format(resolution_list[-1][1]), extra={"service_name": __service_name__})
+                    logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": __service_name__})
                     
                     output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                     
@@ -895,7 +892,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             raise AttributeError(f"Module 'abema' has no attribute '{decrypt_type}'")
                         key, reason = decrypt_module.get_video_key(session=session, device_id=device_id, ticket=ticket, response=response, logger=logger, user_id=user_id)
                         if not key:
-                            logger.error('{}'.format(reason), extra={"service_name": "Abema"})
+                            logger.error('{}'.format(reason), extra={"service_name": __service_name__})
                         if decrypt_type == "dash":
                             # 720p.1 = video
                             # 720p 2 = audio
@@ -931,31 +928,21 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             downloaded_files = abema_downloader.download_chunk(files, key, iv, decrypt_type, output_temp_directory)
                             abema_downloader.merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), os.path.join(config["directorys"]["Downloads"], title_name))
                         
-                        logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Abema"})
+                        logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
                     except Exception as e:
                         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
-                        type_, value, _ = sys.exc_info()
                         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                         print("\n----ERROR LOG----")
-                        print("ENative:\n"+traceback.format_exc())
-                        print("EType:\n"+str(type_))
-                        print("EValue:\n"+str(value))
+                        console.print_exception()
                         print("Service: "+__service_name__)
                         print("Version: "+additional_info[0])
                         print("----END ERROR LOG----")
-                logger.info("Finished download Series: {}".format(title_name), extra={"service_name": "Abema"})
+                logger.info("Finished download Series: {}".format(title_name), extra={"service_name": __service_name__})
     except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
-        #print(traceback.format_exc())
-        #print("\n")
-        type_, value, _ = sys.exc_info()
-        #print(type_)
-        #print(value)
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")
-        print("ENative:\n"+traceback.format_exc())
-        print("EType:\n"+str(type_))
-        print("EValue:\n"+str(value))
+        console.print_exception()
         print("Service: "+__service_name__)
         print("Version: "+additional_info[0])
         print("----END ERROR LOG----")

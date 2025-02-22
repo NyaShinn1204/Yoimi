@@ -5,9 +5,15 @@ import time
 import shutil
 import logging
 import xml.etree.ElementTree as ET
+
 from datetime import datetime
+from rich.console import Console
 
 from ext.utils import dmm_tv
+
+console = Console()
+
+__service_name__ = "Dmm-TV"
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
@@ -69,14 +75,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         if email and password != "":
             status, message = dmm_tv_downloader.authorize(email, password)
             if status == False:
-                logger.error(message, extra={"service_name": "Dmm-TV"})
+                logger.error(message, extra={"service_name": __service_name__})
                 exit(1)
             else:
-                logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": "Dmm-TV"})
+                logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": __service_name__})
                 plan_status = message["planStatus"]["planType"]
-                logger.info("Loggined Account", extra={"service_name": "Dmm-TV"})
-                logger.info(" + ID: "+message["id"], extra={"service_name": "Dmm-TV"})
-                logger.info(" + PlanType: "+plan_status, extra={"service_name": "Dmm-TV"})
+                logger.info("Loggined Account", extra={"service_name": __service_name__})
+                logger.info(" + ID: "+message["id"], extra={"service_name": __service_name__})
+                logger.info(" + PlanType: "+plan_status, extra={"service_name": __service_name__})
         else:
             plan_status = "No Logined"
         
@@ -85,46 +91,46 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         status_check = dmm_tv_downloader.check_free(season_id, content_id)
         if content_id == None:
             if any(item['status'] == 'false' for item in status_check) and plan_status != "STANDARD":
-                logger.warning("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
+                logger.warning("This content require subscribe plan", extra={"service_name": __service_name__})
                 pass
                 #exit(1)
             elif any(item['status'] == 'false' for item in status_check) and plan_status == "STANDARD":
                 #if "false" in status_check:
                 #    print("lol")
-                logger.warning("This content is all require subscribe", extra={"service_name": "Dmm-TV"})
+                logger.warning("This content is all require subscribe", extra={"service_name": __service_name__})
             else:
-                logger.warning("This content is free!", extra={"service_name": "Dmm-TV"})
+                logger.warning("This content is free!", extra={"service_name": __service_name__})
         else:
             if status_check["status"] == 'false' and plan_status != "STANDARD":
-                logger.warning("This content require subscribe plan", extra={"service_name": "Dmm-TV"})
+                logger.warning("This content require subscribe plan", extra={"service_name": __service_name__})
                 pass
                 #exit(1)
             elif status_check["status"] == 'false' and plan_status == "STANDARD":
                 #if "false" in status_check:
                 #    print("lol")
-                logger.warning("This content is all require subscribe", extra={"service_name": "Dmm-TV"})
+                logger.warning("This content is all require subscribe", extra={"service_name": __service_name__})
             else:
-                logger.warning("This content is free!", extra={"service_name": "Dmm-TV"})
+                logger.warning("This content is free!", extra={"service_name": __service_name__})
                 
         status, meta_response = dmm_tv_downloader.get_title_metadata(season_id)
         if status == False:
-            logger.error("Failed to Get Series Json", extra={"service_name": "Dmm-tv"})
+            logger.error("Failed to Get Series Json", extra={"service_name": __service_name__})
             exit(1)
         else:
             title_name = meta_response["titleName"]
             
-        logger.info("Get Video Type for URL", extra={"service_name": "Dmm-TV"})
+        logger.info("Get Video Type for URL", extra={"service_name": __service_name__})
         status_id, id_type = dmm_tv_downloader.get_id_type(season_id)
         if status_id == False:
-            logger.error("Failed to Get Episode Json", extra={"service_name": "Dmm-TV"})
+            logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
             exit(1)
-        logger.info(f" + Video Type: {id_type}", extra={"service_name": "Dmm-TV"})
+        logger.info(f" + Video Type: {id_type}", extra={"service_name": __service_name__})
 
         if type(status_check) == list:
-            logger.info("Get Title for Season", extra={"service_name": "Dmm-TV"})
+            logger.info("Get Title for Season", extra={"service_name": __service_name__})
             status, messages = dmm_tv_downloader.get_title_parse_all(season_id)
             if status == False:
-                logger.error("Failed to Get Episode Json", extra={"service_name": "Dmm-TV"})
+                logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
                 exit(1)
             i = 0
             for message in messages:
@@ -167,14 +173,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 else:
                     content_type = "PREMIUM"
                     content_status_lol = ""
-                logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Dmm-TV"})
+                logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": __service_name__})
                 
                 i=i+1
             for i, message in enumerate(messages):
                 content_id = message["node"]["id"]
                 status, message = dmm_tv_downloader.get_title_parse_single(season_id, content_id)
                 if status == False:
-                    logger.error("Failed to Get Episode Json", extra={"service_name": "Dmm-TV"})
+                    logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
                     exit(1)
                 if id_type[0] == "ノーマルアニメ":
                     format_string = config["format"]["anime"]
@@ -338,7 +344,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     status_real = status_check[i]
                     #print(status_check[i])
                     if status_real["status"] == "false":
-                        logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": "Dmm-TV"})
+                        logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": __service_name__})
                         continue
                 video_duration = message["node"]["playInfo"]["duration"]
                 
@@ -349,31 +355,31 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 #else:
                 #    content_type = "PREMIUM"
                 #    content_status_lol = ""
-                #logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Dmm-TV"})
+                #logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": __service_name__})
                 
                 status, links = dmm_tv_downloader.get_mpd_link(content_id)
-                logger.debug(f"{status},{links}", extra={"service_name": "Dmm-TV"})
+                logger.debug(f"{status},{links}", extra={"service_name": __service_name__})
                 
-                logger.debug(f"Parse links", extra={"service_name": "Dmm-TV"})
+                logger.debug(f"Parse links", extra={"service_name": __service_name__})
                 
                 hd_link = dmm_tv_downloader.parse_quality(links)
-                logger.debug(f" + HD MPD: {hd_link}", extra={"service_name": "Dmm-TV"})
+                logger.debug(f" + HD MPD: {hd_link}", extra={"service_name": __service_name__})
                 
-                logger.info(f"Get License for 1 Episode", extra={"service_name": "Dmm-TV"})
+                logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
                 status, mpd_content, hd_link_base = dmm_tv_downloader.get_mpd_content(hd_link)
                 
                 mpd_lic = dmm_tv.Dmm_TV_utils.parse_mpd_logic(mpd_content)
                             
-                logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": "Dmm-TV"})
+                logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": __service_name__})
                 
                 license_key = dmm_tv.Dmm_TV__license.license_vd_ad(mpd_lic["pssh"][1], session)
                             
-                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "Dmm-TV"})
+                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 
-                logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": "Dmm-TV"})
+                logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
                 
-                logger.info("Checking resolution...", extra={"service_name": "Dmm-TV"})
-                logger.info("Found resolution", extra={"service_name": "Dmm-TV"})
+                logger.info("Checking resolution...", extra={"service_name": __service_name__})
+                logger.info("Found resolution", extra={"service_name": __service_name__})
                 for resolution_one in links:
                     if resolution_one["quality_name"] == "auto":
                         pixel_d = "Unknown"
@@ -381,9 +387,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         pixel_d = "1920x1080"
                     elif resolution_one["quality_name"] == "sd":
                         pixel_d = "1280x720"
-                    logger.info(" + {reso} {pixel}".format(reso=resolution_one["quality_name"], pixel=pixel_d), extra={"service_name": "Dmm-TV"})
+                    logger.info(" + {reso} {pixel}".format(reso=resolution_one["quality_name"], pixel=pixel_d), extra={"service_name": __service_name__})
                     
-                logger.debug("Get Segment URL", extra={"service_name": "Dmm-TV"})
+                logger.debug("Get Segment URL", extra={"service_name": __service_name__})
                 segemnt_content = dmm_tv.Dmm_TV_utils.parse_mpd_content(mpd_content)
                 #print(segemnt_content)
                 #print(segemnt_content)
@@ -395,37 +401,37 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 segment_list_video = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["video_list"][1]["name"], mpd_base)
                 #print(segment_list_video)
                 for i in segment_list_video["segments"]:
-                    logger.debug(" + Video Segment URL "+i, extra={"service_name": "Dmm-TV"})
+                    logger.debug(" + Video Segment URL "+i, extra={"service_name": __service_name__})
                 
                 segment_list_audio = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["audio_list"][1]["name"], mpd_base)
                 #print(segment_list_audio)
                 for i in segment_list_audio["segments"]:
-                    logger.debug(" + Audio Segment URL "+i, extra={"service_name": "Dmm-TV"})
+                    logger.debug(" + Audio Segment URL "+i, extra={"service_name": __service_name__})
                 
-                logger.info("Video, Audio Content Segment Link", extra={"service_name": "Dmm-TV"})
-                logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": "Dmm-TV"})
-                logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": "Dmm-TV"})
+                logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
+                logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": __service_name__})
+                logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": __service_name__})
     
                 
-                logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": "Dmm-TV"})
+                logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
                 
                 downloaded_files_video = dmm_tv_downloader.download_segment(segment_list_video["all"], config, unixtime)
                 downloaded_files_audio = dmm_tv_downloader.download_segment(segment_list_audio["all"], config, unixtime)
                 #print(downloaded_files)
                 
-                logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": "Dmm-TV"})
+                logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
                 
                 dmm_tv_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
                 dmm_tv_downloader.merge_m4s_files(downloaded_files_audio, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"))
                 
-                logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": "Dmm-TV"})
+                logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
     
                 dmm_tv.DMM_TV_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
                 dmm_tv.DMM_TV_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
                 
                 dmm_tv.DMM_TV_decrypt.decrypt_all_content(license_key["video_key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), license_key["audio_key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
                 
-                logger.info("Muxing Episode...", extra={"service_name": "Dmm-TV"})
+                logger.info("Muxing Episode...", extra={"service_name": __service_name__})
                 
                 result = dmm_tv_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(video_duration))
                 dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -442,13 +448,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             print(f"削除エラー: {e}")
                 else:
                     print(f"指定されたディレクトリは存在しません: {dir_path}")
-                logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Dmm-TV"})
+                logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
             # forかなんかで取り出して、実行
         else:
-            logger.info("Get Title for 1 Episode", extra={"service_name": "Dmm-TV"})
+            logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
             status, message = dmm_tv_downloader.get_title_parse_single(season_id, content_id)
             if status == False:
-                logger.error("Failed to Get Episode Json", extra={"service_name": "Dmm-TV"})
+                logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
                 exit(1)
             if id_type[0] == "ノーマルアニメ":
                 format_string = config["format"]["anime"]
@@ -617,31 +623,31 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             else:
                 content_type = "PREMIUM"
                 content_status_lol = ""
-            logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": "Dmm-TV"})
+            logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": __service_name__})
             
             status, links = dmm_tv_downloader.get_mpd_link(content_id)
-            logger.debug(f"{status},{links}", extra={"service_name": "Dmm-TV"})
+            logger.debug(f"{status},{links}", extra={"service_name": __service_name__})
             
-            logger.debug(f"Parse links", extra={"service_name": "Dmm-TV"})
+            logger.debug(f"Parse links", extra={"service_name": __service_name__})
             
             hd_link = dmm_tv_downloader.parse_quality(links)
-            logger.debug(f" + HD MPD: {hd_link}", extra={"service_name": "Dmm-TV"})
+            logger.debug(f" + HD MPD: {hd_link}", extra={"service_name": __service_name__})
             
-            logger.info(f"Get License for 1 Episode", extra={"service_name": "Dmm-TV"})
+            logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
             status, mpd_content, hd_link_base = dmm_tv_downloader.get_mpd_content(hd_link)
             
             mpd_lic = dmm_tv.Dmm_TV_utils.parse_mpd_logic(mpd_content)
                         
-            logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": "Dmm-TV"})
+            logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": __service_name__})
             
             license_key = dmm_tv.Dmm_TV__license.license_vd_ad(mpd_lic["pssh"][1], session)
                         
-            logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "Dmm-TV"})
+            logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
             
-            logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": "Dmm-TV"})
+            logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
             
-            logger.info("Checking resolution...", extra={"service_name": "Dmm-TV"})
-            logger.info("Found resolution", extra={"service_name": "Dmm-TV"})
+            logger.info("Checking resolution...", extra={"service_name": __service_name__})
+            logger.info("Found resolution", extra={"service_name": __service_name__})
             for resolution_one in links:
                 if resolution_one["quality_name"] == "auto":
                     pixel_d = "Unknown"
@@ -649,9 +655,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     pixel_d = "1920x1080"
                 elif resolution_one["quality_name"] == "sd":
                     pixel_d = "1280x720"
-                logger.info(" + {reso} {pixel}".format(reso=resolution_one["quality_name"], pixel=pixel_d), extra={"service_name": "Dmm-TV"})
+                logger.info(" + {reso} {pixel}".format(reso=resolution_one["quality_name"], pixel=pixel_d), extra={"service_name": __service_name__})
                 
-            logger.debug("Get Segment URL", extra={"service_name": "Dmm-TV"})
+            logger.debug("Get Segment URL", extra={"service_name": __service_name__})
             segemnt_content = dmm_tv.Dmm_TV_utils.parse_mpd_content(mpd_content)
             #print(segemnt_content)
             #print(segemnt_content)
@@ -663,35 +669,35 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             segment_list_video = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["video_list"][1]["name"], mpd_base)
             #print(segment_list_video)
             for i in segment_list_video["segments"]:
-                logger.debug(" + Video Segment URL "+i, extra={"service_name": "Dmm-TV"})
+                logger.debug(" + Video Segment URL "+i, extra={"service_name": __service_name__})
             
             segment_list_audio = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["audio_list"][1]["name"], mpd_base)
             #print(segment_list_audio)
             for i in segment_list_audio["segments"]:
-                logger.debug(" + Audio Segment URL "+i, extra={"service_name": "Dmm-TV"})
+                logger.debug(" + Audio Segment URL "+i, extra={"service_name": __service_name__})
             
-            logger.info("Video, Audio Content Segment Link", extra={"service_name": "Dmm-TV"})
-            logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": "Dmm-TV"})
-            logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": "Dmm-TV"})
+            logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
+            logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": __service_name__})
+            logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": __service_name__})
 
             
-            logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": "Dmm-TV"})
+            logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
             
             downloaded_files_video = dmm_tv_downloader.download_segment(segment_list_video["all"], config, unixtime)
             downloaded_files_audio = dmm_tv_downloader.download_segment(segment_list_audio["all"], config, unixtime)
             #print(downloaded_files)
             
-            logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": "Dmm-TV"})
+            logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
             
             dmm_tv_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
             dmm_tv_downloader.merge_m4s_files(downloaded_files_audio, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"))
             
-            logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": "Dmm-TV"})
+            logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
 
             dmm_tv.DMM_TV_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
             dmm_tv.DMM_TV_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
             
-            logger.info("Muxing Episode...", extra={"service_name": "Dmm-TV"})
+            logger.info("Muxing Episode...", extra={"service_name": __service_name__})
             
             result = dmm_tv_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(video_duration))
             dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -708,11 +714,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         print(f"削除エラー: {e}")
             else:
                 print(f"指定されたディレクトリは存在しません: {dir_path}")
-            logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": "Dmm-TV"})
+            logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
                         
     except Exception as error:
-        import traceback
-        import sys
-        t, v, tb = sys.exc_info()
-        print(traceback.format_exception(t,v,tb))
-        print(traceback.format_tb(error.__traceback__))
+        logger.error("Traceback has occurred", extra={"service_name": __service_name__})
+        print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
+        print("\n----ERROR LOG----")
+        console.print_exception()
+        print("Service: "+__service_name__)
+        print("Version: "+additional_info[0])
+        print("----END ERROR LOG----")

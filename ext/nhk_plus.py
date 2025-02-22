@@ -2,15 +2,16 @@
 # これだけ無駄にコード綺麗に書いてやろうかな
 import os
 import re
-import sys
 import yaml
 import time
 import shutil
 import base64
 import logging
-import traceback
+from rich.console import Console
 
 from ext.utils import nhk_plus
+
+console = Console()
 
 __service_name__ = "NHK+"
 
@@ -238,16 +239,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
-        #print(traceback.format_exc())
-        #print("\n")
-        type_, value, _ = sys.exc_info()
-        #print(type_)
-        #print(value)
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")
-        print("ENative:\n"+traceback.format_exc())
-        print("EType:\n"+str(type_))
-        print("EValue:\n"+str(value))
+        console.print_exception()
         print("Service: "+__service_name__)
         print("Version: "+additional_info[0])
         print("----END ERROR LOG----")
