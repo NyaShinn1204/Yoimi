@@ -72,8 +72,10 @@ def check_proxie(session):
     try:
         start = time.time()
         _ENDPOINT_CHECK_IP = 'https://api.p-c3-e.abema-tv.com/v1/ip/check'
+        _ENDPOINT_CHECK_REGION = 'https://ds-linear-abematv.akamaized.net/region'
         
         auth_response = session.get(_ENDPOINT_CHECK_IP, params={"device": "android"})
+        region_response = session.get(_ENDPOINT_CHECK_REGION)
 
         from ext.utils.abema_util.region_check_pb2 import RegionInfo
         from google.protobuf.json_format import MessageToJson
@@ -88,7 +90,7 @@ def check_proxie(session):
         time_elapsed = time_elapsed * 1000
         
         try:
-            if auth_json["location"] != "JP":
+            if auth_json["location"] != "JP" or region_response.status_code == 403:
                 logger.error(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
                 logger.error(f"However, this proxy is not located in Japan. You will not be able to use it.", extra={"service_name": "Yoimi"})
                 exit(1)
