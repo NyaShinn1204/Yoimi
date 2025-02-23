@@ -15,7 +15,7 @@ from ext import anime3rb as Anime3rb
 from ext import crunchyroll as Crunchyroll
 from ext import nhk_plus as Nhk_plus
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 def get_parser(url):
     """

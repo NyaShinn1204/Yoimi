@@ -419,12 +419,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
             except Exception as e:
                 logger.error("Traceback has occurred", extra={"service_name": __service_name__})
-                type_, value, _ = sys.exc_info()
                 print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                 print("\n----ERROR LOG----")
-                print("ENative:\n"+traceback.format_exc())
-                print("EType:\n"+str(type_))
-                print("EValue:\n"+str(value))
+                console.print_exception()
                 print("Service: "+__service_name__)
                 print("Version: "+additional_info[0])
                 print("----END ERROR LOG----")
