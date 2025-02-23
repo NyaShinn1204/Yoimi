@@ -169,7 +169,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 exit(1)
             user_id = message["profile"]["userId"]
             you_premium = False
-                    
+        
+        decrypt_type = "hls" # or dash
+        
         if url.__contains__("abema.app"):
             temp_url = session.get(url, allow_redirects=False)
             url = temp_url.headers["Location"]
@@ -368,9 +370,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": __service_name__})
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
-            
-            decrypt_type = "hls" # or dash
-            
+                        
             try:
                 decrypt_module = getattr(abema, decrypt_type, None)
                 
@@ -618,9 +618,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": __service_name__})
                     
                     output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
-                    
-                    decrypt_type = "hls" # or dash
-                    
+                                        
                     try:
                         decrypt_module = getattr(abema, decrypt_type, None)
                         
@@ -882,8 +880,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": __service_name__})
                     
                     output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
-                    
-                    decrypt_type = "hls" # or dash
                     
                     try:
                         decrypt_module = getattr(abema, decrypt_type, None)

@@ -18,6 +18,8 @@ from urllib.parse import urljoin
 import xml.etree.ElementTree as ET
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 
+import ext.utils.abema_util.decrypt_key as dash_decrypt
+
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
 COLOR_RESET = "\033[0m"
@@ -314,17 +316,24 @@ class dash:
         k_slice = k_value.split(".")[0]
         y_slice = k_value.split(".")[1]
         
-        decrypt = pm.require("./abema_util/decrypt")
+        decrypt_json = dash_decrypt.decrypt_key(rgl.json(), k_slice, y_slice, hash, kid, user_id)
         
-        x = decrypt.get_x(k_slice)
-        y = decrypt.get_y(kid, user_id, y_slice)
-        logger.debug("GET X (Uint8Array): {}".format(x), extra={"service_name": "Abema"})
-        logger.debug("GET Y (Uint8Array): {}".format(y), extra={"service_name": "Abema"})
-        
-        t = hash
-        e = [int(z) for z in y]
-        n = [int(z) for z in x]
-        decrypt_json = decrypt.decrypt_key(rgl.json(), t, e, n)
+        #decrypt = pm.require("./abema_util/decrypt")
+        #
+        #print("K_SLICE", k_slice)
+        #print("y_slice", y_slice)
+        #
+        #print(kid, user_id, y_slice)
+        #
+        #x = decrypt.get_x(k_slice)
+        #y = decrypt.get_y(kid, user_id, y_slice)
+        #logger.debug("GET X (Uint8Array): {}".format(x), extra={"service_name": "Abema"})
+        #logger.debug("GET Y (Uint8Array): {}".format(y), extra={"service_name": "Abema"})
+        #
+        #t = hash
+        #e = [int(z) for z in y]
+        #n = [int(z) for z in x]
+        #decrypt_json = decrypt.decrypt_key(rgl.json(), t, e, n)
         temp_d = decrypt_json['keys'][0]['k']
         temp_f = decrypt_json['keys'][0]['kid']
         
