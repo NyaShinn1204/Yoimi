@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-message RegionInfo {
-  string location = 1;  // JP
-  string timezone_c = 2;  // Asia/Tokyo
-  string timezone_t = 3;  // +09:00
-  string check_url = 4;  // https://...
-}
