@@ -14,6 +14,7 @@ from ext import fod as FOD
 from ext import anime3rb as Anime3rb
 from ext import crunchyroll as Crunchyroll
 from ext import nhk_plus as Nhk_plus
+from ext import jff_theater as Jff_Theater
 
 __version__ = "1.1.0"
 
@@ -54,6 +55,8 @@ def get_parser(url):
         return Crunchyroll, "Crunchyroll"
     elif url.__contains__("plus.nhk.jp"):
         return Nhk_plus, "NHK+"
+    elif url.__contains__("jff.jpf.go.jp"):
+        return Jff_Theater, "Jff Theater"
     return None, None
 
 def version_check(session):
