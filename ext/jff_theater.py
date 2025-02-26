@@ -149,89 +149,65 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
         
         logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
-        exit(1)
-        status, playtoken, media_code, additional_meta = unext_downloader.get_playtoken(message["id"])
-        if status == False:
-            logger.error("Failed to Get Episode Playtoken", extra={"service_name": __service_name__})
-            exit(1)
-        else:
-            if additional_info[6] or additional_info[8]:
-                unext_downloader.create_ffmetadata(productionYear, [id_type, title_name, message.get("displayNo", ""), message.get("episodeName", "")], unixtime, additional_meta, message.get("displayNo", ""), message["duration"], message["introduction"], copyright, additional_info)
-            logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
-            status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
-            if status == False:
-                logger.error("Failed to Get Episode MPD_Content", extra={"service_name": __service_name__})
-                session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
-                session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
-            mpd_lic = unext.Unext_utils.parse_mpd_logic(mpd_content)
 
-            logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": __service_name__})
-            logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": __service_name__})
-            
-            license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
-            
-            logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
-            
-            logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
-            logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
-            
-            logger.info("Checking resolution...", extra={"service_name": __service_name__})
-            resolution_s = unext.mpd_parse.get_resolutions(mpd_content)
-            logger.info("Found resolution", extra={"service_name": __service_name__})
-            for resolution_one in resolution_s:
-                logger.info(" + "+resolution_one, extra={"service_name": __service_name__})
-            
-            logger.info("Video, Audio Content Link", extra={"service_name": __service_name__})
-            video_url = unext.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
-            audio_url = unext.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
-            logger.info(" + Video_URL: "+video_url, extra={"service_name": __service_name__})
-            logger.info(" + Audio_URL: "+audio_url, extra={"service_name": __service_name__})
-            
-            def sanitize_filename(filename):
-                filename = filename.replace(":", "：").replace("?", "？")
-                return re.sub(r'[<>"/\\|*]', "_", filename)
-            
-            if additional_info[1]:
-                random_string = str(int(time.time() * 1000))
-                title_name_logger_video = random_string+"_video_encrypted.mp4"
-                title_name_logger_audio = random_string+"_audio_encrypted.mp4"
-            else:
-                title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
-                title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
-            
-            if additional_info[4]: 
-                logger.info("Downloading All Episode Thumbnails...", extra={"service_name": __service_name__})
-                unext_downloader.get_thumbnail_list(meta_response["id"], message["id"], id_type, config, unixtime)
-            
-            logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": __service_name__})
-            
-            video_downloaded = unext_downloader.aria2c(video_url, title_name_logger_video, config, unixtime)
-            audio_downloaded = unext_downloader.aria2c(audio_url, title_name_logger_audio, config, unixtime)
-            
-            logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": __service_name__})
-            
-            unext.Unext_decrypt.decrypt_all_content(license_key["video_key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["audio_key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
-            
-            logger.info("Muxing Episode...", extra={"service_name": __service_name__})
-            
-            result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(message["duration"]), title_name_logger, message.get("displayNo", ""), additional_info)
-            
-            dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
-            
-            if os.path.exists(dir_path) and os.path.isdir(dir_path):
-                for filename in os.listdir(dir_path):
-                    file_path = os.path.join(dir_path, filename)
-                    try:
-                        if os.path.isfile(file_path):
-                            os.remove(file_path)
-                        elif os.path.isdir(file_path):
-                            shutil.rmtree(file_path)
-                    except Exception as e:
-                        print(f"削除エラー: {e}")
-            else:
-                print(f"指定されたディレクトリは存在しません: {dir_path}")
-            
-            logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
+        logger.debug("Get Segment URL", extra={"service_name": __service_name__})
+        segemnt_content = jff_theater.Jff_utils.parse_mpd_content(mpd_content)
+        #print(segemnt_content)
+        #print(segemnt_content)
+        
+        #print(hd_link_base)
+        
+        mpd_base = "https://www.jff.jpf.go.jp/jff-vod/_definst_/"+mpd_link+"/"
+        
+        segment_list_video = jff_theater.Jff_utils.get_segment_link_list(mpd_content, segemnt_content["video_list"][0]["name"], mpd_base)
+        #print(segment_list_video)
+        for i in segment_list_video["segments"]:
+            logger.debug(" + Video Segment URL "+i, extra={"service_name": __service_name__})
+        
+        segment_list_audio = jff_theater.Jff_utils.get_segment_link_list(mpd_content, segemnt_content["audio_list"][0]["name"], mpd_base)
+        #print(segment_list_audio)
+        for i in segment_list_audio["segments"]:
+            logger.debug(" + Audio Segment URL "+i, extra={"service_name": __service_name__})
+        
+        logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
+        logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": __service_name__})
+        logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": __service_name__})
+
+
+        logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+        
+        downloaded_files_video = jff_downloader.download_segment(segment_list_video["all"], config, unixtime, "download_encrypt_video.mp4")
+        downloaded_files_audio = jff_downloader.download_segment(segment_list_audio["all"], config, unixtime, "download_encrypt_audio.mp4")
+        #print(downloaded_files)
+        print(segment_list_video["total_duration"])
+        
+        logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+        
+        #jff_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
+        #jff_downloader.merge_m4s_files(downloaded_files_audio, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"))
+        
+        logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+        jff_theater.Jff_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
+        jff_theater.Jff_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
+        
+        logger.info("Muxing Episode...", extra={"service_name": __service_name__})
+        
+        result = jff_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name_logger+".mp4"), config, unixtime, None, title_name_logger, None, additional_info)
+        dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+        
+        if os.path.exists(dir_path) and os.path.isdir(dir_path):
+            for filename in os.listdir(dir_path):
+                file_path = os.path.join(dir_path, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print(f"削除エラー: {e}")
+        else:
+            print(f"指定されたディレクトリは存在しません: {dir_path}")
+        logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
