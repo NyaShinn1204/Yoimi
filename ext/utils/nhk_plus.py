@@ -86,6 +86,12 @@ class NHKplus_utils:
         
         return st_id, playlist_id
     
+    def extract_nhk_id(url):
+        st_match = re.search(r"https?://plus\.nhk\.jp/watch/st/([^/?]+)", url)
+        st_id = st_match.group(1) if st_match else None
+        
+        return st_id
+    
 class NHKplus_decrypt:
     def mp4decrypt(keys, config):
         if os.name == 'nt':
@@ -570,13 +576,21 @@ class NHKplus_downloader:
         return accesskey_json["drmToken"]
     
     def get_playlist_info(self, st_id, playlist_id):
-        meta_response = self.session.get(f"https://api-plus.nhk.jp/d5/pl2/recommend/{playlist_id}.json").json()
-       
-        for single_meta in meta_response["body"]:
-            if single_meta["stream_id"] == st_id:
-               return True, single_meta
-        return False, "Not found"
-    
+        if playlist_id:
+            meta_response = self.session.get(f"https://api-plus.nhk.jp/d5/pl2/recommend/{playlist_id}.json").json()
+            
+            for single_meta in meta_response["body"]:
+                if single_meta["stream_id"] == st_id:
+                   return True, single_meta
+            return False, "Not found"
+        else:
+            meta_response = self.session.get(f"https://api-plus.nhk.jp/r5/pl2/streams/4/{st_id}?area_id=130&is_rounded=false").json()
+            
+            for single_meta in meta_response["body"]:
+                if single_meta["stream_id"] == st_id:
+                   return True, single_meta
+            return False, "Not found"
+        
     def m3u8_downlaoder(self, content_text, login_status, base_url, title_name, config, unixtime, service_name="NHK+"):
         output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
 
