@@ -62,9 +62,6 @@ def set_variable(session, LOG_LEVEL):
     
     with open('config.yml', 'r') as yml:
         config = yaml.safe_load(yml)
-        
-    session.headers.update({"User-Agent": config["headers"]["User-Agent"]})
-    session.headers.update({"Accept": "application/json, text/plain, */*"})
 
 def main_command(session, url, email, password, LOG_LEVEL, additional_info):
     try:
@@ -74,35 +71,35 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         wod_downloader = wowow.WOD_downloader(session, logger)
         
         if email and password != "":
-            status, message = nhkplus_downloader.authorize(email, password)
+            status, message = wod_downloader.authorize(email, password)
             if status == False:
                 logger.error(message, extra={"service_name": __service_name__})
                 exit(1)
             else:
                 logger.info("Loggined Account", extra={"service_name": __service_name__})
-                logger.info(" + ID: "+message["disp_login_id"], extra={"service_name": __service_name__})
-                logger.info(" + Member Type: "+str(message["member_type"]), extra={"service_name": __service_name__})
+                logger.info(" + ID: "+str(message["user"]["id"]), extra={"service_name": __service_name__})
                 login_status = True
         else:
-            logger.warning("Not logined. Video length is limited to 1 minute.", extra={"service_name": __service_name__})
-            login_status = False
+            return None
+        
+        status, video_session = wod_downloader.create_video_session()
             
         #logger.info("Get or Gen Video Access Token...", extra={"service_name": __service_name__})
-        if email and password != "":
-            status, video_access_token = nhkplus_downloader.create_access_token(email, password)
-        else:
-            video_access_token = nhkplus_downloader.gen_access_token()
-        
-        logger.debug("Get VAT_TEMP: "+video_access_token, extra={"service_name": __service_name__})
-        
-        logger.info("Got Video Access Token For Temp", extra={"service_name": __service_name__})
-        logger.info("+ Video Access Token (Temp): "+video_access_token[:10]+"*****", extra={"service_name": __service_name__})
-        
-        logger.debug("Open Get access key", extra={"service_name": __service_name__})
-        
-        drm_token = nhkplus_downloader.get_drm_token(video_access_token)
-        logger.info("Got Drm Token", extra={"service_name": __service_name__})
-        logger.info("+ Drm Token: "+drm_token[:10]+"*****", extra={"service_name": __service_name__})
+        #if email and password != "":
+        #    status, video_access_token = nhkplus_downloader.create_video_session(email, password)
+        #else:
+        #    video_access_token = nhkplus_downloader.gen_access_token()
+        #
+        #logger.debug("Get VAT_TEMP: "+video_access_token, extra={"service_name": __service_name__})
+        #
+        #logger.info("Got Video Access Token For Temp", extra={"service_name": __service_name__})
+        #logger.info("+ Video Access Token (Temp): "+video_access_token[:10]+"*****", extra={"service_name": __service_name__})
+        #
+        #logger.debug("Open Get access key", extra={"service_name": __service_name__})
+        #
+        #drm_token = nhkplus_downloader.get_drm_token(video_access_token)
+        #logger.info("Got Drm Token", extra={"service_name": __service_name__})
+        #logger.info("+ Drm Token: "+drm_token[:10]+"*****", extra={"service_name": __service_name__})
         
         Tracks = nhk_plus.NHKplus_tracks()
         

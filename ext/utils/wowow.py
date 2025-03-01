@@ -107,3 +107,32 @@ class WOD_downloader:
         except Exception as e:
             self.logger.debug(f"An error occurred: {e}", extra={"service_name": "NHK+"})
             return False, e
+    def get_all_season_info(self, season_id):
+        response = self.session.get(f"https://mapi.wowow.co.jp/api/v1/metas/{season_id}?expand_object_flag=0&user_status=2&app_id=5&device_code=8&datasource=decorator").json()
+        for season in response["seasons"]:
+            print(season["id"], season["name"])
+    def get_season_info(self, only_season_id):
+        response = self.session.get(f"https://mapi.wowow.co.jp/api/v1/metas/{only_season_id}?expand_object_flag=0&user_status=2&app_id=5&device_code=8&datasource=decorator").json()
+        return response
+    def get_season_episode_title(self, season_id):
+        payload = {
+            "paths": [["meta",season_id,"episodes","episode","f","ena","length"],["meta",season_id,"episodes","episode","f","ena",{"from":0,"to":10},["id","refId","name","schemaId","attributes","genres","middleGenres","shortName","thumbnailUrl","resumePoint","cardInfo","seasonMeta","seriesMeta","publishStartAt","publishEndAt","type","leadSeasonId","titleMetaId","tvodBadge","rental","subscription"]]],
+            "method": "get"
+        }
+        response = self.session.get(f"https://wod.wowow.co.jp/pathEvaluator", data=payload).json()
+        list_all_ep_id = []
+        list_all_ep_title = []
+        for single in response["jsonGrap"]["meta"][season_id]["episodes"]["episode"]["f"]["ena"]:
+            list_all_ep_id.append(single["value"]["meta"])
+        for single in response["jsonGrap"]["meta"]:
+            if single == season_id:
+                continue
+            temp_json = {}
+            temp_json["id"] = single["id"]["value"]
+            temp_json["short_name"] = single["shortName"]["value"]
+            temp_json["thumbnail_json"] = single["thumbnailUrl"]["value"]
+            temp_json["genre"] = ", ".join(i for i in single["genres"]["value"])
+            list_all_ep_title.append(temp_json)
+        
+        
+        return list_all_ep_title
