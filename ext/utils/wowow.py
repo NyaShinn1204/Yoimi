@@ -36,15 +36,25 @@ class NHKplus_downloader:
         try:
             url = "https://custom-api.wowow.co.jp/api/v1/wip/users/auth"
             headers = self.common_headers.copy()
-            response = self.session.get(url, headers=headers, allow_redirects=False)
+            payload = {
+                "online_id": email,
+                "password": password,
+                "client_id": "wod-tv",
+                "app_id": 5,
+                "device_code": 8,
+                "vuid": uuid.uuid4().hex
+            }
+            response = self.session.post(url, headers=headers, json=payload, allow_redirects=False).json()
             try:
                 if response["error"]:
                     return False, response["error"]["message"]
             except:
                 pass
             
-            access_token ="Bearer " + response["wip_access_token"]
-            access_token ="Bearer " + response["access_token"]
+            #access_token ="Bearer " + response["wip_access_token"]
+            #access_token ="Bearer " + response["access_token"]
+            
+            return True, response
 
         except Exception as e:
             self.logger.debug(f"An error occurred: {e}", extra={"service_name": "NHK+"})
