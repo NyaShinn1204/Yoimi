@@ -2,11 +2,238 @@ import re
 import uuid
 import json
 import urllib.parse
+import xml.etree.ElementTree as ET
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
 COLOR_RESET = "\033[0m"
 COLOR_BLUE = "\033[94m"
+
+class WOD_tracks:
+    def __init__(self):
+        pass
+    
+    def remove_duplicates_and_count(self, tracks):
+        # ここでダブってるやつをぶっ飛ばす
+        unique_tracks = {}
+        duplicates_count = 0
+    
+        for track in tracks:
+            try:
+                if track["content_type"] == "video":
+                    track_key = (
+                        track.get("url"),
+                        track.get("bitrate"),
+                    )
+                elif track["content_type"] == "audio":
+                    track_key = (
+                        track.get("url"),
+                        track.get("bitrate"),
+                    )
+                elif track["content_type"] == "text":
+                    track_key = (
+                        track.get("language"),
+                    )
+                else:
+                    print("wtf", str(track))
+        
+                if track_key in unique_tracks:
+                    duplicates_count += 1  # 重複カウント
+                else:
+                    unique_tracks[track_key] = track
+            except:
+                print("wtf", str(track))
+    
+        unique_track_list = list(unique_tracks.values())
+    
+        return unique_track_list
+    
+    def select_tracks(self, tracks):
+        # ここでビットレートが一番高いやつを盗んでreturnで殴る
+        highest_bitrate_video = max(tracks["video_track"], key=lambda x: x["bitrate"])
+    
+        # オーディオトラックのnameがmainのやつを引っ張る。 mainっていうのは主音声、subは副音声優先のやつらしい
+        main_audio = next((audio for audio in tracks["audio_track"] if audio["name"] == "main"), None)
+    
+        return {
+            "video": highest_bitrate_video,
+            "audio": main_audio
+        }
+    
+    
+    def parse_m3u8(self, file_content):
+        video_tracks = []
+        audio_tracks = []
+        text_tracks = []
+        
+        CODEC_MAP = {
+            "avc1": "H.264",
+            "mp4a": "AAC",
+        }
+        
+        lines = file_content.splitlines()
+        
+        for i, line in enumerate(lines):
+            if line.startswith("#EXT-X-STREAM-INF"):
+                attributes = re.findall(r'([A-Z0-9\-]+)=("[^"]+"|[^,]+)', line)
+                attr_dict = {key: value.strip('"') for key, value in attributes}
+                bitrate = int(attr_dict.get("BANDWIDTH", 0)) // 1000  # bps to kbpsに変換
+                codec = attr_dict.get("CODECS", "").split(",")[1]
+                
+                # なぜかvideoのやつだけurlが次の行に書かれてるので仕方なくやります。
+                video_url = lines[i + 1] if i + 1 < len(lines) else "unknown"
+                
+                video_tracks.append({
+                    "content_type": "video",
+                    "bitrate": bitrate,
+                    "codec": CODEC_MAP.get(codec.split(".")[0], codec),
+                    "url": video_url,
+                })
+            elif line.startswith("#EXT-X-MEDIA"):
+                attributes = re.findall(r'([A-Z0-9\-]+)=("[^"]+"|[^,]+)', line)
+                attr_dict = {key: value.strip('"') for key, value in attributes}
+                if attr_dict.get("TYPE") == "AUDIO":
+                    audio_tracks.append({
+                        "content_type": "audio",
+                        "language": attr_dict.get("LANGUAGE", "unknown"),
+                        "name": attr_dict.get("NAME", "unknown"),
+                        "url": attr_dict.get("URI", "unknown"),
+                    })
+                elif attr_dict.get("TYPE") == "SUBTITLES":
+                    text_tracks.append({
+                        "content_type": "text",
+                        "language": attr_dict.get("LANGUAGE", "unknown"),
+                        "name": attr_dict.get("NAME", "unknown"),
+                        "url": attr_dict.get("URI", "unknown"),
+                    })
+    
+        return {
+            "video_track": video_tracks,
+            "audio_track": self.remove_duplicates_and_count(audio_tracks),  # 重複してるうやつをどか～ん
+            "text_track": text_tracks,
+        }
+    
+    def print_tracks(self, tracks):
+        output = ""
+        # Video tracks まぁvideoやな
+        output += f"{len(tracks['video_track'])} Video Tracks:\n"
+        for i, video in enumerate(tracks["video_track"]):
+            output += f"├─ VID | [{video['codec']}] | {video['bitrate']} kbps\n"
+        
+        # Audio tracks まぁaudioやな
+        output += f"\n{len(tracks['audio_track'])} Audio Tracks:\n"
+        for i, audio in enumerate(tracks["audio_track"]):
+            output += f"├─ AUD | {audio['language']} | {audio['name']}\n"
+    
+        # Text tracks まぁsubやな
+        output += f"\n{len(tracks['text_track'])} Text Tracks:\n"
+        for i, text in enumerate(tracks["text_track"]):
+            output += f"├─ SUB | [VTT] | {text['language']} | {text['name']}\n"
+        
+        #print(output)
+        return output
+    def transform_metadata(self, manifests):
+        transformed = []
+    
+        for manifest in manifests:
+            drm_type = manifest.get("drm_type", "")
+            bitrate_limit_type = manifest.get("bitrate_limit_type", "")
+            url = manifest.get("url", "")
+            video_codec = manifest.get("video_codec", "H.264")
+            dynamic_range = manifest.get("dynamic_range", "SDR")
+    
+            # birtareの文字の最初にmがついてればMulti、泣ければSingleらしい。
+            bitrate_type = "Multi" if bitrate_limit_type.startswith("m") else "Single"
+            bitrate_limit = int(bitrate_limit_type[1:]) if bitrate_limit_type[1:].isdigit() else 0
+    
+            # 取得したデータを整形
+            transformed_manifest = {
+                "drmType": drm_type,
+                "bitrateLimit": bitrate_limit,
+                "bitrateType": bitrate_type,
+                "url": url,
+                "videoCodec": "H.265" if video_codec == "H.265" else "H.264",
+                "dynamicRange": "HDR" if dynamic_range == "HDR" else "SDR",
+            }
+    
+            transformed.append(transformed_manifest)
+    
+        return transformed
+    def transform_metadata_mpd(self, mpd_file):
+        """MPDファイルをパースして、指定されたメタデータを抽出・整形します。
+    
+        Args:
+            mpd_file (str): MPDファイルのXML文字列
+    
+        Returns:
+            list:  整形されたメタデータのリスト。
+        """
+        transformed = []
+    
+        try:
+            root = ET.fromstring(mpd_file)
+    
+            # XMLのネームスペースを定義
+            namespaces = {'mpd': 'urn:mpeg:dash:schema:mpd:2011'}
+    
+            # BaseURLを取得 (存在する場合)
+            base_url_element = root.find('.//mpd:BaseURL', namespaces)
+            base_url = base_url_element.text if base_url_element is not None else ""
+    
+            # AdaptationSet (video) を取得
+            for adaptation_set in root.findall('.//mpd:AdaptationSet[@mimeType="video/mp4"]', namespaces):
+                # Representation を取得
+                for representation in adaptation_set.findall('.//mpd:Representation', namespaces):
+    
+                    # bandwidthを取得 (bandwidthがない場合0を設定)
+                    bandwidth = representation.get('bandwidth')
+                    #bitrateLimit = 0 #JSONの仕様に合わせて0を設定
+                    #bitrateType = "Single" #JSONの仕様に合わせてSingleを設定
+    
+                    # SegmentTemplate から initialization の URL を取得
+                    segment_template = representation.find('.//mpd:SegmentTemplate', namespaces)
+                    if segment_template is not None:
+                        initialization = segment_template.get('initialization')
+                        url = base_url + initialization #BaseURLと結合
+                    else:
+                        url = None  # または、エラー処理
+    
+                    # codecs属性を取得
+                    codecs = representation.get('codecs')
+                    #videoCodec = "H.264" #デフォルト値
+                    #dynamicRange = "SDR" #デフォルト値
+    
+                    # resolutionを取得
+                    width = representation.get('width')
+                    height = representation.get('height')
+                    resolution = f"{width}x{height}" if width and height else None
+    
+                    # データ整形
+                    if url:
+                        manifest = {
+                            "bandwidth": bandwidth,
+                            #"bitrateLimit": bitrateLimit,
+                            #"bitrateType": bitrateType,
+                            "url": url,
+                            "videoCodec": codecs,
+                            #"dynamicRange": dynamicRange,
+                            "resolution": resolution  #resolutionを追加
+                        }
+                        transformed.append(manifest)
+    
+    
+        except ET.ParseError as e:
+            print(f"XMLパースエラー: {e}")
+        except Exception as e:
+            print(f"エラーが発生しました: {e}")
+    
+        return transformed
+    
+    def get_highest_bitrate_manifest(self, manifests):
+        transformed = self.transform_metadata(manifests)
+        if not transformed:
+            return None
+        return max(transformed, key=lambda x: x["bitrateLimit"])
 
 class WOD_downloader:
     def __init__(self, session, logger):

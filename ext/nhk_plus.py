@@ -150,6 +150,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(f"Get Video, Audio, Sub Tracks:", extra={"service_name": __service_name__})
             track_data = Tracks.print_tracks(tracks)
             
+            print(tracks)
             print(track_data)
             
             get_best_track = Tracks.select_tracks(tracks)

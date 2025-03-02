@@ -141,6 +141,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             urls.append(source["src"])
                     hd_link = urls[0].replace("jp/v4", "jp/v6")
                     logger.info(f" + HD_link: {hd_link}", extra={"service_name": __service_name__})
+                    Tracks = wowow.WOD_tracks()
+                    transformed_data = Tracks.transform_metadata_mpd(session.get(hd_link).text)
+                    import json
+                    print(json.dumps(transformed_data, indent=4))
         # https://wod.wowow.co.jp/program/203639
         
         # status, video_session = wod_downloader.create_video_session()
