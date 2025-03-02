@@ -83,7 +83,21 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             return None
         
         status, video_session = wod_downloader.create_video_session()
-            
+        if status != True:
+            pass        
+        status, playback_session_id, access_token = wod_downloader.create_playback_session(meta_id, media_id)
+        if status != True:
+            pass
+        duration, sources = wod_downloader.get_episode_prod_info(media_uuid, access_token, playback_session_id)
+        
+        logger.info("Get 1080p NOD Link", extra={"service_name": __service_name__})
+        urls = []
+        for source in sources:
+            if source["resolution"] == "1920x1080" and "manifest.mpd" in source["src"]:
+                urls.append(source["src"])
+        hd_link = urls[0].replace("jp/v4", "jp/v6")
+        logger.info(f" + HD Link: {hd_link}", extra={"service_name": __service_name__})
+        wod_downloader.send_stop_signal(access_token, playback_session_id)
         #logger.info("Get or Gen Video Access Token...", extra={"service_name": __service_name__})
         #if email and password != "":
         #    status, video_access_token = nhkplus_downloader.create_video_session(email, password)

@@ -52,6 +52,10 @@ class WOD_downloader:
                 pass
             
             self.user_id = response["id"]
+            self.refresh_token = response["refresh_token"]
+            self.access_token = response["access_token"]
+            self.wip_access_token = response["wip_access_token"]
+            self.wip_refresh_token = response["wip_refresh_token"]
             
             self.session.headers.update({"authorization": response["access_token"]})
             
@@ -107,6 +111,98 @@ class WOD_downloader:
         except Exception as e:
             self.logger.debug(f"An error occurred: {e}", extra={"service_name": "NHK+"})
             return False, e
+    def create_playback_session(self, meta_id, media_id):
+        try:
+            payload = {}
+            payload["meta_id"] = str(meta_id) # 152181
+            payload["media_id"] = str(media_id) # 138916
+            payload["device_code"] = str(8)
+            payload["vuid"] = uuid.uuid4().hex
+            payload["user_id"] = self.user_id
+            payload["refresh_token"] = self.refresh_token
+            payload["wip_access_token"] = self.wip_access_token
+            payload["wip_refresh_token"] = self.wip_refresh_token
+            payload["client_id"] = "wod-tv"
+            payload["ua"] = "Mozilla/5.0 (Linux; Android 9; 23113RKC6C Build/PQ3B.190801.10101846; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.82 Safari/537.36 jp.ne.wowow.vod.androidtv/3.7.0"
+            payload["app_id"] = 5
+            payload["device_code"] = 8
+            payload["device_localized_model"] = "BRAVIA 4K GB"
+            payload["localized_model"] = "BRAVIA 4K GB"
+            payload["device_system_name"] = "AndroidTV"
+            payload["system_name"] = "AndroidTV"
+            payload["device_manufacturer"] = "Sony"
+            payload["manufacturer"] = "Sony"
+            payload["device_hw_machine"] = ""
+            payload["hw_machine"] = ""
+            payload["system_version"] = "7.0"
+            payload["device_system_version"] = "7.0"
+            payload["device_mccmnc"] = ""
+            payload["mccmnc"] = ""
+            payload["device_model"] = "BRAVIA 4K GB"
+            payload["model"] = "BRAVIA 4K GB"
+            payload["device_display_name"] = "BRAVIA 4K GB"
+            payload["display_name"] = "BRAVIA 4K GB"
+            payload["device_app_version"] = "3.7.0"
+            payload["app_version"] = "3.7.0"
+            payload["device_app_build_version"] = 193
+            payload["app_build_version"] = 193
+            headers = {
+                "x-session-token": self.x_session_token,
+                "authorization": "Bearer "+self.access_token,
+                "x-user-id": str(self.user_id),
+                "content-type": "application/json; charset=UTF-8",
+                "host": "mapi.wowow.co.jp",
+                "connection": "Keep-Alive",
+                "accept-encoding": "gzip",
+                "user-agent": "okhttp/4.9.0"
+            }
+            response = self.session.post("https://mapi.wowow.co.jp/api/v1/playback/auth", json=payload, headers=headers).json()
+            return True, response["playback_session_id"], response["access_token"]
+        except Exception as e:
+            return False, e, None
+    def get_episode_prod_info(self, media_uuid, access_token, playback_session_id):
+        headers = {
+            'authority': 'playback-engine.wowow.co.jp',
+            'sec-ch-ua': '";Not A Brand";v="99", "Chromium";v="94"',
+            'authorization': access_token,
+            'x-playback-session-id': playback_session_id,
+            'sec-ch-ua-mobile': '?0',
+            'user-agent': 'wowow-production/102 CFNetwork/1333.0.4 Darwin/21.5.0',
+            'x-user-id': str(self.user_id),
+            'accept': '*/*',
+            'origin': 'https://wod.wowow.co.jp',
+            'sec-fetch-site': 'same-site',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-dest': 'empty',
+            'referer': 'https://wod.wowow.co.jp/',
+            'accept-language': 'zh-CN,zh;q=0.9',
+        }
+        response = self.session.get(f"https://playback-engine.wowow.co.jp/session/open/v1/projects/wod-prod/medias/{media_uuid}?codecs=avc", headers=headers).json()
+        duration = response["duration"]
+        sources = response["sources"]
+        return duration, sources
+    def send_stop_signal(self, access_token, playback_session_id):
+        headers = {
+            'authority': 'playback-engine.wowow.co.jp',
+            'sec-ch-ua': '";Not A Brand";v="99", "Chromium";v="94"',
+            'authorization': access_token,
+            'x-playback-session-id': playback_session_id,
+            'sec-ch-ua-mobile': '?0',
+            'user-agent': 'wowow-production/102 CFNetwork/1333.0.4 Darwin/21.5.0',
+            'x-user-id': str(self.user_id),
+            'accept': '*/*',
+            'origin': 'https://wod.wowow.co.jp',
+            'sec-fetch-site': 'same-site',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-dest': 'empty',
+            'referer': 'https://wod.wowow.co.jp/',
+            'accept-language': 'zh-CN,zh;q=0.9',
+        }
+        response = self.session.post("https://playback-engine.wowow.co.jp/session/close", headers=headers).json()
+        if response["result"]:
+            return True
+        else:
+            return False
     def get_all_season_info(self, season_id):
         response = self.session.get(f"https://mapi.wowow.co.jp/api/v1/metas/{season_id}?expand_object_flag=0&user_status=2&app_id=5&device_code=8&datasource=decorator").json()
         for season in response["seasons"]:
