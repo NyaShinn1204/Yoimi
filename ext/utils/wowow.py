@@ -61,15 +61,16 @@ class WOD_downloader:
         except Exception as e:
             self.logger.debug(f"An error occurred: {e}", extra={"service_name": "NHK+"})
             return False, e  # Or raise the exception if you prefer
-    def check_token(self, wat):
+    def check_token(self):
         try:
             url = "https://session-manager.wowow.co.jp/token/check"
             headers = self.common_headers.copy()
             headers["host"] = "session-manager.wowow.co.jp"
             headers["x-token-id"] = str(self.user_id)
             headers["x-session-token"] = self.x_session_token
+            headers["authorization"] = "Bearer "+self.access_token
             payload = {
-              "wip_access_token": wat
+              "wip_access_token": self.wip_access_token
             }
             response = self.session.post(url, json=payload, headers=headers)
             if response.json()["result"]:
@@ -112,7 +113,7 @@ class WOD_downloader:
         try:
             payload = {}
             payload["meta_id"] = str(meta_id) # 152181
-            #payload["media_id"] = str(media_id) # 138916
+            # payload["media_id"] = str(media_id) # 138916
             payload["device_code"] = str(8)
             payload["vuid"] = uuid.uuid4().hex
             payload["user_id"] = self.user_id
@@ -154,7 +155,7 @@ class WOD_downloader:
                 "user-agent": "okhttp/4.9.0"
             }
             response = self.session.post("https://mapi.wowow.co.jp/api/v1/playback/auth", json=payload, headers=headers).json()
-            return True, response["playback_session_id"], response["access_token"], response["ovp_video_id"]
+            return True, response["playback_session_id"], response["access_token"], response["media"]["ovp_video_id"]
         except Exception as e:
             return False, e, None, None
     def get_episode_prod_info(self, media_uuid, access_token, playback_session_id):
