@@ -1,18 +1,7 @@
 import re
-import os
-import jwt
-import ast
 import uuid
-import m3u8
-import random
-import base64
-import string
-import requests
-import subprocess
-from tqdm import tqdm
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta, timezone
-from urllib.parse import urlparse, parse_qs, unquote, urljoin
+import json
+import urllib.parse
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
@@ -31,6 +20,14 @@ class WOD_downloader:
             "host": "custom-api.wowow.co.jp",
             "connection": "Keep-Alive",
             "accept-encoding": "gzip"
+        }
+        self.pathevalutaro_headers = {
+            "user-agent": self.user_agent,
+            "accept-language": "ja",
+            "content-type": "application/json; charset=utf-8",
+            "host": "wod.wowow.co.jp",
+            "connection": "Keep-Alive",
+            "accept-encoding": "gzip",
         }
     def authorize(self, email, password):
         try:
@@ -215,12 +212,18 @@ class WOD_downloader:
             "paths": [["meta",season_id,"episodes","episode","f","ena","length"],["meta",season_id,"episodes","episode","f","ena",{"from":0,"to":10},["id","refId","name","schemaId","attributes","genres","middleGenres","shortName","thumbnailUrl","resumePoint","cardInfo","seasonMeta","seriesMeta","publishStartAt","publishEndAt","type","leadSeasonId","titleMetaId","tvodBadge","rental","subscription"]]],
             "method": "get"
         }
-        response = self.session.get(f"https://wod.wowow.co.jp/pathEvaluator", data=payload).json()
+        query_params = {
+            "paths": json.dumps(payload["paths"], separators=(',', ':')),
+            "method": payload["method"]
+        }
+        query_string = urllib.parse.urlencode(query_params)
+        
+        response = self.session.get(f"https://wod.wowow.co.jp/pathEvaluator?{query_string}", headers=self.pathevalutaro_headers).json()
         list_all_ep_id = []
         list_all_ep_title = []
-        for single in response["jsonGrap"]["meta"][season_id]["episodes"]["episode"]["f"]["ena"]:
+        for single in response["jsonGraph"]["meta"][season_id]["episodes"]["episode"]["f"]["ena"]:
             list_all_ep_id.append(single["value"]["meta"])
-        for single in response["jsonGrap"]["meta"]:
+        for single in response["jsonGraph"]["meta"]:
             if single == season_id:
                 continue
             temp_json = {}
@@ -230,5 +233,36 @@ class WOD_downloader:
             temp_json["genre"] = ", ".join(i for i in single["genres"]["value"])
             list_all_ep_title.append(temp_json)
         
-        
+        list_all_ep_title = sorted(list_all_ep_title, key=lambda x: x["refId"])
         return list_all_ep_title
+    def get_season_real_id(self, url):
+        # URLからプログラムIDを抽出
+        match = re.search(r'program/(\d+)', url)
+        if not match:
+            raise ValueError("Invalid URL format")
+        program_id = int(match.group(1))
+        
+        # APIエンドポイントとリクエストデータ
+        api_url = "https://wod.wowow.co.jp/pathEvaluator"
+        data = {
+            "paths": [["program", program_id, ["id", "name", "seriesMeta"]]],
+            "method": "get"
+        }
+        # APIリクエスト
+        data = {
+            "paths": [["program", program_id, ["id", "name", "seriesMeta"]]],
+            "method": "get"
+        }
+        query_params = {
+            "paths": json.dumps(data["paths"], separators=(',', ':')),
+            "method": data["method"]
+        }
+        query_string = urllib.parse.urlencode(query_params)
+        url = f"{api_url}?{query_string}"
+        
+        response = self.session.get(url, headers=self.pathevalutaro_headers)
+        response.raise_for_status()  # エラーチェック
+        
+        # 必要なデータを取得
+        json_data = response.json()
+        return json_data["jsonGraph"]["program"][str(program_id)]["value"]

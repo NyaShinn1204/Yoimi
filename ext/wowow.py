@@ -80,7 +80,17 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(" + ID: "+str(message["user"]["id"]), extra={"service_name": __service_name__})
                 login_status = True
         else:
-            return None
+            logger.error("REQUIRE ACCOUNT", extra={"service_name": __service_name__})
+        
+        logger.info("Fetching Season/Episode Info...", extra={"service_name": __service_name__})
+        
+        if url.__contains__("program/"):
+            season_real_id = wod_downloader.get_season_real_id(url)
+            episode_list = wod_downloader.get_season_episode_title(season_real_id)
+            for single in episode_list:
+                logger.info("+ ", extra={"service_name": __service_name__})
+        
+        # https://wod.wowow.co.jp/program/203639
         
         status, video_session = wod_downloader.create_video_session()
         if status != True:
