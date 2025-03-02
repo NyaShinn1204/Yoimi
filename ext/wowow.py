@@ -94,7 +94,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 episode_list = wod_downloader.get_season_episode_title(single_season["meta_id"])
                 for single in episode_list:
                     #print(single)
-                    logger.info(f"+ {single_season["name"]}_{single["shortest_name"]}_{single["short_name"]} [{single["refId"]}]", extra={"service_name": __service_name__})
+                    logger.info(f"+ {single_season["name"]}_{single["shortest_name"]}_{single["short_name"]} [{single["ep_id"]}]", extra={"service_name": __service_name__})
         
             #season_real_id, title_naem = wod_downloader.get_season_real_id(url)
             #episode_list = wod_downloader.get_season_episode_title(season_real_id)

@@ -239,6 +239,7 @@ class WOD_downloader:
             temp_json["thumbnail_json"] = single["thumbnailUrl"]["value"]
             temp_json["genre"] = ", ".join(i["name"] for i in single["genres"]["value"])
             temp_json["refId"] = single["refId"]["value"]
+            temp_json["ep_id"] = single["id"]["value"]
             temp_json["shortest_name"] = single["cardInfo"]["value"]["episodeNumberTitle"]
             temp_json["productionYear"] = single["cardInfo"]["value"]["productionYear"]
             list_all_ep_title.append(temp_json)
