@@ -98,7 +98,7 @@ class WOD_downloader:
             }
             response = self.session.post(url, headers=headers, json=payload, allow_redirects=False).json()
             
-            self.x_session_token = response.json()["token"]
+            self.x_session_token = response["token"]
             
             #access_token ="Bearer " + response["wip_access_token"]
             #access_token ="Bearer " + response["access_token"]
@@ -108,11 +108,11 @@ class WOD_downloader:
         except Exception as e:
             self.logger.debug(f"An error occurred: {e}", extra={"service_name": "NHK+"})
             return False, e
-    def create_playback_session(self, meta_id, media_id):
+    def create_playback_session(self, meta_id):
         try:
             payload = {}
             payload["meta_id"] = str(meta_id) # 152181
-            payload["media_id"] = str(media_id) # 138916
+            #payload["media_id"] = str(media_id) # 138916
             payload["device_code"] = str(8)
             payload["vuid"] = uuid.uuid4().hex
             payload["user_id"] = self.user_id
@@ -154,9 +154,9 @@ class WOD_downloader:
                 "user-agent": "okhttp/4.9.0"
             }
             response = self.session.post("https://mapi.wowow.co.jp/api/v1/playback/auth", json=payload, headers=headers).json()
-            return True, response["playback_session_id"], response["access_token"]
+            return True, response["playback_session_id"], response["access_token"], response["ovp_video_id"]
         except Exception as e:
-            return False, e, None
+            return False, e, None, None
     def get_episode_prod_info(self, media_uuid, access_token, playback_session_id):
         headers = {
             'authority': 'playback-engine.wowow.co.jp',

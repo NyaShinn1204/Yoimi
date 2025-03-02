@@ -81,7 +81,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(" + ID: "+str(message["user"]["id"]), extra={"service_name": __service_name__})
                 login_status = True
         else:
-            logger.error("REQUIRE ACCOUNT", extra={"service_name": __service_name__})
+            login_status = False
+            logger.error("WOWOW Require Login Account", extra={"service_name": __service_name__})
         
         logger.info("Fetching URL...", extra={"service_name": __service_name__})
         
@@ -95,7 +96,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 episode_list = wod_downloader.get_season_episode_title(single_season["meta_id"])
                 for single in episode_list:
                     #print(single)
-                    logger.info(f"+ {single_season["name"]}_{single["shortest_name"]}_{single["short_name"]} [{single["ep_id"]}]", extra={"service_name": __service_name__})
+                    logger.info(f"+ {single_season["name"]}_{single["shortest_name"]}_{single["short_name"]} [ID:{single["ep_id"]}, RID:{single["refId"]}]", extra={"service_name": __service_name__})
         elif url.__contains__("season_id="):
             url_select_id = parse_qs(urlparse(url).query).get("season_id", [None])[0]
             
@@ -112,7 +113,22 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 episode_list = wod_downloader.get_season_episode_title(single_season["meta_id"])
                 for single in episode_list:
                     #print(single)
-                    logger.info(f"+ {single_season["name"]}_{single["shortest_name"]}_{single["short_name"]} [{single["ep_id"]}]", extra={"service_name": __service_name__})
+                    logger.info(f"+ {single_season["name"]}_{single["shortest_name"]}_{single["short_name"]} [ID:{single["ep_id"]}, RID:{single["refId"]}]", extra={"service_name": __service_name__})
+                for single in episode_list:
+                    logger.info("Creating Video Sesson...", extra={"service_name": __service_name__})
+                    status, response = wod_downloader.create_video_session()
+                    if status != True:
+                        pass
+                    logger.info(" + Session Token: "+response["token"][:10]+"*****", extra={"service_name": __service_name__})
+                    if login_status == False:
+                        logger.error("Get manifest is require login account. but You'r is not logined. exiting...", extra={"service_name": __service_name__})
+                        exit(1)
+                    status, session_id, video_access_token, ovp_video_id = wod_downloader.create_playback_session(single["refId"])
+                    if status != True:
+                        pass
+                    duration, sources = wod_downloader.get_episode_prod_info(ovp_video_id, video_access_token, session_id)
+                    print(duration, sources)
+                    wod_downloader.send_stop_signal(video_access_token, playback_session_id)
         # https://wod.wowow.co.jp/program/203639
         
         status, video_session = wod_downloader.create_video_session()
