@@ -209,7 +209,7 @@ class WOD_downloader:
         return response
     def get_season_episode_title(self, season_id):
         payload = {
-            "paths": [["meta",season_id,"episodes","episode","f","ena","length"],["meta",season_id,"episodes","episode","f","ena",{"from":0,"to":10},["id","refId","name","schemaId","attributes","genres","middleGenres","shortName","thumbnailUrl","resumePoint","cardInfo","seasonMeta","seriesMeta","publishStartAt","publishEndAt","type","leadSeasonId","titleMetaId","tvodBadge","rental","subscription"]]],
+            "paths": [["meta",season_id,"episodes","episode","f","ena","length"],["meta",season_id,"episodes","episode","f","ena",{"from":0,"to":200},["id","refId","name","schemaId","attributes","genres","middleGenres","shortName","thumbnailUrl","resumePoint","cardInfo","seasonMeta","seriesMeta","publishStartAt","publishEndAt","type","leadSeasonId","titleMetaId","tvodBadge","rental","subscription"]]],
             "method": "get"
         }
         query_params = {
@@ -219,18 +219,28 @@ class WOD_downloader:
         query_string = urllib.parse.urlencode(query_params)
         
         response = self.session.get(f"https://wod.wowow.co.jp/pathEvaluator?{query_string}", headers=self.pathevalutaro_headers).json()
-        list_all_ep_id = []
+        #list_all_ep_id = []
         list_all_ep_title = []
-        for single in response["jsonGraph"]["meta"][season_id]["episodes"]["episode"]["f"]["ena"]:
-            list_all_ep_id.append(single["value"]["meta"])
+        #for single in response["jsonGraph"]["meta"][str(season_id)]["episodes"]["episode"]["f"]["ena"]:
+        #    single = response["jsonGraph"]["meta"][str(season_id)]["episodes"]["episode"]["f"]["ena"][single]
+        #    if single == str(season_id):
+        #        continue
+        #    print(single)
+        #    list_all_ep_id.append(single["value"][1])
         for single in response["jsonGraph"]["meta"]:
-            if single == season_id:
+            if single == str(season_id):
                 continue
+            #print(single)
+            single = response["jsonGraph"]["meta"][single]
+            #print(single)
             temp_json = {}
             temp_json["id"] = single["id"]["value"]
             temp_json["short_name"] = single["shortName"]["value"]
             temp_json["thumbnail_json"] = single["thumbnailUrl"]["value"]
-            temp_json["genre"] = ", ".join(i for i in single["genres"]["value"])
+            temp_json["genre"] = ", ".join(i["name"] for i in single["genres"]["value"])
+            temp_json["refId"] = single["refId"]["value"]
+            temp_json["shortest_name"] = single["cardInfo"]["value"]["episodeNumberTitle"]
+            temp_json["productionYear"] = single["cardInfo"]["value"]["productionYear"]
             list_all_ep_title.append(temp_json)
         
         list_all_ep_title = sorted(list_all_ep_title, key=lambda x: x["refId"])
@@ -265,4 +275,46 @@ class WOD_downloader:
         
         # 必要なデータを取得
         json_data = response.json()
-        return json_data["jsonGraph"]["program"][str(program_id)]["value"]
+        return json_data["jsonGraph"]["program"][str(program_id)]["value"][1], json_data["jsonGraph"]["meta"][str(json_data["jsonGraph"]["program"][str(program_id)]["value"][1])]["name"]["value"]
+    def get_all_season_id(self, url):
+        # URLからプログラムIDを抽出
+        match = re.search(r'program/(\d+)', url)
+        if not match:
+            raise ValueError("Invalid URL format")
+        program_id = int(match.group(1))
+        
+        # APIエンドポイントとリクエストデータ
+        api_url = "https://wod.wowow.co.jp/pathEvaluator"
+        data = {
+            "paths": [["program", program_id, ["id", "name", "seriesMeta"]]],
+            "method": "get"
+        }
+        # APIリクエスト
+        data = {
+            "paths": [["program", program_id, ["id", "name", "seriesMeta"]]],
+            "method": "get"
+        }
+        query_params = {
+            "paths": json.dumps(data["paths"], separators=(',', ':')),
+            "method": data["method"]
+        }
+        query_string = urllib.parse.urlencode(query_params)
+        url = f"{api_url}?{query_string}"
+        
+        response = self.session.get(url, headers=self.pathevalutaro_headers)
+        response.raise_for_status()  # エラーチェック
+        
+        # 必要なデータを取得
+        json_data = response.json()
+        allseason_metaid = json_data["jsonGraph"]["meta"][str(json_data["jsonGraph"]["program"][str(program_id)]["value"][1])]["seriesMeta"]["value"]["metaId"]
+        
+        headers = {
+            "host": "mapi.wowow.co.jp",
+            "connection": "Keep-Alive",
+            "accept-encoding": "gzip",
+            "user-agent": "okhttp/4.9.0"
+        }
+        response = self.session.get(f"https://mapi.wowow.co.jp/api/v1/metas/{allseason_metaid}/children?schema_id=2&user_status=2&app_id=5&device_code=8&page=1&limit=100&order=asc&datasource=decorator&with_total_count=true&expand_object_flag=true&only_searchable=true", headers=headers)
+        response.raise_for_status()  # エラーチェック
+        
+        return response.json()["total_count"], response.json()["metas"]

@@ -82,13 +82,25 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         else:
             logger.error("REQUIRE ACCOUNT", extra={"service_name": __service_name__})
         
-        logger.info("Fetching Season/Episode Info...", extra={"service_name": __service_name__})
+        logger.info("Get Title for Season/ 1 Episode", extra={"service_name": __service_name__})
         
-        if url.__contains__("program/"):
-            season_real_id = wod_downloader.get_season_real_id(url)
-            episode_list = wod_downloader.get_season_episode_title(season_real_id)
-            for single in episode_list:
-                logger.info("+ ", extra={"service_name": __service_name__})
+        if url.__contains__("program/") and not url.__contains__("season_id="):
+            total_season, all_season_json = wod_downloader.get_all_season_id(url)
+            
+            logger.info(f"Fetching {total_season} season Meta...", extra={"service_name": __service_name__})
+            
+            for single_season in all_season_json:
+                logger.info(f"Get Title for {single_season["name"]}", extra={"service_name": __service_name__})
+                episode_list = wod_downloader.get_season_episode_title(single_season["meta_id"])
+                for single in episode_list:
+                    #print(single)
+                    logger.info(f"+ {single_season["name"]}_{single["shortest_name"]}_{single["short_name"]} [{single["refId"]}]", extra={"service_name": __service_name__})
+        
+            #season_real_id, title_naem = wod_downloader.get_season_real_id(url)
+            #episode_list = wod_downloader.get_season_episode_title(season_real_id)
+            #for single in episode_list:
+            #    #print(single)
+            #    logger.info(f"+ {title_naem}_{single["shortest_name"]}_{single["short_name"]} [{single["refId"]}]", extra={"service_name": __service_name__})
         
         # https://wod.wowow.co.jp/program/203639
         
