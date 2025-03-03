@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?><MPD xmlns="urn:mpeg:dash:schema:mpd:2011" profiles="urn:mpeg:dash:profile:isoff-live:2011" type="static" minBufferTime="PT5.000000S" xmlns:cenc="urn:mpeg:cenc:2013" mediaPresentationDuration="PT1422.149864S">
+  <BaseURL>./../../</BaseURL>
+  <Period id="0" start="PT0.000000S" duration="PT1422.149864S">
+    <AdaptationSet mimeType="video/mp4" segmentAlignment="true">
+      <ContentProtection schemeIdUri="urn:mpeg:dash:mp4protection:2011" value="cenc" cenc:default_KID="bb451662-1396-41ef-ab9d-a909ecc19395"></ContentProtection>
+      <ContentProtection schemeIdUri="urn:uuid:1077efec-c0b2-4d02-ace3-3c1e52e2fb4b">
+        <cenc:pssh>AAAANHBzc2gBAAAAEHfv7MCyTQKs4zweUuL7SwAAAAG7RRZiE5ZB76udqQnswZOVAAAAAA==</cenc:pssh>
+      </ContentProtection>
+      <InbandEventStream schemeIdUri="urn:abema:mpeg:dash:event:092016" value="1"></InbandEventStream>
+      <SegmentTemplate timescale="90000" media="mp4vpg/2-15_s1_p1/EfdsaHPKcQ1w3e3rbnN9a2/$RepresentationID$/$Number$.m4s" initialization="mp4vpg/2-15_s1_p1/EfdsaHPKcQ1w3e3rbnN9a2/$RepresentationID$/init.m4s" startNumber="0">
+        <SegmentTimeline>
+          <S d="753753" t="0"></S>
+          <S d="750750" r="47"></S>
+          <S d="294294"></S>
+          <S d="750750" r="36"></S>
+          <S d="666666"></S>
+          <S d="750750" r="71"></S>
+          <S d="669669"></S>
+          <S d="750750" r="9"></S>
+          <S d="231231"></S>
+        </SegmentTimeline>
+      </SegmentTemplate>
+      <Representation id="1080p.1" bandwidth="4004183" codecs="avc1.4D401f" frameRate="30000/1001" height="1080" width="1920" sar="1:1" scanType="progressive"></Representation>
+      <Representation id="720p.1" bandwidth="2002746" codecs="avc1.4D401f" frameRate="30000/1001" height="720" width="1280" sar="1:1" scanType="progressive"></Representation>
+      <Representation id="480p.1" bandwidth="899786" codecs="avc1.4D401f" frameRate="30000/1001" height="480" width="854" sar="1280:1281" scanType="progressive"></Representation>
+      <Representation id="360p.1" bandwidth="551481" codecs="avc1.4D401f" frameRate="30000/1001" height="360" width="640" sar="1:1" scanType="progressive"></Representation>
+      <Representation id="240p.1" bandwidth="241471" codecs="avc1.4D401f" frameRate="30000/1001" height="240" width="426" sar="640:639" scanType="progressive"></Representation>
+      <Representation id="180p.1" bandwidth="121440" codecs="avc1.4D401f" frameRate="30000/1001" height="180" width="320" sar="1:1" scanType="progressive"></Representation>
+    </AdaptationSet>
+    <AdaptationSet mimeType="audio/mp4" segmentAlignment="true">
+      <ContentProtection schemeIdUri="urn:mpeg:dash:mp4protection:2011" value="cenc" cenc:default_KID="bb451662-1396-41ef-ab9d-a909ecc19395"></ContentProtection>
+      <ContentProtection schemeIdUri="urn:uuid:1077efec-c0b2-4d02-ace3-3c1e52e2fb4b">
+        <cenc:pssh>AAAANHBzc2gBAAAAEHfv7MCyTQKs4zweUuL7SwAAAAG7RRZiE5ZB76udqQnswZOVAAAAAA==</cenc:pssh>
+      </ContentProtection>
+      <SegmentTemplate timescale="44100" media="mp4vpg/2-15_s1_p1/EfdsaHPKcQ1w3e3rbnN9a2/$RepresentationID$/$Number$.m4s" initialization="mp4vpg/2-15_s1_p1/EfdsaHPKcQ1w3e3rbnN9a2/$RepresentationID$/init.m4s" startNumber="0">
+        <SegmentTimeline>
+          <S d="369545" t="0"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="3"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="1"></S>
+          <S d="144384"></S>
+          <S d="367616" r="1"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="1"></S>
+          <S d="326656"></S>
+          <S d="367616"></S>
+          <S d="368640"></S>
+          <S d="367616" r="3"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="3"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="327680"></S>
+          <S d="367616"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="367616" r="2"></S>
+          <S d="368640"></S>
+          <S d="113664"></S>
+        </SegmentTimeline>
+      </SegmentTemplate>
+      <Representation id="1080p.2" bandwidth="194714" codecs="mp4a.40.2">
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"></AudioChannelConfiguration>
+      </Representation>
+      <Representation id="720p.2" bandwidth="162473" codecs="mp4a.40.2">
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"></AudioChannelConfiguration>
+      </Representation>
+      <Representation id="480p.2" bandwidth="130078" codecs="mp4a.40.2">
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"></AudioChannelConfiguration>
+      </Representation>
+      <Representation id="240p.2" bandwidth="64392" codecs="mp4a.40.2">
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="1"></AudioChannelConfiguration>
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>
