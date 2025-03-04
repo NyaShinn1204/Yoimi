@@ -140,3 +140,5 @@ Please contact us at
 > [!WARNING]
 > Yoimi is developed from the base part of a package called [Yuu](https://github.com/noaione/yuu). There are many similarities in the code
 > Yoimi also recommends that it be used for educational purposes only.
+
+<!-- https://discord.gg/e7G35TGjUv -->

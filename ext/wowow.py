@@ -87,6 +87,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         logger.info("Fetching URL...", extra={"service_name": __service_name__})
         
+        # https://wod.wowow.co.jp/program/203640
+        # https://wod.wowow.co.jp/program/203640?season_id=152140
+        # こいつらをサポート (↑They are supported)
+        
         if url.__contains__("program/") and not url.__contains__("season_id="):
             total_season, all_season_json = wod_downloader.get_all_season_id(url)
             
@@ -113,8 +117,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     if status != True:
                         pass
                     duration, sources = wod_downloader.get_episode_prod_info(ovp_video_id, video_access_token, session_id)
-                    # print(duration, sources)
-                    # wod_downloader.send_stop_signal(video_access_token, session_id)
                     logger.info("Close Video Session", extra={"service_name": __service_name__})
                     
                     logger.info("Got HD Link", extra={"service_name": __service_name__})
@@ -126,8 +128,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     for source in sources:
                         if source["resolution"] == "1920x1080" and "manifest.mpd" in source["src"]:
                             urls.append(source["src"])
-                            #widevine_url = sources.get("key_systems", {}).get("com.widevine.alpha", {}).get("license_url", None)
-                            #playready_url = sources.get("key_systems", {}).get("com.microsoft.playready", {}).get("license_url", None)
                             if source["key_systems"]:
                                 widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url", None)
                                 playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url", None)
@@ -218,19 +218,15 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         elif url.__contains__("season_id="):
             url_select_id = parse_qs(urlparse(url).query).get("season_id", [None])[0]
             
-            
             total_season, all_season_json = wod_downloader.get_all_season_id(url)
-            
-            # logger.info(f"Fetching {total_season} season Meta...", extra={"service_name": __service_name__})
-            
+                        
             for single_season in all_season_json:
-                # print(single_season["id"], url_select_id)
+
                 if single_season["id"] != int(url_select_id):
                     continue
                 logger.info(f"Get Title for {single_season["name"]}", extra={"service_name": __service_name__})
                 episode_list = wod_downloader.get_season_episode_title(single_season["meta_id"])
-                #media_id = single_season["oap"]["media_id"]
-                #print(media_id)
+
                 for single in episode_list:
                     logger.info(f"+ {single_season["name"]}_{single["shortest_name"]}_{single["short_name"]} [ID:{single["ep_id"]}, RID:{single["refId"]}]", extra={"service_name": __service_name__})
                 for single in episode_list:
@@ -249,8 +245,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     if status != True:
                         pass
                     duration, sources = wod_downloader.get_episode_prod_info(ovp_video_id, video_access_token, session_id)
-                    # print(duration, sources)
-                    # wod_downloader.send_stop_signal(video_access_token, session_id)
                     logger.info("Close Video Session", extra={"service_name": __service_name__})
                     
                     logger.info("Got HD Link", extra={"service_name": __service_name__})
@@ -262,8 +256,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     for source in sources:
                         if source["resolution"] == "1920x1080" and "manifest.mpd" in source["src"]:
                             urls.append(source["src"])
-                            #widevine_url = sources.get("key_systems", {}).get("com.widevine.alpha", {}).get("license_url", None)
-                            #playready_url = sources.get("key_systems", {}).get("com.microsoft.playready", {}).get("license_url", None)
                             if source["key_systems"]:
                                 widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url", None)
                                 playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url", None)
@@ -351,6 +343,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     else:
                         print(f"指定されたディレクトリは存在しません: {dir_path}")
                     logger.info('Finished download: {}'.format(title_name), extra={"service_name": __service_name__})
+        else:
+            print("unsupported")
     except Exception as error:
         wod_downloader.send_stop_signal(video_access_token, session_id)
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
