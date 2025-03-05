@@ -172,7 +172,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             user_id = message["profile"]["userId"]
             you_premium = False
         
-        decrypt_type = "dash" # or dash
+        decrypt_type = "hls" # hls or dash
         
         if url.__contains__("abema.app"):
             temp_url = session.get(url, allow_redirects=False)
