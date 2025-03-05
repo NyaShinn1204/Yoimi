@@ -84,7 +84,7 @@ def get_y(kid, user_id, y_slice):
                 i = (i + 1) % 256
                 o = (o + t[i]) % 256
                 t[i], t[o] = t[o], t[i]
-                s.append(n[a] ^ t[(t[i] + t[o]) % 256])
+                s.append(n[a] ^ t[np.add(t[i], t[o], dtype=int) % 256])
             
             return s
         
