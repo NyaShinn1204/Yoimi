@@ -93,6 +93,7 @@ def get_y(kid, user_id, y_slice):
         
         return W(mr(Er, kr[r]))
     def F(a, b, c):
+        #import ext.utils.abema_util.get_f as get_f
         get_f = pm.require("./get_f")
         return get_f.get_f_data(a,b,c)
     def Rr(r):
@@ -129,7 +130,9 @@ def get_y(kid, user_id, y_slice):
         return r+n
     
     ir = pm.require("./get_ir")
-    yr = pm.require("./get_yr")
+    #import ext.utils.abema_util.get_ir_a as ir
+    import ext.utils.abema_util.get_yr as yr
+    #yr = pm.require("./get_yr")
     
     t = kid
     i = user_id
