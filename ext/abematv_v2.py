@@ -388,12 +388,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     files = segment_list[0]["all"]
                     downloaded_files = abema_downloader.download_chunk(files, key[0], iv, decrypt_type, output_temp_directory)
                     temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video_encrypted.mp4")
-                    abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", "unixtime"))
+                    abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime))
                     abema.Abema_decrypt.decrypt_content(key[0], temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video.mp4"), config)
                     files = [s.replace('p.1', 'p.2') for s in segment_list[1]["all"]]
                     downloaded_files = abema_downloader.download_chunk(files, key[0], iv, decrypt_type, output_temp_directory)
                     temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio_encrypted.mp4")
-                    abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", "unixtime"))
+                    abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime))
                     abema.Abema_decrypt.decrypt_content(key[0], temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio.mp4"), config)
                     
                     result = abema_downloader.mux_episode("download_video.mp4", "download_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(duration))
@@ -633,12 +633,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             files = segment_list[0]["all"]
                             downloaded_files = abema_downloader.download_chunk(files, key[0], iv, decrypt_type, output_temp_directory)
                             temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video_encrypted.mp4")
-                            abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", "unixtime"))
+                            abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime))
                             abema.Abema_decrypt.decrypt_content(key[0], temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video.mp4"), config)
                             files = [s.replace('p.1', 'p.2') for s in segment_list[1]["all"]]
                             downloaded_files = abema_downloader.download_chunk(files, key[0], iv, decrypt_type, output_temp_directory)
                             temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio_encrypted.mp4")
-                            abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", "unixtime"))
+                            abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime))
                             abema.Abema_decrypt.decrypt_content(key[0], temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio.mp4"), config)
                             
                             result = abema_downloader.mux_episode("download_video.mp4", "download_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(duration))
@@ -895,12 +895,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             files = segment_list[0]["all"]
                             downloaded_files = abema_downloader.download_chunk(files, key[0], iv, decrypt_type, output_temp_directory)
                             temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video_encrypted.mp4")
-                            abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", "unixtime"))
+                            abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime))
                             abema.Abema_decrypt.decrypt_content(key[0], temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_video.mp4"), config)
                             files = [s.replace('p.1', 'p.2') for s in segment_list[1]["all"]]
                             downloaded_files = abema_downloader.download_chunk(files, key[0], iv, decrypt_type, output_temp_directory)
                             temp_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio_encrypted.mp4")
-                            abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", "unixtime"))
+                            abema_downloader.merge_video(downloaded_files, temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime))
                             abema.Abema_decrypt.decrypt_content(key[0], temp_output, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_audio.mp4"), config)
                             
                             result = abema_downloader.mux_episode("download_video.mp4", "download_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(duration))

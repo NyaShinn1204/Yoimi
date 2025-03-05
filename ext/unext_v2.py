@@ -5,7 +5,7 @@ import json
 import yaml
 import shutil
 import logging
-import xml.etree.ElementTree as ET
+import ext.global_func.niconico as comment
 
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -254,7 +254,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         values[missing_key] = ""
                         title_name_logger = format_string.format(**values)
                 
-                Global_utils.download_niconico_comment(logger, additional_info, title_name, message.get("displayNo", ""), message.get("displayNo", "").replace("第", "").replace("話", ""), config, title_name_logger, service_type="U-Next")
+                global_comment = comment.global_comment()
+                global_comment.download_niconico_comment(logger, additional_info, title_name, message.get("displayNo", ""), message.get("displayNo", "").replace("第", "").replace("話", ""), config, title_name_logger, service_type="U-Next")
                 if message["minimumPrice"] != -1:
                     logger.info(f" ! {title_name_logger} require {message["minimumPrice"]} point", extra={"service_name": __service_name__})
                     if int(message["minimumPrice"]) > int(account_point):
@@ -399,7 +400,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     title_name_logger = format_string.format(**values)
             logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
             
-            Global_utils.download_niconico_comment(logger, additional_info, title_name, message.get("displayNo", ""), message.get("displayNo", "").replace("第", "").replace("話", ""), config, title_name_logger, service_type="U-Next")
+            global_comment = comment.global_comment()
+            global_comment.download_niconico_comment(logger, additional_info, title_name, message.get("displayNo", ""), message.get("displayNo", "").replace("第", "").replace("話", ""), config, title_name_logger, service_type="U-Next")
             
             if point != -1:
                 logger.info(f" ! {title_name_logger} require {point} point", extra={"service_name": __service_name__})
