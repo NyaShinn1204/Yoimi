@@ -8,6 +8,7 @@ import subprocess
 from tqdm import tqdm
 from datetime import datetime
 from bs4 import BeautifulSoup
+from mutagen.mp4 import MP4, MP4Cover
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, parse_qs
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -626,38 +627,34 @@ class Unext_downloader:
             os.makedirs(os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name)), exist_ok=True)
             output_name = os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name), sanitize_filename(title_name_logger+".mp4"))
         
+        base_command = [
+            "ffmpeg",
+            "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
+            "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),  # 音声
+            "-map", "0:v:0",  # 動画ストリームを選択
+            "-map", "1:a:0",  # 音声ストリームを選択
+            "-c:v", "copy",  # 映像の再エンコードなし
+            "-c:a", "copy",  # 音声の再エンコードなし
+            "-strict", "experimental",
+            "-y",
+            "-progress", "pipe:1",  # 進捗を標準出力に出力
+            "-nostats",  # 標準出力を進捗情報のみにする
+        ]
+        
+        # メタデータを追加する場合
         if additional_info[6] or additional_info[8]:
-            compile_command = [
-                "ffmpeg",
-                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
-                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),  # 音声
-                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, "metadata", episode_number+"_metadata.txt"),  # メタデータ
-                "-map", "0:v:0",  # 動画ストリームを選択
-                "-map", "1:a:0",  # 音声ストリームを選択
-                "-map_metadata", "2",  # メタデータを適用
-                "-c:v", "copy",  # 映像の再エンコードなし
-                "-c:a", "copy",  # 音声の再エンコードなし
-                "-strict", "experimental",
-                "-y",
-                "-progress", "pipe:1",  # 進捗を標準出力に出力
-                "-nostats",  # 標準出力を進捗情報のみにする
-                output_name,
-            ]
-        else:
-            compile_command = [
-                "ffmpeg",
-                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
-                "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),  # 音声
-                "-map", "0:v:0",  # 動画ストリームを選択
-                "-map", "1:a:0",  # 音声ストリームを選択
-                "-c:v", "copy",  # 映像の再エンコードなし
-                "-c:a", "copy",  # 音声の再エンコードなし
-                "-strict", "experimental",
-                "-y",
-                "-progress", "pipe:1",  # 進捗を標準出力に出力
-                "-nostats",  # 標準出力を進捗情報のみにする
-                output_name,
-            ]
+            metadata_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, "metadata", f"{episode_number}_metadata.txt")
+            base_command.extend(["-i", metadata_path, "-map_metadata", "2"])
+        
+        ## サムネイルを追加する場合
+        #if additional_info[4] or additional_info[5]:
+        #    thumbnail_path = os.path.join(config["directorys"]["Temp"], "thumbnail", unixtime, f"thumbnail_{episode_number}.jpg")
+        #    base_command.extend(["-i", thumbnail_path, "-map", "2:v:0", "-disposition:v:1", "attached_pic"])  # サムネイルを埋め込み
+        
+        compile_command = base_command + [output_name]
+        
+        #print(compile_command)
+
         #print(" ".join(compile_command))
         # tqdmを使用した進捗表示
         #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
@@ -684,7 +681,32 @@ class Unext_downloader:
                 pbar.n = 100
                 pbar.refresh()
             pbar.close()
-        
+    def apply_thumbnail(self, episode_number, title_name, title_name_logger, unixtime, config):
+        try:
+            if os.name != 'nt':
+                mp4_file = os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4")
+            else:
+                def sanitize_filename(filename):
+                    filename = filename.replace(":", "：").replace("?", "？")
+                    return re.sub(r'[<>"/\\|*]', "_", filename)
+                mp4_file = os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name), sanitize_filename(title_name_logger+".mp4"))
+            thumbnail_file = os.path.join(config["directorys"]["Temp"], "thumbnail", unixtime, f"thumbnail_{episode_number}.jpg")
+            
+            # MP4ファイルを読み込む
+            video = MP4(mp4_file)
+            
+            # サムネイル画像をバイナリデータとして読み込む
+            with open(thumbnail_file, "rb") as f:
+                cover = MP4Cover(f.read(), imageformat=MP4Cover.FORMAT_JPEG)
+            
+            # メタデータとしてサムネイルを追加
+            video["covr"] = [cover]
+            
+            # 変更を保存
+            video.save()
+            return True
+        except:
+            return False
     def get_id_type(self, url):
         matches1 = re.findall(r"(SID\d+)|(ED\d+)", url)
         '''映像タイプを取得するコード'''
@@ -888,7 +910,7 @@ class Unext_downloader:
             # ダウンロード関数
             def download_image(url, title_id, index, special=None):
                 tries = 3
-                filename = f"{title_id}_episode_image_special_{index + 1}.jpg" if special else f"{title_id}_episode_image{index + 1}.jpg"
+                filename = f"{title_id}_episode_image_special_{index}.jpg" if special else f"thumbnail_{index}.jpg"
                 filename = os.path.join(output_temp_directory, filename)
                 for attempt in range(tries):
                     try:
@@ -928,7 +950,7 @@ class Unext_downloader:
                                 if key == "__typename":
                                     continue
                                 special = key != "standard"
-                                download_image(url, title_id, index, special=special)
+                                download_image(url, title_id, episode.get("displayNo", {}), special=special)
                             pbar.update(1)  # プログレスバーを更新
                 else:
                     print("No episodes found.")

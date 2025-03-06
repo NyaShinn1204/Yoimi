@@ -334,7 +334,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info("Muxing Episode...", extra={"service_name": __service_name__})
                     
                     result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, sanitize_filename(title_name), int(message["duration"]), title_name_logger, message.get("displayNo", ""), additional_info)
-                        
+                    
+                    if additional_info[4] and additional_info[5]:
+                        result = unext_downloader.apply_thumbnail(message.get("displayNo", ""), title_name, title_name_logger, unixtime, config)
+                        if result != True:
+                            logger.error("Failed Apply Thumbnail. LOL", extra={"service_name": __service_name__})
+                    
                     dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                     
                     if os.path.exists(dir_path) and os.path.isdir(dir_path):
@@ -482,6 +487,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info("Muxing Episode...", extra={"service_name": __service_name__})
                 
                 result = unext_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(message["duration"]), title_name_logger, message.get("displayNo", ""), additional_info)
+                
+                if additional_info[4] and additional_info[5]:
+                    result = unext_downloader.apply_thumbnail(message.get("displayNo", ""), title_name, title_name_logger, unixtime, config)
+                    if result != True:
+                        logger.error("Failed Apply Thumbnail. LOL", extra={"service_name": __service_name__})
                 
                 dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                 
