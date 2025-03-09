@@ -108,13 +108,15 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 |                      | Premium  | Free  | 
 | -------------------- | -------- | ----- |
 | Abema                | ✅      |  ✅  |
-| U-Next               | ✅      |  ｘ   |
+| U-Next               | ✅      |   X   |
 | Dmm-TV               | ✅      |  🔄️  |
 | Danime               | 🔄️      |  🔄️  |
-| FOD                  | ✅      |  ｘ   |
+| FOD                  | ✅      |   X   |
 | NHK+                 | ✅      |  ✅  | 
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
+| JFF Theater          |  X       |  ✅  |
+| WOWOW                | ✅      |   X  |
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 

@@ -115,6 +115,8 @@ Options:
 | NHK+                 | ✅      |  ✅  |
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
+| JFF Theater          |  X       |  ✅  |
+| WOWOW                | ✅      |   X  |
 
 Abemaで問題が発生したら、urlの最後に"-v1"をつけてみてください。v1のモードでダウンローダーが動きます。
 
