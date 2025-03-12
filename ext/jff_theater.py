@@ -11,7 +11,6 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from rich.console import Console
 
-from global_util import Global_utils
 from ext.utils import jff_theater
 
 console = Console()
@@ -119,9 +118,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             title_name_logger = message["contentsTitleEn"]
         
         logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
-        
-        #Global_utils.download_niconico_comment(logger, additional_info, title_name, message.get("displayNo", ""), message.get("displayNo", "").replace("第", "").replace("話", ""), config, title_name_logger, service_type="U-Next")
-        
+                
         logger.info(f"Checking {title_name_logger} is playable...", extra={"service_name": __service_name__})
         
         status, message = jff_downloader.check_play_ep(message["contentsCode"])

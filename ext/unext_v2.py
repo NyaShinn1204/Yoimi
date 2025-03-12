@@ -11,7 +11,6 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from rich.console import Console
 
-from global_util import Global_utils
 from ext.utils import unext
 
 console = Console()
