@@ -1,0 +1,181 @@
+{
+  "bch": {
+    "ttl_c": 1202,
+    "stry_sq": 1,
+    "sscn": {
+      "sqnscn_interval": 3,
+      "sqnscns": [
+        "https://sscn2.b-ch.com/v2/live/JP/ttl/CR001/1202/031c04c4f3ed600d776750887ca4b9bbf7ab543e.png",
+        "https://sscn2.b-ch.com/v2/live/JP/ttl/CR001/1202/d4d1fe0e644c070e8671e7900d613d12908138c2.png",
+        "https://sscn2.b-ch.com/v2/live/JP/ttl/CR001/1202/c439d3c48eef4e2af245a2a0d31e7c97a50edaee.png",
+        "https://sscn2.b-ch.com/v2/live/JP/ttl/CR001/1202/2baf9cf6bb8028b0ed7b1119d549e7b110b215d9.png",
+        "https://sscn2.b-ch.com/v2/live/JP/ttl/CR001/1202/b5b8895a467e16485f7e08bdd98d44bb7e5946a3.png",
+        "https://sscn2.b-ch.com/v2/live/JP/ttl/CR001/1202/5bf66199a230492fc9eb39bc4043d25756a4a0b8.png",
+        "https://sscn2.b-ch.com/v2/live/JP/ttl/CR001/1202/733298754f8da7f527a186383fc60fdae420dc25.png",
+        "https://sscn2.b-ch.com/v2/live/JP/ttl/CR001/1202/177b0e65e30e4f9ac23390171acb43d87c46ff3a.png",
+        "https://sscn2.b-ch.com/v2/live/JP/ttl/CR001/1202/07010f3ebd25cfade085ad80bc721085c5bba553.png",
+        "https://sscn2.b-ch.com/v2/live/JP/ttl/CR001/1202/7d119341766887a6a8c04cd6abd87334146730fd.png"
+      ]
+    },
+    "vlog_info": {
+      "url": "https://vls.b-ch.com/vls/player/json",
+      "interval": 30,
+      "error_count": 3,
+      "error_stop": false,
+      "v": "FHikuT8sqCzZ2%2F3YJQCtAEsy8xipGQ9UV9uHocnic168P%2BOo%2BS7L0o4a6lQr1TtPyeR1O04pJFSllGf%2BZE%2F7Xki%2BxvV4MtyQvLWYxnGBLsDo97gI5ZHaaYmc09luJdKjfhyYCUEi94vw6tLCGGMNOCBaEgwr63gvlK4bDsZxi3FP6IkhBeWh2L9MA6cVFsDKTeByWnkisTvRfPthIce7FUN6m4PrV1dN4QWh5ObOUfLqTvryPSokSmTI2AFTxteUZ1429EAHwc79NZU1TFVAP1eIVtnsVLM0%2FpN9aMjpIKBTnB%2FhTIJyJcxZpmKI17toksQ1hWzrRsG3YOQPFRB1%2FIa8Jk0yQ9%2B3N0WxSlilo6FWKH801EWMCy8ZtIgpgqb9j1TLQmLQb%2BBsLnOliGnVhZEek4xkDRoUmFdkxiKjc1W2KY9HtUQlGpTc4ajw7Ejg"
+    },
+    "logplyr_url": "https://api.b-ch.com/jpn/script/log_plyr.php",
+    "plyr_ssn": "1eefa758b5dc95ec601ed21a24c602e8",
+    "lastvp_sec": 0,
+    "has_prev_story": false,
+    "has_next_story": true,
+    "next_api_key": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NDE3ODQ3OTYsInN1YiI6IjY3ZDE4NmRjMmUzMzAifQ.4LgqUES823QLiO8ajL_DivYy5feTraUMAVzsrOSOPKE",
+    "prev_api_key": "",
+    "viewlimit_t": "2025-09-30 23:59:59",
+    "duration_of_offline_viewing": 0,
+    "bc_ref_id": "st_1202_1",
+    "episode_title": "狼と香辛料 第一幕 狼と一張羅（テレビ放送第1話）",
+    "title": "狼と香辛料",
+    "episode_title_short": "第一幕 狼と一張羅（テレビ放送第1話）",
+    "rendition": [
+      {
+        "width": 320,
+        "bitrate": 214,
+        "height": 180
+      },
+      {
+        "width": 512,
+        "bitrate": 389,
+        "height": 288
+      },
+      {
+        "width": 768,
+        "bitrate": 767,
+        "height": 432
+      },
+      {
+        "width": 1024,
+        "bitrate": 1449,
+        "height": 576
+      },
+      {
+        "width": 1280,
+        "bitrate": 3053,
+        "height": 720
+      }
+    ],
+    "pas_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhY2NpZCI6IjU3OTcwNzc4NTIwMDEiLCJleHAiOjE3NDE3ODc2NDgsImlhdCI6MTc0MTc4NDc5OCwibmJmIjoxNzQxNzg0Nzg4LCJjb25pZCI6IjYxNjYzOTUxODEwMDEifQ.Qe6TX3Rw0eczjc2Bdma0DHcVYjykAdnH7sgZ5oE57ERRNgwbAO1avVei4_x0YsStP2lKdg9PobgZvPw-BeE48afMlD0kgQcfOqScmeEEySy2aT5EwjvBD9C9AEzIqoCnEcMBK_3pXwZleq81AQcXYj90twKmaRnQ8wv0nOldmhYZNLDX0x7Jhzwkn5zyYUd_Ayc2uANOLCk_kNZaQ_xABgZPa_QRP-RypA7R5DumHo_CkKvYitldVzcHlTyQuwzjJNyqZGmxbF8M36LJwsHg27wzlf94QzOnBxTulf5bQNqPDNtU1AzNZilxUYbzI5KdLruH332_5gYmmXdf0UB8uA",
+    "playback_rate": [
+      {
+        "label": "0.5x",
+        "value": 0.5
+      },
+      {
+        "label": "1.0x",
+        "value": 1
+      },
+      {
+        "label": "1.25x",
+        "value": 1.25
+      },
+      {
+        "label": "1.5x",
+        "value": 1.5
+      },
+      {
+        "label": "2.0x",
+        "value": 2
+      }
+    ]
+  },
+  "bc": {
+    "poster": "https://cf-images.ap-northeast-1.prod.boltdns.net/v1/static/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/7c3b73c9-9d4b-42b9-b8e9-f1bc82e03c3a/1280x720/match/image.jpg",
+    "thumbnail": "https://cf-images.ap-northeast-1.prod.boltdns.net/v1/static/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/0c84e8b9-b80c-4ef8-a950-cb6321c0574e/320x180/match/image.jpg",
+    "poster_sources": [
+      {
+        "src": "https://cf-images.ap-northeast-1.prod.boltdns.net/v1/static/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/7c3b73c9-9d4b-42b9-b8e9-f1bc82e03c3a/1280x720/match/image.jpg"
+      }
+    ],
+    "thumbnail_sources": [
+      {
+        "src": "https://cf-images.ap-northeast-1.prod.boltdns.net/v1/static/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/0c84e8b9-b80c-4ef8-a950-cb6321c0574e/320x180/match/image.jpg"
+      }
+    ],
+    "description": null,
+    "tags": [
+      "1",
+      "1202",
+      "prd"
+    ],
+    "cue_points": [],
+    "custom_fields": {},
+    "account_id": "5797077852001",
+    "sources": [
+      {
+        "codecs": "avc1,mp4a",
+        "ext_x_version": "5",
+        "key_systems": {
+          "com.apple.fps.1_0": {
+            "certificate_url": "https://manifest.prod.boltdns.net/license/v1/fairplay_app_cert/5797077852001",
+            "key_request_url": "https://manifest.prod.boltdns.net/license/v1/fairplay/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/635d8759-6420-4d4e-b69b-393b59cb3109?fastly_token=NjdkMWU1NDFfNThmNmVjNjczNTVmNDRhMGY3MDljOTY3MDU4MzQ3ZDkzMGI4Y2JiNTIzNzFkNGJlZWVkZDgyZGViYzdhODlhMg%3D%3D"
+          }
+        },
+        "src": "http://manifest.prod.boltdns.net/manifest/v1/hls/v5/fairplay/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/10s/master.m3u8?fastly_token=NjdkMWU1NDFfZjBiZDFiNzY5YzhjNzI3NDlhNmU0MGJkODU2MmViMTQ5NTBiNDdhZWIwYjE5YWIyY2UyM2IwNjQxNGVlYmYyZQ%3D%3D&bcov_auth=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhY2NpZCI6IjU3OTcwNzc4NTIwMDEiLCJleHAiOjE3NDE3ODc2NDgsImlhdCI6MTc0MTc4NDc5OCwibmJmIjoxNzQxNzg0Nzg4LCJjb25pZCI6IjYxNjYzOTUxODEwMDEifQ.Qe6TX3Rw0eczjc2Bdma0DHcVYjykAdnH7sgZ5oE57ERRNgwbAO1avVei4_x0YsStP2lKdg9PobgZvPw-BeE48afMlD0kgQcfOqScmeEEySy2aT5EwjvBD9C9AEzIqoCnEcMBK_3pXwZleq81AQcXYj90twKmaRnQ8wv0nOldmhYZNLDX0x7Jhzwkn5zyYUd_Ayc2uANOLCk_kNZaQ_xABgZPa_QRP-RypA7R5DumHo_CkKvYitldVzcHlTyQuwzjJNyqZGmxbF8M36LJwsHg27wzlf94QzOnBxTulf5bQNqPDNtU1AzNZilxUYbzI5KdLruH332_5gYmmXdf0UB8uA",
+        "type": "application/x-mpegURL"
+      },
+      {
+        "codecs": "avc1,mp4a",
+        "ext_x_version": "5",
+        "key_systems": {
+          "com.apple.fps.1_0": {
+            "certificate_url": "https://manifest.prod.boltdns.net/license/v1/fairplay_app_cert/5797077852001",
+            "key_request_url": "https://manifest.prod.boltdns.net/license/v1/fairplay/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/635d8759-6420-4d4e-b69b-393b59cb3109?fastly_token=NjdkMWU1NDFfNThmNmVjNjczNTVmNDRhMGY3MDljOTY3MDU4MzQ3ZDkzMGI4Y2JiNTIzNzFkNGJlZWVkZDgyZGViYzdhODlhMg%3D%3D"
+          }
+        },
+        "src": "https://manifest.prod.boltdns.net/manifest/v1/hls/v5/fairplay/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/10s/master.m3u8?fastly_token=NjdkMWU1NDFfZjBiZDFiNzY5YzhjNzI3NDlhNmU0MGJkODU2MmViMTQ5NTBiNDdhZWIwYjE5YWIyY2UyM2IwNjQxNGVlYmYyZQ%3D%3D&bcov_auth=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhY2NpZCI6IjU3OTcwNzc4NTIwMDEiLCJleHAiOjE3NDE3ODc2NDgsImlhdCI6MTc0MTc4NDc5OCwibmJmIjoxNzQxNzg0Nzg4LCJjb25pZCI6IjYxNjYzOTUxODEwMDEifQ.Qe6TX3Rw0eczjc2Bdma0DHcVYjykAdnH7sgZ5oE57ERRNgwbAO1avVei4_x0YsStP2lKdg9PobgZvPw-BeE48afMlD0kgQcfOqScmeEEySy2aT5EwjvBD9C9AEzIqoCnEcMBK_3pXwZleq81AQcXYj90twKmaRnQ8wv0nOldmhYZNLDX0x7Jhzwkn5zyYUd_Ayc2uANOLCk_kNZaQ_xABgZPa_QRP-RypA7R5DumHo_CkKvYitldVzcHlTyQuwzjJNyqZGmxbF8M36LJwsHg27wzlf94QzOnBxTulf5bQNqPDNtU1AzNZilxUYbzI5KdLruH332_5gYmmXdf0UB8uA",
+        "type": "application/x-mpegURL"
+      },
+      {
+        "codecs": "avc1,mp4a",
+        "key_systems": {
+          "com.microsoft.playready": {
+            "license_url": "https://manifest.prod.boltdns.net/license/v1/cenc/playready/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/2f489406-1a9c-49c9-bbdd-6db80a5b0426?fastly_token=NjdkMWU1NDFfMTBjM2ExNmFjYmIwZjkwNTE5MmI2NTE1MGYxMWRhNWE0Y2Y1ZWNjNDMyYWJiYTExZTIzOWRiNDY0ZjRhMjEwMw%3D%3D"
+          },
+          "com.widevine.alpha": {
+            "license_url": "https://manifest.prod.boltdns.net/license/v1/cenc/widevine/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/2f489406-1a9c-49c9-bbdd-6db80a5b0426?fastly_token=NjdkMWU1NDFfM2Y3ZGQwNTRhMDlkYjA5MTllMzliZDJmMzYxNTBjYjAxNTRlMzNiN2JkZDIzMGZkNTY4MTk1ODU2NGU3YjQxZg%3D%3D"
+          }
+        },
+        "profiles": "urn:mpeg:dash:profile:isoff-live:2011",
+        "src": "http://manifest.prod.boltdns.net/manifest/v1/dash/live-baseurl/bccenc/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/6s/manifest.mpd?fastly_token=NjdkMWU1NDFfYmJhOTlkZTU4NDIzODg2MTA2N2QyNWY2ODJjZjI5YzcyZWZiZDU0YjQ0MDM2YWRmZjlkNDMwOGRlOWMwY2Y5OQ%3D%3D&bcov_auth=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhY2NpZCI6IjU3OTcwNzc4NTIwMDEiLCJleHAiOjE3NDE3ODc2NDgsImlhdCI6MTc0MTc4NDc5OCwibmJmIjoxNzQxNzg0Nzg4LCJjb25pZCI6IjYxNjYzOTUxODEwMDEifQ.Qe6TX3Rw0eczjc2Bdma0DHcVYjykAdnH7sgZ5oE57ERRNgwbAO1avVei4_x0YsStP2lKdg9PobgZvPw-BeE48afMlD0kgQcfOqScmeEEySy2aT5EwjvBD9C9AEzIqoCnEcMBK_3pXwZleq81AQcXYj90twKmaRnQ8wv0nOldmhYZNLDX0x7Jhzwkn5zyYUd_Ayc2uANOLCk_kNZaQ_xABgZPa_QRP-RypA7R5DumHo_CkKvYitldVzcHlTyQuwzjJNyqZGmxbF8M36LJwsHg27wzlf94QzOnBxTulf5bQNqPDNtU1AzNZilxUYbzI5KdLruH332_5gYmmXdf0UB8uA",
+        "type": "application/dash+xml"
+      },
+      {
+        "codecs": "avc1,mp4a",
+        "key_systems": {
+          "com.microsoft.playready": {
+            "license_url": "https://manifest.prod.boltdns.net/license/v1/cenc/playready/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/2f489406-1a9c-49c9-bbdd-6db80a5b0426?fastly_token=NjdkMWU1NDFfMTBjM2ExNmFjYmIwZjkwNTE5MmI2NTE1MGYxMWRhNWE0Y2Y1ZWNjNDMyYWJiYTExZTIzOWRiNDY0ZjRhMjEwMw%3D%3D"
+          },
+          "com.widevine.alpha": {
+            "license_url": "https://manifest.prod.boltdns.net/license/v1/cenc/widevine/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/2f489406-1a9c-49c9-bbdd-6db80a5b0426?fastly_token=NjdkMWU1NDFfM2Y3ZGQwNTRhMDlkYjA5MTllMzliZDJmMzYxNTBjYjAxNTRlMzNiN2JkZDIzMGZkNTY4MTk1ODU2NGU3YjQxZg%3D%3D"
+          }
+        },
+        "profiles": "urn:mpeg:dash:profile:isoff-live:2011",
+        "src": "https://manifest.prod.boltdns.net/manifest/v1/dash/live-baseurl/bccenc/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/6s/manifest.mpd?fastly_token=NjdkMWU1NDFfYmJhOTlkZTU4NDIzODg2MTA2N2QyNWY2ODJjZjI5YzcyZWZiZDU0YjQ0MDM2YWRmZjlkNDMwOGRlOWMwY2Y5OQ%3D%3D&bcov_auth=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhY2NpZCI6IjU3OTcwNzc4NTIwMDEiLCJleHAiOjE3NDE3ODc2NDgsImlhdCI6MTc0MTc4NDc5OCwibmJmIjoxNzQxNzg0Nzg4LCJjb25pZCI6IjYxNjYzOTUxODEwMDEifQ.Qe6TX3Rw0eczjc2Bdma0DHcVYjykAdnH7sgZ5oE57ERRNgwbAO1avVei4_x0YsStP2lKdg9PobgZvPw-BeE48afMlD0kgQcfOqScmeEEySy2aT5EwjvBD9C9AEzIqoCnEcMBK_3pXwZleq81AQcXYj90twKmaRnQ8wv0nOldmhYZNLDX0x7Jhzwkn5zyYUd_Ayc2uANOLCk_kNZaQ_xABgZPa_QRP-RypA7R5DumHo_CkKvYitldVzcHlTyQuwzjJNyqZGmxbF8M36LJwsHg27wzlf94QzOnBxTulf5bQNqPDNtU1AzNZilxUYbzI5KdLruH332_5gYmmXdf0UB8uA",
+        "type": "application/dash+xml"
+      }
+    ],
+    "name": "狼と香辛料 第一幕 狼と一張羅（テレビ放送第1話）",
+    "reference_id": "st_1202_1",
+    "long_description": "パスロエの村では狼の姿をした豊作の神“ホロ”を祀る収穫祭が行われようとしていた。行商人のロレンスは麦の売買で村を訪れたのだが、取引きを担っているクロエと交渉する機会を逸してしまい、仕方なく村を後にする。床に就くため荷馬車に入ろうとしたロレンスだが、そこには見知らぬ少女が忍び込んでいた。亜麻色の長髪にか細い肢体、美しい顔立ちの少女には狼のような耳と尻尾が生えていた！",
+    "duration": 1425067,
+    "economics": "AD_SUPPORTED",
+    "text_tracks": [],
+    "published_at": "2020-06-22T16:10:07.896Z",
+    "created_at": "2020-06-22T16:10:07.866Z",
+    "updated_at": "2024-07-10T15:00:49.012Z",
+    "offline_enabled": false,
+    "link": null,
+    "id": "6166395181001",
+    "ad_keys": null
+  }
+}
