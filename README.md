@@ -116,7 +116,9 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
 | JFF Theater          |  X       |  ✅  |
-| WOWOW                | ✅      |   X  |
+| WOWOW                | ✅      |   X   |
+| Bandai-Channel       | 🔄️      |   🔄️  |
+| Fanza                | ❌      |   ❌  |
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 
