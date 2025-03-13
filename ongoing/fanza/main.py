@@ -80,6 +80,9 @@ class Dmm_TV_downloader:
             }
     
             response = self.session.post("https://accounts.dmm.com/app/service/login/password/authenticate", data=_auth, headers=headers)
+            
+            if response.text.__contains__("認証エラー"):
+                return False, "認証エラー"
             #ok
             
             querystring = {
