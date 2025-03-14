@@ -1,5 +1,4 @@
 import requests
-from requests.cookies import RequestsCookieJar
 
 LOGIN_URL = "https://account-api.bandainamcoid.com/v3/login/idpw"
 REDIRECT_URI = "https://www.bandainamcoid.com/v2/oauth2/auth?back=v3&client_id=bnid_b_ch&scope=JpGroupAll&redirect_uri=https://www.b-ch.com/mbr/auth2v3.php?refer=&text="
