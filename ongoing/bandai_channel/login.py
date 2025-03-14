@@ -77,3 +77,8 @@ headers = {
 response = requests.post(url, data=payload, headers=headers)
 
 print(response.text)
+status = "guest"
+if response.json()["pom_tc"] == "1" and response.json()["status_c"] == "0":
+    status = "monthly"
+else:
+    status = "free"

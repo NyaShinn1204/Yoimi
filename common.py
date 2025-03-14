@@ -16,6 +16,7 @@ from ext import crunchyroll as Crunchyroll
 from ext import nhk_plus as Nhk_plus
 from ext import jff_theater as Jff_Theater
 from ext import wowow as WOD_Wowow
+from ext import bandai_ch as Bandai_ch
 
 __version__ = "1.1.0"
 
@@ -60,6 +61,8 @@ def get_parser(url):
         return Jff_Theater, "Jff Theater"
     elif url.__contains__("wod.wowow.co.jp"):
         return WOD_Wowow, "WOD-WOWOW"
+    elif url.__contains__("b-ch.com"):
+        return Bandai_ch, "Bandai-Ch"
     return None, None
 
 def version_check(session):

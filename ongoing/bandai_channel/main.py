@@ -44,7 +44,7 @@ def main_command(session, url):
             #except json.JSONDecodeError as e:
             #    print("JSONデコードエラー:", e)
     single_check = bool(re.match(r"https://www\.b-ch\.com/titles/\d+/\d+$", url))
-    #print(single_check)
+    print(single_check)
     
     if single_check:
         title_name = get_title_name(url)
@@ -61,7 +61,7 @@ def main_command(session, url):
         
         # 判定
         vod_status = "FREE" if pomend_t > now else "PREMIUM"
-        #print(vod_status)
+        print(vod_status)
         
     else:
         title_name = get_title_name(url)
@@ -127,6 +127,6 @@ def main_command(session, url):
             print("[+] うお！暗号化リンクゲット！")
             print(urls[0])
 session = requests.Session()
-url = "https://www.b-ch.com/titles/1202/001"
+url = "https://www.b-ch.com/titles/1202/002"
 main_command(session, url)
     
