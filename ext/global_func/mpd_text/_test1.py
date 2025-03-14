@@ -1,4 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
+import os
+import parser
+
+parser_for_mpd = parser.global_parser()
+mpd_text = """<?xml version="1.0" encoding="UTF-8"?>
 <MPD xmlns="urn:mpeg:dash:schema:mpd:2011" profiles="urn:mpeg:dash:profile:isoff-live:2011" type="static" mediaPresentationDuration="PT23M45.006S" minBufferTime="PT2.000S">
   <BaseURL>https://bcbandainamcoct-a.akamaihd.net/media/v1/dash/live/cenc/5797077852001/a2e72eaf-55e2-4b2e-8853-05e70fe0bb7d/2f489406-1a9c-49c9-bbdd-6db80a5b0426/</BaseURL>
   <Period>
@@ -36,4 +40,5 @@
       <Representation bandwidth="3053000" codecs="avc1.4d001f" frameRate="2997/125" height="720" id="331ce958-2d9b-4823-84d7-421b0bbeaee2" width="1280"></Representation>
     </AdaptationSet>
   </Period>
-</MPD>
+</MPD>"""
+print(str(parser_for_mpd.mpd_parser(mpd_text))+"\n\n")
