@@ -18,7 +18,7 @@ from ext import jff_theater as Jff_Theater
 from ext import wowow as WOD_Wowow
 from ext import bandai_ch as Bandai_ch
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 def get_parser(url):
     """

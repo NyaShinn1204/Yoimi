@@ -116,7 +116,7 @@ Options:
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
 | JFF Theater          |  X       |  ✅  |
-| WOWOW                | ✅      |   X  |
+| WOWOW                | ✅      |   X   |
 | バンダイ-Channel     | 🔄️      |   🔄️  |
 | Fanza                | ❌      |   ❌  |
 
