@@ -157,6 +157,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     missing_key = e.args[0]
                     values[missing_key] = ""
                     title_name_logger = format_string.format(**values)
+            
+            title_name = title_name_logger.replace(global_title_name+"_", "")
+            
             logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
             
             logger.info("Checking Can download...", extra={"service_name": __service_name__})
@@ -212,7 +215,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info("Found text track(sub, cc), but this version is no supported. lol", extra={"service_name": __service_name__})
                 logger.info("If you want download (cc, sub), please create issues.", extra={"service_name": __service_name__})
                 
-            episode_duration = str(int(manifest_list["bc"]["duration"] / 1000))
+            episode_duration = int(manifest_list["bc"]["duration"] / 1000)
             urls = []
             for source in manifest_list["bc"]["sources"]:
                 if "key_systems" in source and "manifest.mpd" in source["src"] and "https" in source["src"]:
@@ -252,8 +255,61 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
             logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
             
-            #if episode_display not in ["FREE", "MEMBER_FREE"]:
-            #    logger.info(f"This content require: {episode_display}", extra={"service_name": __service_name__})
+            logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
+            video_segment_list = Tracks.calculate_segments(episode_duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
+            logger.info(f" + Video Segments: "+str(int(video_segment_list)), extra={"service_name": __service_name__})                 
+            audio_segment_list = Tracks.calculate_segments(episode_duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
+            
+            logger.info(f" + Audio Segments: "+str(int(audio_segment_list)), extra={"service_name": __service_name__})
+            video_segment_links = []
+            audio_segment_links = []
+            video_segment_links.append(get_best_track["video"]["url"].replace("$RepresentationID$", get_best_track["video"]["id"]))
+            audio_segment_links.append(get_best_track["audio"]["url"].replace("$RepresentationID$", get_best_track["audio"]["id"]))
+            
+            for single_segment in range(video_segment_list):
+                temp_link = (
+                    get_best_track["video"]["url_base"].replace("/$RepresentationID$/", f"/{get_best_track["video"]["id"]}/")
+                    +
+                    get_best_track["video"]["url_segment_base"].replace("$Number$", str(single_segment)).replace("$RepresentationID$/",""))
+                video_segment_links.append(temp_link)
+            for single_segment in range(audio_segment_list):
+                temp_link = (
+                    get_best_track["audio"]["url_base"].replace("/$RepresentationID$/", f"/{get_best_track["audio"]["id"]}/")
+                    +
+                    get_best_track["audio"]["url_segment_base"].replace("$Number$", str(single_segment)).replace("$RepresentationID$/",""))
+                audio_segment_links.append(temp_link)
+            
+            logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+            
+            #print(video_segment_links)
+            
+            bch_downloader.download_segment(video_segment_links, config, unixtime, "download_encrypt_video.mp4")
+            bch_downloader.download_segment(audio_segment_links, config, unixtime, "download_encrypt_audio.mp4")
+            
+            logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+            
+            bandai_ch.Bandai_ch_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
+            bandai_ch.Bandai_ch_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
+            
+            bandai_ch.Bandai_ch_decrypt.decrypt_all_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
+            
+            logger.info("Muxing Episode...", extra={"service_name": __service_name__})
+            
+            result = bch_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", os.path.join(config["directorys"]["Downloads"], global_title_name, title_name_logger+".mp4"), config, unixtime, global_title_name, int(episode_duration))
+            dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+            if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                for filename in os.listdir(dir_path):
+                    file_path = os.path.join(dir_path, filename)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                    except Exception as e:
+                        print(f"削除エラー: {e}")
+            else:
+                print(f"指定されたディレクトリは存在しません: {dir_path}")
+            logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")

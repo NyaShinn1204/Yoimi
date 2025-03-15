@@ -4,13 +4,11 @@ import uuid
 import json
 import time
 import requests
-import threading
 import subprocess
 import urllib.parse
 import xml.etree.ElementTree as ET
 from tqdm import tqdm
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"

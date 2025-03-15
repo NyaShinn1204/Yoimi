@@ -5,11 +5,11 @@ class global_parser:
     def mpd_parser(self, mpd_content):
         root = ET.fromstring(mpd_content)
         ns = {'mpd': 'urn:mpeg:dash:schema:mpd:2011', 'cenc': 'urn:mpeg:cenc:2013', 'mspr': 'urn:microsoft:playready'}
-
+    
         # BaseURLの取得（存在しない場合は None）
         base_url_elem = root.find('mpd:BaseURL', ns)
         base_url = base_url_elem.text if base_url_elem is not None else ""
-
+    
         # PSSH情報を取得
         pssh_list = {}
         for content_protection in root.findall(".//mpd:ContentProtection", ns):
@@ -22,7 +22,7 @@ class global_parser:
                     pssh_list["playready"] = pssh.text
                 elif "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b" in scheme_id_uri.lower():  # W3C Cenc
                     pssh_list["w3c_cenc"] = pssh.text
-
+    
         # ビデオトラック情報
         video_tracks = []
         for adaptation_set in root.findall(".//mpd:AdaptationSet[@mimeType='video/mp4']", ns):
@@ -32,21 +32,22 @@ class global_parser:
                 height = representation.attrib.get("height")
                 bitrate = int(representation.attrib.get("bandwidth", 0)) / 1000
                 codec = representation.attrib.get("codecs", "")
-
+                rep_id = representation.attrib.get("id")  # IDを取得
+    
                 segment_template = representation.find("mpd:SegmentTemplate", ns)
                 if segment_template is None:
                     segment_template = segment_template_adaptation_set
-
+    
                 if segment_template is not None:
                     init = segment_template.attrib.get("initialization", "")
                     url = f"{base_url}{init}" if base_url else init
                     url_base = "/".join(url.split("/")[:-1]) + "/" if url.split("/")[:-1] else ""
                     segment_base = re.sub(r'^(audio|video)/[0-9a-f-]+/', '', segment_template.attrib.get("media", ""))
-                    
+    
                     segment_duration = segment_template.attrib.get("duration", "404_notfound")
                     timescale = segment_template.attrib.get("timescale", "404_notfound")
-                    
-                    video_tracks.append({
+    
+                    track_info = {
                         "seg_duration": segment_duration,
                         "seg_timescale": timescale,
                         "resolution": f"{width}x{height}",
@@ -55,8 +56,13 @@ class global_parser:
                         "url": url,
                         "url_base": url_base,
                         "url_segment_base": segment_base
-                    })
-
+                    }
+    
+                    if rep_id:
+                        track_info["id"] = rep_id  # IDがある場合に追加
+    
+                    video_tracks.append(track_info)
+    
         # オーディオトラック情報
         audio_tracks = []
         for adaptation_set in root.findall(".//mpd:AdaptationSet[@mimeType='audio/mp4']", ns):
@@ -64,21 +70,22 @@ class global_parser:
             for representation in adaptation_set.findall("mpd:Representation", ns):
                 bandwidth = int(representation.attrib.get("bandwidth", "0")) / 1000
                 codec = representation.attrib.get("codecs", "")
-
+                rep_id = representation.attrib.get("id")  # IDを取得
+    
                 segment_template = representation.find("mpd:SegmentTemplate", ns)
                 if segment_template is None:
                     segment_template = segment_template_adaptation_set
-
+    
                 if segment_template is not None:
                     init = segment_template.attrib.get("initialization", "")
                     url = f"{base_url}{init}" if base_url else init
                     url_base = "/".join(url.split("/")[:-1]) + "/" if url.split("/")[:-1] else ""
                     segment_base = re.sub(r'^(audio|video)/[0-9a-f-]+/', '', segment_template.attrib.get("media", ""))
-
+    
                     segment_duration = segment_template.attrib.get("duration", "404_notfound")
                     timescale = segment_template.attrib.get("timescale", "404_notfound")
-
-                    audio_tracks.append({
+    
+                    track_info = {
                         "seg_duration": segment_duration,
                         "seg_timescale": timescale,
                         "bitrate": str(int(bandwidth)),
@@ -86,16 +93,22 @@ class global_parser:
                         "url": url,
                         "url_base": url_base,
                         "url_segment_base": segment_base
-                    })
-
+                    }
+    
+                    if rep_id:
+                        track_info["id"] = rep_id  # IDがある場合に追加
+    
+                    audio_tracks.append(track_info)
+    
         more_info = self.extract_mpd_attributes(mpd_content)
-        
+    
         return {
             "info": more_info,
             "pssh_list": pssh_list,
             "video_track": video_tracks,
             "audio_track": audio_tracks
         }
+    
     def calculate_video_duration(self, duration_str):
         """ISO 8601 duration (PT format) を秒単位に変換"""
         match = re.match(r'P(?:\d+Y)?(?:\d+M)?(?:\d+D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?', duration_str)

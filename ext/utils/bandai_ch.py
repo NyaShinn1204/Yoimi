@@ -1,7 +1,59 @@
+import os
 import re
+import time
+import requests
+import subprocess
+from tqdm import tqdm
+from datetime import datetime
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 
+COLOR_GREEN = "\033[92m"
+COLOR_GRAY = "\033[90m"
+COLOR_RESET = "\033[0m"
+COLOR_BLUE = "\033[94m"
+
+class Bandai_ch_decrypt:
+    def mp4decrypt(keys, config):
+        if os.name == 'nt':
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
+        else:
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
+        for key in keys:
+            if key["type"] == "CONTENT":
+                mp4decrypt_command.extend(
+                    [
+                        "--show-progress",
+                        "--key",
+                        "{}:{}".format(key["kid_hex"], key["key_hex"]),
+                    ]
+                )
+        return mp4decrypt_command
+    def decrypt_all_content(video_keys, video_input_file, video_output_file, audio_keys, audio_input_file, audio_output_file, config, service_name="Bandai-Ch"):
+        with tqdm(total=2, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ") as outer_pbar:
+            Bandai_ch_decrypt.decrypt_content(video_keys, video_input_file, video_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 1つ目の進捗を更新
+    
+            Bandai_ch_decrypt.decrypt_content(audio_keys, audio_input_file, audio_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 2つ目の進捗を更新
+    
+    def decrypt_content(keys, input_file, output_file, config, service_name="Bandai-Ch"):
+        mp4decrypt_command = Bandai_ch_decrypt.mp4decrypt(keys, config)
+        mp4decrypt_command.extend([input_file, output_file])
+        
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
+                for line in process.stdout:
+                    match = re.search(r"(ｲ+)", line)  # 進捗解析
+                    if match:
+                        progress_count = len(match.group(1))
+                        inner_pbar.n = progress_count
+                        inner_pbar.refresh()
+                
+                process.wait()
+                if process.returncode == 0:
+                    inner_pbar.n = 100
+                    inner_pbar.refresh()
 
 class Bandai_ch_license:
     def license_vd_ad(pssh, session, url, license_authkey):
@@ -145,3 +197,71 @@ class Bandai_ch_downloader:
             return True, metainfo_json
         except Exception as e:
             return False, None
+        
+    def download_segment(self, segment_links, config, unixtime, name, service_name="Bandai-Ch"):
+        base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+        os.makedirs(base_temp_dir, exist_ok=True)
+        with open(os.path.join(config["directorys"]["Temp"], "content", unixtime, name), 'wb') as out_file:
+            with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as progress_bar:
+                for url in segment_links:
+                    retry = 0
+                    while retry < 3:
+                        try:
+                            response = self.session.get(url.strip(), timeout=10)
+                            response.raise_for_status()
+                            out_file.write(response.content)
+                            progress_bar.update(1)
+                            break
+                        except requests.exceptions.RequestException as e:
+                            retry += 1
+                            time.sleep(2)
+
+    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="Bandai-Ch"):
+        # 出力ディレクトリを作成
+        os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)
+    
+        # ffmpegコマンド
+        compile_command = [
+            "ffmpeg",
+            "-i",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),
+            "-i",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),
+            "-c:v",
+            "copy",               # 映像はコピー
+            "-c:a",
+            "aac",                # 音声をAAC形式に変換
+            "-b:a",
+            "192k",               # 音声ビットレートを設定（192kbpsに調整）
+            "-strict",
+            "experimental",
+            "-y",
+            "-progress", "pipe:1",  # 進捗を標準出力に出力
+            "-nostats",            # 標準出力を進捗情報のみにする
+            output_name,
+        ]
+
+        # tqdmを使用した進捗表示
+        #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
+            with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
+                for line in process.stdout:    
+                    # "time=" の進捗情報を解析
+                    match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
+                    if match:
+                        hours = int(match.group(1))
+                        minutes = int(match.group(2))
+                        seconds = float(match.group(3))
+                        current_time = hours * 3600 + minutes * 60 + seconds
+    
+                        # 進捗率を計算して更新
+                        progress = (current_time / duration) * 100
+                        pbar.n = int(progress)
+                        pbar.refresh()
+    
+            # プロセスが終了したら進捗率を100%にする
+            process.wait()
+            if process.returncode == 0:  # 正常終了の場合
+                pbar.n = 100
+                pbar.refresh()
+            pbar.close()
