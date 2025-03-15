@@ -117,16 +117,69 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             episode_select_json = global_title_json[int(episode_id)-1]
             #print(episode_select_json)
             
+            if episode_select_json["strysu_txt"] and episode_select_json["strytitle_txt"] == " ":
+                id_genere_type = "劇場"
+            else:
+                id_genere_type = "ノーマルアニメ"
+            id_type = [id_genere_type]
+            
+            if id_type[0] == "ノーマルアニメ":
+                format_string = config["format"]["anime"]
+                values = {
+                    "seriesname": global_title_name,
+                    "titlename": episode_select_json["strysu_txt"],
+                    "episodename": episode_select_json["strytitle_txt"]
+                }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
+            if id_type[0] == "劇場":
+                format_string = config["format"]["movie"]
+                if episode_select_json["strysu_txt"] == "":
+                    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                    values = {
+                        "seriesname": global_title_name,
+                    }
+                else:
+                    values = {
+                        "seriesname": global_title_name,
+                        "titlename": episode_select_json["strysu_txt"],
+                        "episodename": episode_select_json["strytitle_txt"]
+                    }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
+            logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+            
+            logger.info("Checking Can download...", extra={"service_name": __service_name__})
+            can_download = False
+            
             episode_display = ""
             if episode_select_json["prod"][0]["free_f"] == "1":
+                can_download = True
                 episode_display = "FREE"
             elif episode_select_json["prod"][0]["mbauth_f"] == "1" and login_status:
+                if login_status:
+                    can_download = True
                 episode_display = "MEMBER_FREE"
             elif episode_select_json["prod"][0]["free_f"] == "0" and episode_select_json["prod"][0]["mbauth_f"] == "0":
+                if plan_name == "monthly" and login_status:
+                    can_download = True
                 episode_display = "PAID_OR_MONTHLY"
-                
-            if episode_display not in ["FREE", "MEMBER_FREE"]:
-                logger.info(f"This content require: {episode_display}", extra={"service_name": __service_name__})
+            
+            logger.info("This episode is can download?: "+str(can_download), extra={"service_name": __service_name__})
+            if can_download != True:
+                logger.error("This episode require: "+str(episode_display), extra={"service_name": __service_name__})
+                return
+            
+            #if episode_display not in ["FREE", "MEMBER_FREE"]:
+            #    logger.info(f"This content require: {episode_display}", extra={"service_name": __service_name__})
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")

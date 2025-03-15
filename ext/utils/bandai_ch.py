@@ -72,7 +72,7 @@ class Bandai_ch_downloader:
     def get_title_name(self, url):
         html = self.session.get(url).content # .textだと文字化けする
         soup = BeautifulSoup(html, 'html.parser')
-        text = soup.find('h2', class_='bch-c-heading-2__ttl').get_text()
+        text = soup.find('span', id='bch-series-title').a.text
         return text
     
     def get_signle_title_json(self, url):        
