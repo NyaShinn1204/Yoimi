@@ -34,6 +34,8 @@ def get_parser(url):
     valid_brainshark = r'^["\']?https?://www\.brainshark\.com/brainshark/brainshark\.services\.player/api/v1\.0/Presentation\?([^&]*&)*pi=(?P<pi>[^&]+)(&|$)'
     valid_fod = r'^["\']?http(?:|s)://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+/?)?["\']?$'
     valid_anime3rb = r'^["\']?http(?:|s)://anime3rb\.com/(?:titles|episode)/([\w-]+)/.*|search\?q=[^"\']+["\']?$'
+    valid_crunchyroll = r'^["\']?https?://www\.crunchyroll\.com/(series|watch)/[^/]+/[^"\']+["\']?$'
+    valid_b_ch = r'^["\']?https?://www\.b-ch\.com/titles/\d+(/\d+)?/?["\']?$'
     
     if re.match(valid_abema, url) and url.__contains__("-v1"):
         return AbemaTV, "abemav1"
@@ -53,7 +55,7 @@ def get_parser(url):
         return FOD, "fod"
     elif re.match(valid_anime3rb, url) or url.__contains__("anime3rb.com/search?q="):
         return Anime3rb, "anime3rb"
-    elif url.__contains__("crunchyroll.com"):
+    elif re.match(valid_crunchyroll, url):
         return Crunchyroll, "Crunchyroll"
     elif url.__contains__("plus.nhk.jp"):
         return Nhk_plus, "NHK+"
@@ -61,7 +63,7 @@ def get_parser(url):
         return Jff_Theater, "Jff Theater"
     elif url.__contains__("wod.wowow.co.jp"):
         return WOD_Wowow, "WOD-WOWOW"
-    elif url.__contains__("b-ch.com"):
+    elif re.match(valid_b_ch, url):
         return Bandai_ch, "Bandai-Ch"
     return None, None
 
