@@ -2,6 +2,37 @@ import re
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 
+
+class Bandai_ch_license:
+    def license_vd_ad(pssh, session, url, license_authkey):
+        _WVPROXY = url
+        from pywidevine.cdm import Cdm
+        from pywidevine.device import Device
+        from pywidevine.pssh import PSSH
+        device = Device.load(
+            "./l3.wvd"
+        )
+        cdm = Cdm.from_device(device)
+        session_id = cdm.open()
+    
+        challenge = cdm.get_license_challenge(session_id, PSSH(pssh))
+        response = session.post(f"{_WVPROXY}", data=bytes(challenge), headers={"Bcov-Auth": license_authkey})
+        response.raise_for_status()
+    
+        cdm.parse_license(session_id, response.content)
+        keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id)
+        ]
+    
+        cdm.close(session_id)
+                
+        keys = {
+            "key": keys,
+        }
+        
+        return keys
+
 class Bandai_ch_downloader:
     def __init__(self, session, config):
         self.session = session
@@ -104,10 +135,13 @@ class Bandai_ch_downloader:
         return title_json
     
     def get_manifest_list(self, title_id, episode_id, device_code, login_status, data_auth):
-        if login_status:
-            metainfo_url = f"https://pbifcd.b-ch.com/v1/playbackinfo/ST/{str(device_code)}/{title_id}/{str(episode_id["stry_sq"])}?mbssn_key="+self.session.cookie["BCHWWW"]
-        else:
-            metainfo_url = f"https://pbifcd.b-ch.com/v1/playbackinfo/ST/{str(device_code)}/{title_id}/{str(episode_id["stry_sq"])}?mbssn_key="
-            
-        metainfo_json = self.session.get(metainfo_url, headers={"X-API-KEY": data_auth}).json()
-        return True, metainfo_json
+        try:
+            if login_status:
+                metainfo_url = f"https://pbifcd.b-ch.com/v1/playbackinfo/ST/{str(device_code)}/{str(title_id)}/{str(episode_id)}?mbssn_key="+self.session.cookie["BCHWWW"]
+            else:
+                metainfo_url = f"https://pbifcd.b-ch.com/v1/playbackinfo/ST/{str(device_code)}/{str(title_id)}/{str(episode_id)}?mbssn_key="
+                            
+            metainfo_json = self.session.get(metainfo_url, headers={"X-API-KEY": data_auth}).json()
+            return True, metainfo_json
+        except Exception as e:
+            return False, None

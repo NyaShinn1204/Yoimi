@@ -11,6 +11,8 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from rich.console import Console
 
+import ext.global_func.parser as parser
+
 from ext.utils import bandai_ch
 
 console = Console()
@@ -197,6 +199,59 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             }
             
             status, manifest_list = bch_downloader.get_manifest_list(global_title_id, episode_id, device_list["PC"], login_status, data_auth)
+            if status != True:
+                logger.error("Failed to get Manifest List", extra={"service_name": __service_name__})
+            
+            logger.info("Get License Auth Key:", extra={"service_name": __service_name__})
+            license_authkey = manifest_list["bch"]["pas_token"]
+            logger.info("Token: "+license_authkey[:15], extra={"service_name": __service_name__})
+            logger.debug("Token: "+license_authkey, extra={"service_name": __service_name__})
+            
+            
+            if manifest_list["bc"]["text_tracks"] != []:
+                logger.info("Found text track(sub, cc), but this version is no supported. lol", extra={"service_name": __service_name__})
+                logger.info("If you want download (cc, sub), please create issues.", extra={"service_name": __service_name__})
+                
+            episode_duration = str(int(manifest_list["bc"]["duration"] / 1000))
+            urls = []
+            for source in manifest_list["bc"]["sources"]:
+                if "key_systems" in source and "manifest.mpd" in source["src"] and "https" in source["src"]:
+                    urls.append(source["src"])
+                    if source["key_systems"]:
+                        widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url", None)
+                        playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url", None)
+                    #else:
+                    #    widevine_url = None
+                    #    playready_url = None
+            #print("[+] うお！暗号化リンクゲット！")
+            #print(urls[0])
+            logger.debug("Get Manifest link: "+urls[0], extra={"service_name": __service_name__})
+            logger.info(f"Get Manifest link: {urls[0][:15]+"*****"}", extra={"service_name": __service_name__})
+            
+            logger.info(f"Parse MPD file", extra={"service_name": __service_name__})
+            Tracks = parser.global_parser()
+            transformed_data = Tracks.mpd_parser(session.get(urls[0]).text)
+                        
+            logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
+            license_key = bandai_ch.Bandai_ch_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, license_authkey)
+            
+            logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+            logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
+                    
+            
+            logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+            logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+            track_data = Tracks.print_tracks(transformed_data)
+            
+            print(track_data)
+            
+            get_best_track = Tracks.select_best_tracks(transformed_data)
+            
+            logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+            logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+            logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+            logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+            
             #if episode_display not in ["FREE", "MEMBER_FREE"]:
             #    logger.info(f"This content require: {episode_display}", extra={"service_name": __service_name__})
     except Exception as error:
