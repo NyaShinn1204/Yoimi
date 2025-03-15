@@ -178,6 +178,25 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.error("This episode require: "+str(episode_display), extra={"service_name": __service_name__})
                 return
             
+            logger.debug("Get Video Data Auth Key", extra={"service_name": __service_name__})
+            soup = BeautifulSoup(session.get(f"https://www.b-ch.com/titles/{global_title_id}/{str(episode_id).zfill(3)}").content, 'html.parser')
+            video_tag = soup.select_one('section.bch-l-hero div.bch-p-hero div#bchplayer-box video-js')
+            if video_tag:
+                data_auth = video_tag.get('data-auth')
+                data_auth = data_auth.replace("\n", "")
+                logger.debug("Data Auth Key: "+data_auth, extra={"service_name": __service_name__})
+            else:
+                logger.error("Failed to get Data Auth Key", extra={"service_name": __service_name__})
+                
+            device_list = {
+                "PC": 70,
+                "Android": 80,
+                "iPad": 81,
+                "FireTablet": 82,
+                "iOS": 99
+            }
+            
+            status, manifest_list = bch_downloader.get_manifest_list(global_title_id, episode_id, device_list["PC"], login_status, data_auth)
             #if episode_display not in ["FREE", "MEMBER_FREE"]:
             #    logger.info(f"This content require: {episode_display}", extra={"service_name": __service_name__})
     except Exception as error:

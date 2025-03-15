@@ -102,3 +102,12 @@ class Bandai_ch_downloader:
     def get_title_data(self, title_id):
         title_json = self.session.get(f"https://www.b-ch.com/json/titles/{title_id}.json").json()
         return title_json
+    
+    def get_manifest_list(self, title_id, episode_id, device_code, login_status, data_auth):
+        if login_status:
+            metainfo_url = f"https://pbifcd.b-ch.com/v1/playbackinfo/ST/{str(device_code)}/{title_id}/{str(episode_id["stry_sq"])}?mbssn_key="+self.session.cookie["BCHWWW"]
+        else:
+            metainfo_url = f"https://pbifcd.b-ch.com/v1/playbackinfo/ST/{str(device_code)}/{title_id}/{str(episode_id["stry_sq"])}?mbssn_key="
+            
+        metainfo_json = self.session.get(metainfo_url, headers={"X-API-KEY": data_auth}).json()
+        return True, metainfo_json
