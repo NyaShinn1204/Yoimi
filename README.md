@@ -117,8 +117,8 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | Crunchyroll          | 🔄️      |  ✅  |
 | JFF Theater          |  X       |  ✅  |
 | WOWOW                | ✅      |   X   |
-| Bandai-Channel       | 🔄️      |   🔄️  |
-| Fanza                | ❌      |   ❌  |
+| Bandai-Channel       | ✅      |  ✅  |
+| Fanza                | ❌      |  ❌  |
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 

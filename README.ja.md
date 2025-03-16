@@ -117,8 +117,8 @@ Options:
 | Crunchyroll          | 🔄️      |  ✅  |
 | JFF Theater          |  X       |  ✅  |
 | WOWOW                | ✅      |   X   |
-| バンダイ-Channel     | 🔄️      |   🔄️  |
-| Fanza                | ❌      |   ❌  |
+| バンダイ-Channel     | ✅      |  ✅  |
+| Fanza                | ❌      |  ❌  |
 
 Abemaで問題が発生したら、urlの最後に"-v1"をつけてみてください。v1のモードでダウンローダーが動きます。
 
