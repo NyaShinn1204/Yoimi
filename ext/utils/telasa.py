@@ -1,3 +1,4 @@
+import re
 import uuid
 import boto3
 import boto3.session
@@ -104,3 +105,36 @@ class Telasa_downloader:
         aws_util = aws_function.aws_fun()
         self.session.headers.update({"Authorization": "Bearer "+aws_util.refresh_access_token(refresh_token, clientid)})
         return True
+    def get_id_type(self, url):
+        genre_list = []
+        more_info = []
+        match = re.search(r'/videos/(\d+)', url)
+        if match:
+            video_id = match.group(1)
+            payload = {"video_ids":[video_id]}
+            get_video_info = self.session.post("https://api-videopass-anon.kddi-video.com/v3/batch/query", json=payload, headers={"x-device-id": str(uuid.uuid4())}).json()
+            genre_tag = get_video_info["data"]["items"][0]["data"]["genres"]
+            more_info.append(get_video_info["data"]["items"][0]["data"]["year_of_production"])
+            more_info.append(get_video_info["data"]["items"][0]["data"]["copyright"])
+            #print(genre_tag)
+            for si in genre_tag:
+                if si["id"] == 280:
+                    genre_list.append("劇場")
+                else:
+                    for i in si["parent_genre"]:
+                        if i["id"] == 256:
+                            genre_list.append("ノーマルアニメ")
+            #if 280 in genre_tag:
+            #    genre_list.append("劇場")
+            #elif 256 in genre_tag:
+            #    genre_list.append("ノーマルアニメ")
+            return True, genre_list, more_info
+        return False, None, None
+    def get_title_parse_single(self, url):
+        match = re.search(r'/videos/(\d+)', url)
+        if match:
+            video_id = match.group(1)
+            payload = {"video_ids":[video_id]}
+            get_video_info = self.session.post("https://api-videopass-anon.kddi-video.com/v3/batch/query", json=payload, headers={"x-device-id": str(uuid.uuid4())}).json()
+            return True, get_video_info["data"]["items"][0]
+        return False, None

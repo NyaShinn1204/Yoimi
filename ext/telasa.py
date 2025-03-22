@@ -1,3 +1,4 @@
+import re
 import time
 import yaml
 import logging
@@ -66,12 +67,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt Encrypte Content for Everyone", extra={"service_name": "Yoimi"})
         
-        unext_downloader = telasa.Telasa_downloader(session)
+        telasa_downloader = telasa.Telasa_downloader(session)
         
         if email and password != None:
             if config["authorization"]["use_token"]:
                 if config["authorization"]["token"] != "":
-                    status, message, response_user = unext_downloader.check_token(config["authorization"]["token"])
+                    status, message, response_user = telasa_downloader.check_token(config["authorization"]["token"])
                     if status == False:
                         logger.error(message, extra={"service_name": __service_name__})
                         exit(1)
@@ -86,7 +87,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.error("Please input token", extra={"service_name": __service_name__})
                     exit(1)
             else:
-                status, message, response_user = unext_downloader.authorize(email, password)
+                status, message, response_user = telasa_downloader.authorize(email, password)
                 try:
                     logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": __service_name__})
                 except:
@@ -101,6 +102,65 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     login_status = True
         else:
             login_status = False
+            
+        if url.__contains__("videos"):
+            # single episode mode
+            logger.info("Get Video Type for URL", extra={"service_name": __service_name__})
+            status_id, id_type, more_info = telasa_downloader.get_id_type(url)
+            if status_id == False:
+                logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
+                exit(1)
+            logger.info(f" + Video Type: {id_type[0]} Info: {more_info}", extra={"service_name": __service_name__})
+            production_year = more_info[0]
+            copyright = more_info[1]
+            
+            
+            logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
+            status, message = telasa_downloader.get_title_parse_single(url)
+            if status == False:
+                logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
+                exit(1)
+            
+            title_name = re.sub(r"\s*第\d+話", "", message["data"]["name"])
+                
+            if id_type[0] == "ノーマルアニメ":
+                format_string = config["format"]["anime"].replace("_{titlename}", "")
+                values = {
+                    "seriesname": title_name,
+                    "episodename": message["data"].get("subtitle", "")
+                }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
+            if id_type[0] == "劇場":
+                format_string = config["format"]["movie"]
+                if message["data"].get("subtitle", "") == None:
+                    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                    values = {
+                        "seriesname": title_name,
+                    }
+                else:
+                    values = {
+                        "seriesname": title_name,
+                        "episodename": message["data"].get("subtitle", "")
+                    }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
+            logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+        elif url.__contains__("series"):
+            # season episode mode
+            return
+        else:
+            # IDK WTF
+            return
+            
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
