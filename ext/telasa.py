@@ -1,7 +1,9 @@
+import os
 import re
 import time
 import yaml
 import logging
+import shutil
 from urllib.parse import urljoin
 from rich.console import Console
 
@@ -234,8 +236,35 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     temp_segment_link.replace("$Number$", str(single_segment)).replace("$RepresentationID$/",""))
                 audio_segment_links.append(temp_link)
             
-            print(video_segment_links)
-            print(audio_segment_links)
+            logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+            
+            telasa_downloader.download_segment(video_segment_links, config, unixtime, "download_encrypt_video.mp4")
+            telasa_downloader.download_segment(audio_segment_links, config, unixtime, "download_encrypt_audio.mp4")
+            
+            logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+            
+            telasa.Telasa_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
+            telasa.Telasa_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
+            
+            telasa.Telasa_decrypt.decrypt_all_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
+            
+            logger.info("Muxing Episode...", extra={"service_name": __service_name__})
+            
+            result = telasa_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), config, unixtime, title_name, int(episode_duration))
+            dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+            if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                for filename in os.listdir(dir_path):
+                    file_path = os.path.join(dir_path, filename)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                    except Exception as e:
+                        print(f"削除エラー: {e}")
+            else:
+                print(f"指定されたディレクトリは存在しません: {dir_path}")
+            logger.info('Finished download: {}'.format(title_name), extra={"service_name": __service_name__})
             
             if login_status:
                 a = session.put("https://api-videopass.kddi-video.com/v1/users/me/videos/played/"+str(message["data"]["id"])+"/1")
