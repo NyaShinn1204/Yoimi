@@ -17,6 +17,7 @@ from ext import nhk_plus as Nhk_plus
 from ext import jff_theater as Jff_Theater
 from ext import wowow as WOD_Wowow
 from ext import bandai_ch as Bandai_ch
+from ext import telasa as Telasa
 
 __version__ = "1.1.1"
 
@@ -36,6 +37,7 @@ def get_parser(url):
     valid_anime3rb = r'^["\']?http(?:|s)://anime3rb\.com/(?:titles|episode)/([\w-]+)/.*|search\?q=[^"\']+["\']?$'
     valid_crunchyroll = r'^["\']?https?://www\.crunchyroll\.com/(series|watch)/[^/]+/[^"\']+["\']?$'
     valid_b_ch = r'^["\']?https?://www\.b-ch\.com/titles/\d+(/\d+)?/?["\']?$'
+    valid_telasa = r'^["\']?http(?:s)?://(?:www\.)?telasa\.jp/(?:videos|play)/\d+["\']?$'
     
     if re.match(valid_abema, url) and url.__contains__("-v1"):
         return AbemaTV, "abemav1"
@@ -65,6 +67,8 @@ def get_parser(url):
         return WOD_Wowow, "WOD-WOWOW"
     elif re.match(valid_b_ch, url):
         return Bandai_ch, "Bandai-Ch"
+    elif re.match(valid_telasa, url):
+        return Telasa, "Telasa"
     return None, None
 
 def version_check(session):
