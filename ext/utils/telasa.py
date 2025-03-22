@@ -8,6 +8,36 @@ from botocore.exceptions import ClientError
 
 import ext.utils.telasa_util.aws_function as aws_function
 
+class Telasa_license:
+    def license_vd_ad(pssh, session, playback_token):
+        _WVPROXY = "https://license.kddi-video.com/"
+        from pywidevine.cdm import Cdm
+        from pywidevine.device import Device
+        from pywidevine.pssh import PSSH
+        device = Device.load(
+            "./l3.wvd"
+        )
+        cdm = Cdm.from_device(device)
+        session_id = cdm.open()
+    
+        challenge = cdm.get_license_challenge(session_id, PSSH(pssh))
+        response = session.post(f"{_WVPROXY}", data=bytes(challenge), headers={"x-custom-data": f"token_type=playback&token_value={playback_token}&widevine_security_level=L3"})
+        response.raise_for_status()
+    
+        cdm.parse_license(session_id, response.content)
+        keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id)
+        ]
+    
+        cdm.close(session_id)
+                
+        keys = {
+            "key": keys,
+        }
+        
+        return keys
+
 class Telasa_downloader:
     def __init__(self, session):
         self.session = session
