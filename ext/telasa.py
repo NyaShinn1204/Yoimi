@@ -78,6 +78,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         exit(1)
                     else:
                         session.headers.update({"Authorization": config["authorization"]["token"]})
+                        subscribed_plan = response_user["had_subscribed"]
                         logger.debug("Get Token: "+config["authorization"]["token"], extra={"service_name": __service_name__})
                         logger.info("Loggined Account", extra={"service_name": __service_name__})
                         logger.info(" + ID: "+str(response_user["id"]), extra={"service_name": __service_name__})
@@ -96,6 +97,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.error(message, extra={"service_name": __service_name__})
                     exit(1)
                 else:
+                    subscribed_plan = response_user["had_subscribed"]
                     logger.info("Loggined Account", extra={"service_name": __service_name__})
                     logger.info(" + ID: "+str(response_user["id"]), extra={"service_name": __service_name__})
                     logger.info(" + Subscribed: "+str(response_user["had_subscribed"]), extra={"service_name": __service_name__})
@@ -153,7 +155,27 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     missing_key = e.args[0]
                     values[missing_key] = ""
                     title_name_logger = format_string.format(**values)
-            logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+            logger.info(f" + {title_name_logger} | Status: {more_info[2]}", extra={"service_name": __service_name__})
+            
+            if more_info[2] == "PREMIUM" and subscribed_plan != False:
+                logger.warning("This episode require: SUBSCRIBE, Skipping...", extra={"service_name": __service_name__})
+                return
+            
+            logger.info("Get playback token", extra={"service_name": __service_name__})
+            token = telasa_downloader.get_playback_token(message["data"]["id"])
+            logger.info(" + "+token[:12]+"....", extra={"service_name": __service_name__})
+            logger.debug(" + "+token, extra={"service_name": __service_name__})
+            
+            logger.info("Get streaming link", extra={"service_name": __service_name__})
+            manifest_list = telasa_downloader.get_streaming_link(message["data"]["id"], token)
+            dash_manifest = next((m for m in manifest_list["data"]["manifests"] if m["protocol"] == "dash"), None)
+            hd_url = next((item["url"] for item in dash_manifest["items"] if item["name"] == "hd"), None) if dash_manifest else None
+            logger.info(" + "+hd_url[:70]+"....", extra={"service_name": __service_name__})
+            logger.debug(" + "+hd_url, extra={"service_name": __service_name__})
+            
+            if login_status:
+                a = session.put("https://api-videopass.kddi-video.com/v1/users/me/videos/played/"+str(message["data"]["id"])+"/1")
+                #print(a.json())
         elif url.__contains__("series"):
             # season episode mode
             return

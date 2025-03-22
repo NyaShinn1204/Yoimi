@@ -1,5 +1,5 @@
 import os
-import parser
+import parser as parser
 
 parser_for_mpd = parser.global_parser()
 

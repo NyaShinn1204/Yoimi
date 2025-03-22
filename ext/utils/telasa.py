@@ -11,6 +11,7 @@ import ext.utils.telasa_util.aws_function as aws_function
 class Telasa_downloader:
     def __init__(self, session):
         self.session = session
+        self.session.headers.update({"X-Device-Id": str(uuid.uuid4())})
     def authorize(self, email_or_id, password):
         x_device_id = str(uuid.uuid4())
         self.session.headers.update({
@@ -116,6 +117,14 @@ class Telasa_downloader:
             genre_tag = get_video_info["data"]["items"][0]["data"]["genres"]
             more_info.append(get_video_info["data"]["items"][0]["data"]["year_of_production"])
             more_info.append(get_video_info["data"]["items"][0]["data"]["copyright"])
+            button_data = get_video_info["data"]["items"][0]["video_button_status"]["button_licenses"]
+            if "freemium" in str(button_data):
+                for i in button_data:
+                    if i["license"] == "freemium":
+                        episode_type = "FREE"
+            else:
+                episode_type = "PREMIUM"
+            more_info.append(episode_type)
             #print(genre_tag)
             for si in genre_tag:
                 if si["id"] == 280:
@@ -138,3 +147,11 @@ class Telasa_downloader:
             get_video_info = self.session.post("https://api-videopass-anon.kddi-video.com/v3/batch/query", json=payload, headers={"x-device-id": str(uuid.uuid4())}).json()
             return True, get_video_info["data"]["items"][0]
         return False, None
+    def get_playback_token(self, id):
+        payload = {"query":"{ playbackToken( item_id: "+str(id)+", item_type: Mezzanine ) { token expires_at license_id } }"}
+        playback_token = self.session.post("https://playback.kddi-video.com/graphql", json=payload).json()["data"]["playbackToken"]["token"]
+        return playback_token
+    def get_streaming_link(self, id, playback_token):
+        payload = {"query":"{ manifests( item_id: \""+str(id)+"\", item_type: Mezzanine, playback_token: \""+playback_token+"\" ) { protocol items { name url } } subtitles( id: \""+str(id)+"\", playback_token: \""+playback_token+"\" ) { language url } mezzanine( id: \""+str(id)+"\" ) { id title time { last_played duration endStart }, recommend { previous { id title images { url } } next { id title images { url } } }, video { id } } thumbnailSeekings( id: \""+str(id)+"\", playback_token: \""+playback_token+"\" ) { quality url } }"}
+        streaming_list = self.session.post("https://playback.kddi-video.com/graphql", json=payload).json()
+        return streaming_list

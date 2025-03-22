@@ -2,13 +2,15 @@ import re
 import xml.etree.ElementTree as ET
 
 class global_parser:
-    def mpd_parser(self, mpd_content):
+    def mpd_parser(self, mpd_content, debug=False):
         root = ET.fromstring(mpd_content)
         ns = {'mpd': 'urn:mpeg:dash:schema:mpd:2011', 'cenc': 'urn:mpeg:cenc:2013', 'mspr': 'urn:microsoft:playready'}
     
         # BaseURLの取得（存在しない場合は None）
         base_url_elem = root.find('mpd:BaseURL', ns)
         base_url = base_url_elem.text if base_url_elem is not None else ""
+        if debug:
+            print(f"BaseURL: {base_url}")
     
         # PSSH情報を取得
         pssh_list = {}
@@ -16,89 +18,177 @@ class global_parser:
             scheme_id_uri = content_protection.attrib.get("schemeIdUri", "")
             pssh = content_protection.find("cenc:pssh", ns)
             if pssh is not None and pssh.text:
-                if "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed" in scheme_id_uri.lower():  # Widevine
-                    pssh_list["widevine"] = pssh.text
-                elif "9a04f079-9840-4286-ab92-e65be0885f95" in scheme_id_uri.lower():  # PlayReady
-                    pssh_list["playready"] = pssh.text
-                elif "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b" in scheme_id_uri.lower():  # W3C Cenc
-                    pssh_list["w3c_cenc"] = pssh.text
+                pssh_text = pssh.text.replace('\n', '').strip()
+                if "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed" in scheme_id_uri.lower(): # Widevine
+                    pssh_list["widevine"] = pssh_text
+                elif "9a04f079-9840-4286-ab92-e65be0885f95" in scheme_id_uri.lower(): # PlayReady
+                    pssh_list["playready"] = pssh_text
+                elif "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b" in scheme_id_uri.lower(): # W3C Cenc
+                    pssh_list["w3c_cenc"] = pssh_text
+        if debug:
+            print(f"PSSH List: {pssh_list}")
     
-        # ビデオトラック情報
+        # トラック情報
         video_tracks = []
-        for adaptation_set in root.findall(".//mpd:AdaptationSet[@mimeType='video/mp4']", ns):
-            segment_template_adaptation_set = adaptation_set.find("mpd:SegmentTemplate", ns)
-            for representation in adaptation_set.findall("mpd:Representation", ns):
-                width = representation.attrib.get("width")
-                height = representation.attrib.get("height")
-                bitrate = int(representation.attrib.get("bandwidth", 0)) / 1000
-                codec = representation.attrib.get("codecs", "")
-                rep_id = representation.attrib.get("id")  # IDを取得
-    
-                segment_template = representation.find("mpd:SegmentTemplate", ns)
-                if segment_template is None:
-                    segment_template = segment_template_adaptation_set
-    
-                if segment_template is not None:
-                    init = segment_template.attrib.get("initialization", "")
-                    url = f"{base_url}{init}" if base_url else init
-                    url_base = "/".join(url.split("/")[:-1]) + "/" if url.split("/")[:-1] else ""
-                    segment_base = re.sub(r'^(audio|video)/[0-9a-f-]+/', '', segment_template.attrib.get("media", ""))
-    
-                    segment_duration = segment_template.attrib.get("duration", "404_notfound")
-                    timescale = segment_template.attrib.get("timescale", "404_notfound")
-    
-                    track_info = {
-                        "seg_duration": segment_duration,
-                        "seg_timescale": timescale,
-                        "resolution": f"{width}x{height}",
-                        "bitrate": str(int(bitrate)),
-                        "codec": codec,
-                        "url": url,
-                        "url_base": url_base,
-                        "url_segment_base": segment_base
-                    }
-    
-                    if rep_id:
-                        track_info["id"] = rep_id  # IDがある場合に追加
-    
-                    video_tracks.append(track_info)
-    
-        # オーディオトラック情報
         audio_tracks = []
-        for adaptation_set in root.findall(".//mpd:AdaptationSet[@mimeType='audio/mp4']", ns):
+        for adaptation_set in root.findall(".//mpd:AdaptationSet", ns):
+            if debug:
+                print("Found AdaptationSet")
+            mime_type = adaptation_set.attrib.get("mimeType", "")
+            if debug:
+                print(f"AdaptationSet MIME Type: {mime_type}")
             segment_template_adaptation_set = adaptation_set.find("mpd:SegmentTemplate", ns)
-            for representation in adaptation_set.findall("mpd:Representation", ns):
-                bandwidth = int(representation.attrib.get("bandwidth", "0")) / 1000
-                codec = representation.attrib.get("codecs", "")
-                rep_id = representation.attrib.get("id")  # IDを取得
+            if segment_template_adaptation_set is not None and debug:
+                print("Found AdaptationSet SegmentTemplate")
     
-                segment_template = representation.find("mpd:SegmentTemplate", ns)
-                if segment_template is None:
-                    segment_template = segment_template_adaptation_set
+            # AdaptationSetにmimeTypeが指定されている場合の処理
+            if "video/mp4" in mime_type or "audio/mp4" in mime_type:
+                for representation in adaptation_set.findall("mpd:Representation", ns):
+                    if debug:
+                        print("Found Representation")
+                    rep_id = representation.attrib.get("id")  # IDを取得
+                    if debug:
+                        print(f"Representation ID: {rep_id}")
+                    segment_template = representation.find("mpd:SegmentTemplate", ns)
+                    if segment_template is None:
+                        segment_template = segment_template_adaptation_set
     
-                if segment_template is not None:
-                    init = segment_template.attrib.get("initialization", "")
-                    url = f"{base_url}{init}" if base_url else init
-                    url_base = "/".join(url.split("/")[:-1]) + "/" if url.split("/")[:-1] else ""
-                    segment_base = re.sub(r'^(audio|video)/[0-9a-f-]+/', '', segment_template.attrib.get("media", ""))
+                    if segment_template is not None:
+                        if debug:
+                            print("Found SegmentTemplate")
+                        init = segment_template.attrib.get("initialization", "")
+                        url = f"{base_url}{init}" if base_url else init
+                        url_base = "/".join(url.split("/")[:-1]) + "/" if url.split("/")[:-1] else ""
+                        segment_base = re.sub(r'^(audio|video)/[0-9a-f-]+/', '', segment_template.attrib.get("media", ""))
     
-                    segment_duration = segment_template.attrib.get("duration", "404_notfound")
-                    timescale = segment_template.attrib.get("timescale", "404_notfound")
+                        segment_duration = segment_template.attrib.get("duration", "404_notfound")
+                        timescale = segment_template.attrib.get("timescale", "404_notfound")
     
-                    track_info = {
-                        "seg_duration": segment_duration,
-                        "seg_timescale": timescale,
-                        "bitrate": str(int(bandwidth)),
-                        "codec": codec,
-                        "url": url,
-                        "url_base": url_base,
-                        "url_segment_base": segment_base
-                    }
+                        track_info = {
+                            "seg_duration": segment_duration,
+                            "seg_timescale": timescale,
+                            "url": url,
+                            "url_base": url_base,
+                            "url_segment_base": segment_base
+                        }
+                        if rep_id:
+                            track_info["id"] = rep_id  # IDがある場合に追加
     
-                    if rep_id:
-                        track_info["id"] = rep_id  # IDがある場合に追加
+                        if "video/mp4" in mime_type:
+                            width = representation.attrib.get("width")
+                            height = representation.attrib.get("height")
+                            bitrate_str = representation.attrib.get("bandwidth", "0")
+                            codec = representation.attrib.get("codecs", "")
+                            try:
+                                bitrate = int(bitrate_str) / 1000
+                                if debug:
+                                    print(f"Video Bitrate: {bitrate}")
+                            except ValueError as e:
+                                print(f"ValueError: Invalid bandwidth value: {bitrate_str} - {e}")
+                                continue
     
-                    audio_tracks.append(track_info)
+                            track_info["resolution"] = f"{width}x{height}"
+                            track_info["bitrate"] = str(int(bitrate))
+                            track_info["codec"] = codec
+    
+                            video_tracks.append(track_info)
+                            if debug:
+                                print(f"Added Video Track: {track_info}")
+                        elif "audio/mp4" in mime_type:
+                            bandwidth_str = representation.attrib.get("bandwidth", "0")
+                            codec = representation.attrib.get("codecs", "")
+                            try:
+                                bandwidth = int(bandwidth_str) / 1000
+                                if debug:
+                                    print(f"Audio Bandwidth: {bandwidth}")
+                            except ValueError as e:
+                                print(f"ValueError: Invalid bandwidth value: {bandwidth_str} - {e}")
+                                continue
+    
+                            track_info["bitrate"] = str(int(bandwidth))
+                            track_info["codec"] = codec
+    
+                            audio_tracks.append(track_info)
+                            if debug:
+                                print(f"Added Audio Track: {track_info}")
+                    else:
+                        if debug:
+                            print("SegmentTemplate not found")
+            else:  # AdaptationSetにmimeTypeが指定されていない場合の処理
+                for representation in adaptation_set.findall("mpd:Representation", ns):
+                    if debug:
+                        print("Found Representation")
+                    representation_mime_type = representation.attrib.get("mimeType", "")
+                    if debug:
+                        print(f"Representation MIME Type: {representation_mime_type}")
+                    rep_id = representation.attrib.get("id")  # IDを取得
+                    if debug:
+                        print(f"Representation ID: {rep_id}")
+                    segment_template = representation.find("mpd:SegmentTemplate", ns)
+                    if segment_template is None:
+                        segment_template = segment_template_adaptation_set
+
+                    if segment_template is not None:
+                        if debug:
+                            print("Found SegmentTemplate")
+                        init = segment_template.attrib.get("initialization", "")
+                        url = f"{base_url}{init}" if base_url else init
+                        url_base = "/".join(url.split("/")[:-1]) + "/" if url.split("/")[:-1] else ""
+                        segment_base = re.sub(r'^(audio|video)/[0-9a-f-]+/', '', segment_template.attrib.get("media", ""))
+
+                        segment_duration = segment_template.attrib.get("duration", "404_notfound")
+                        timescale = segment_template.attrib.get("timescale", "404_notfound")
+
+                        track_info = {
+                            "seg_duration": segment_duration,
+                            "seg_timescale": timescale,
+                            "url": url,
+                            "url_base": url_base,
+                            "url_segment_base": segment_base
+                        }
+                        if rep_id:
+                            track_info["id"] = rep_id  # IDがある場合に追加
+
+                        if "video/mp4" in representation_mime_type:
+                            width = representation.attrib.get("width")
+                            height = representation.attrib.get("height")
+                            bitrate_str = representation.attrib.get("bandwidth", "0")
+                            codec = representation.attrib.get("codecs", "")
+                            try:
+                                bitrate = int(bitrate_str) / 1000
+                                if debug:
+                                    print(f"Video Bitrate: {bitrate}")
+                            except ValueError as e:
+                                print(f"ValueError: Invalid bandwidth value: {bitrate_str} - {e}")
+                                continue
+
+                            track_info["resolution"] = f"{width}x{height}"
+                            track_info["bitrate"] = str(int(bitrate))
+                            track_info["codec"] = codec
+
+                            video_tracks.append(track_info)
+                            if debug:
+                                print(f"Added Video Track: {track_info}")
+                        elif "audio/mp4" in representation_mime_type:
+                            bandwidth_str = representation.attrib.get("bandwidth", "0")
+                            codec = representation.attrib.get("codecs", "")
+                            try:
+                                bandwidth = int(bandwidth_str) / 1000
+                                if debug:
+                                    print(f"Audio Bandwidth: {bandwidth}")
+                            except ValueError as e:
+                                print(f"ValueError: Invalid bandwidth value: {bandwidth_str} - {e}")
+                                continue
+
+                            track_info["bitrate"] = str(int(bandwidth))
+                            track_info["codec"] = codec
+
+                            audio_tracks.append(track_info)
+                            if debug:
+                                print(f"Added Audio Track: {track_info}")
+                    else:
+                        if debug:
+                            print("SegmentTemplate not found")
     
         more_info = self.extract_mpd_attributes(mpd_content)
     
