@@ -267,7 +267,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info('Finished download: {}'.format(title_name), extra={"service_name": __service_name__})
             
             if login_status:
-                a = session.put("https://api-videopass.kddi-video.com/v1/users/me/videos/played/"+str(message["data"]["id"])+"/1")
+                send_stop = session.put("https://api-videopass.kddi-video.com/v1/users/me/videos/played/"+str(message["data"]["id"])+"/1")
                 #print(a.json())
         elif url.__contains__("series"):
             # season episode mode

@@ -200,26 +200,24 @@ class Dmm_TV_downloader:
             user_info_res = self.session.post(_ENDPOINT_CC, json=user_info_query)
 
             auth_success = True
-
+            user_id = user_info_res.json()["data"]["user"]["id"]
             self.session.headers.update(
                 {
                     "x-app-name": "android_2d",
                     "x-app-ver": "v4.0.0",
-                    "x-exploit-id": "uid:4OOoRg8Nqkdbzm71",
+                    "x-exploit-id": "uid:"+user_id,
                     "host": "video.digapi.dmm.com",
                     "connection": "Keep-Alive",
                     "accept-encoding": "gzip",
                     "user-agent": "okhttp/4.12.0",
                 }
             )
-
-            user_id = user_info_res.json()["data"]["user"]["id"]
             return True, user_info_res.json()["data"]["user"]
         except Exception as e:
             return False, e
 
     def check_token(self, token):
-        global user_id
+        global user_id, _AUTHKEY_SECRET
         _ENDPOINT_CC = "https://api.tv.dmm.com/graphql"
         res = self.session.post(
             _ENDPOINT_CC,
@@ -227,11 +225,25 @@ class Dmm_TV_downloader:
                 "operationName": "GetServicePlan",
                 "query": "query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }",
             },
-            headers={"Authorization": token},
+            headers={"Authorization": "Bearer "+token},
         )
         if res.status_code == 200:
             if res.json()["data"] != None:
                 user_id = res.json()["data"]["user"]["id"]
+                #self.session.headers.update({"Authorization": "Bearer "+token})
+                #self.session.headers.update({"x-exploit-id": "uid:"+user_id})
+                self.session.headers.update({
+                    "user-agent": "okhttp/4.12.0",
+                    "accept-encoding": "gzip",
+                    "accept": "*/*",
+                    "connection": "Keep-Alive",
+                    "authorization": "Bearer "+token,
+                    "x-app-name": "android_2d",
+                    "x-app-ver": "v4.0.0",
+                    "x-exploit-id": "uid:"+user_id,
+                    "host": "video.digapi.dmm.com"
+                })
+                _AUTHKEY_SECRET = "hp2Y944L"
                 return True, res.json()["data"]["user"]
             else:
                 return False, "Invalid Token"
@@ -256,8 +268,8 @@ class Dmm_TV_downloader:
         if description_req.status_code == 404:
             description = None
         else:
-            script_tag = BeautifulSoup(description_req.context, "lxml").find(
-                "script", {"type": "application/ld+json"}
+            script_tag = BeautifulSoup(description_req.content, "lxml").find(
+                "script", {"tfype": "application/ld+json"}
             )
 
             if script_tag:
@@ -309,8 +321,10 @@ class Dmm_TV_downloader:
 
 test = Dmm_TV_downloader(requests.Session())
 
-status, message = test.authorize("", "")
-print(status, message)
+#status, message = test.authorize("1036909847@qq.com", "19980512abc")
+#print(status, message)
+
+status, message = test.check_token("")
 
 status, message = test.get_all_buyed_item()
 print(status, message["content_total"])
