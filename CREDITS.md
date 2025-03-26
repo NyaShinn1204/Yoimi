@@ -7,3 +7,4 @@ Yoimi is created by the following people (repositories):
 | comzsde           | WOWOW account sharing, Help with analysis                                                                    |
 | ToonsHub          | Help with nhk+ analysis                                                                                      |
 | rumia             | DMM tv account sharing                                                                                       |
+| yuki9431          | Bandai Login script, Help with analysis (repo: [link](https://github.com/yuki9431/scraper_gundam_mobile))    |
