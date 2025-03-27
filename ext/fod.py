@@ -73,21 +73,29 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         fod_downloader = fod.FOD_downloader(session)
         
-        status, message, uuid_cookie = fod_downloader.authorize(email, password)
-        try:
-            logger.debug("Get Token: "+session.headers["x-authorization"], extra={"service_name": __service_name__})
-        except:
-            logger.info("Failed to login", extra={"service_name": __service_name__})
-        if status == False:
-            logger.error(message, extra={"service_name": __service_name__})
-            exit(1)
+        if email and password != None:
+            status, message, uuid_cookie = fod_downloader.authorize(email, password)
+            try:
+                logger.debug("Get Token: "+session.headers["x-authorization"], extra={"service_name": __service_name__})
+            except:
+                logger.info("Failed to login", extra={"service_name": __service_name__})
+            if status == False:
+                logger.error(message, extra={"service_name": __service_name__})
+                exit(1)
+            else:
+                account_coin = str(message["user_coin"])
+                account_point = str(message["user_point"])
+                logger.info("Loggined Account", extra={"service_name": __service_name__})
+                logger.info(" + ID: "+message["member_id"], extra={"service_name": __service_name__})
+                logger.info(" + Coin: "+account_coin, extra={"service_name": __service_name__})
+                logger.info(" + Point: "+account_point, extra={"service_name": __service_name__})  
         else:
-            account_coin = str(message["user_coin"])
-            account_point = str(message["user_point"])
-            logger.info("Loggined Account", extra={"service_name": __service_name__})
-            logger.info(" + ID: "+message["member_id"], extra={"service_name": __service_name__})
-            logger.info(" + Coin: "+account_coin, extra={"service_name": __service_name__})
-            logger.info(" + Point: "+account_point, extra={"service_name": __service_name__})        
+            status, message = fod_downloader.gen_temptoken()
+            if status == False:
+                logger.error(message, extra={"service_name": __service_name__})
+                exit(1)
+            else:
+                logger.info("Using Temp Account", extra={"service_name": __service_name__})
         #episode_id = "70v8110012"
         #unixtime = str(int(time.time() * 1000))
         #uuid_here = uuid_cookie

@@ -1,5 +1,6 @@
 import re
 import os
+import jwt
 import time
 import subprocess
 from lxml import etree
@@ -481,6 +482,43 @@ class FOD_downloader:
             return True, user_info_res.json(), user_info_res.cookies.get("uuid")
         else:
             return False, "Authentication Failed: Failed to get user_status_2", None
+    def gen_temptoken(self):
+        secret_key = "II1pq1aFylVZNASr0mea7zXFOhrAPZURZp6Ru3LuqqsUVZ4lyJj2R4kufetQN9mx" # Haha cracked from AndroidTV APK
+        device_type = "androidTV"
+        device_id = "google_google_aosp tv on x86_13"
+        
+        payload = {
+            "iss": "FOD",
+            "dv_type": device_type,
+            "dv_id": device_id,
+        }
+        
+        jwt_token = jwt.encode(payload, secret_key, algorithm='HS256')
+        headers_xauth = {
+            "host": "fod.fujitv.co.jp",
+            "connection": "keep-alive",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "accept": "application/json, text/plain, */*",
+            "sec-ch-ua": "\"Brave\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-gpc": "1",
+            "accept-language": "ja;q=0.9",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "https://fod.fujitv.co.jp/loginredir?r=",
+            "accept-encoding": "gzip, deflate, br, zstd",
+        }
+        self.session.headers.update({'X-Authorization': 'Bearer ' + jwt_token})
+        self.web_headers = headers_xauth
+        self.web_headers["referer"] = "https://fod.fujitv.co.jp/"
+        self.web_headers["origin"] = "https://fod.fujitv.co.jp"
+        self.web_headers["host"] = "i.fod.fujitv.co.jp"
+        self.web_headers["sec-fetch-site"] = "same-site"
+        self.web_headers["X-Authorization"] = "Bearer " + jwt_token
+        
+        return True, None
 
     def get_title_parse_single(self, url):
         matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
