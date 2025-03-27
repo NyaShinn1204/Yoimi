@@ -111,7 +111,7 @@ Options:
 | U-Next               | ✅      |  ｘ   |
 | Dmm-TV               | ✅      |  🔄️  |
 | Dアニメ              | 🔄️      |  🔄️  |
-| FOD                  | ✅      |  ｘ   | (V2 is currently being created)
+| FOD                  | ✅      |  ｘ   | (V2を現在作成中)
 | NHK+                 | ✅      |  ✅  |
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
@@ -121,6 +121,9 @@ Options:
 | Fanza                | ❌      |  ❌  |
 
 Abemaで問題が発生したら、urlの最後に"-v1"をつけてみてください。v1のモードでダウンローダーが動きます。
+
+FOD V2を現在作成中です。
+FOD V2はHD対応のAndroid TV版です。
 
 ## 既存の問題
 
