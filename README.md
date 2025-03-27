@@ -111,7 +111,7 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | U-Next               | ✅      |   X   |
 | Dmm-TV               | ✅      |  🔄️  |
 | Danime               | 🔄️      |  🔄️  |
-| FOD                  | ✅      |   X   |
+| FOD                  | ✅      |   X   | (V2 is currently being created)
 | NHK+                 | ✅      |  ✅  | 
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
@@ -121,6 +121,8 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | Fanza                | ❌      |  ❌  |
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
+
+FOD V2 is a new Android TV version that will be HD compatible using the new Android TV version API.
 
 ## Existing Issues
 

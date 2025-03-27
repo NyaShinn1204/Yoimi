@@ -1,0 +1,8 @@
+1. install Android TV 13 x86 emulator.
+2. download rootavd(https://gitlab.com/nwebit/rootAVD) (please see #android-tv section)
+3. run rootavd (same api version method)
+4. Update magisk.
+5. Install magisk cert-fixer (https://github.com/pwnlogs/cert-fixer)
+6. (maybe?) Install adb root (https://github.com/evdenis/adb_root)
+7. Run HTTP-Toolkit (avd mode).
+8. Happy hacking.

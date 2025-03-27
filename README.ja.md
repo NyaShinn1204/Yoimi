@@ -111,7 +111,7 @@ Options:
 | U-Next               | ✅      |  ｘ   |
 | Dmm-TV               | ✅      |  🔄️  |
 | Dアニメ              | 🔄️      |  🔄️  |
-| FOD                  | ✅      |  ｘ   |
+| FOD                  | ✅      |  ｘ   | (V2 is currently being created)
 | NHK+                 | ✅      |  ✅  |
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
