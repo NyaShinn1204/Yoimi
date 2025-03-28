@@ -382,8 +382,6 @@ class FOD_downloader:
         sent_mailcode = self.session.get(find_redirecturl.headers["Location"], headers=headers)
             
         if sent_mailcode.status_code == 200:
-            #print("[+] mail_auth headers: ", sent_mailcode.headers)
-            #print("[+] sent mail_auth_code")
             pass
         else:
             return False, "Authentication Failed: Email sent was failed", None
