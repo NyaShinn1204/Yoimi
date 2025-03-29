@@ -123,6 +123,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange, use_
         cookies = amazon_downloader.parse_cookie(profile)
         if not cookies:
             logger.error(f"Profile {profile} has no cookies", extra={"service_name": "Amazon"})
+            logger.error(f"Get cookie from `https://www.amazon.co.jp/gp/video/ontv/code`", extra={"service_name": "Amazon"})
             logger.error(f"Please Cookies to /cookies/amazon/default.txt (Netescape format)", extra={"service_name": "Amazon"})
             raise
         else:
