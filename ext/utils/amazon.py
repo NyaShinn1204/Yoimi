@@ -436,7 +436,7 @@ class Amazon_downloader:
             temp_json["year"] = card.get("releaseYear", "")
             titles.append(temp_json)
         else:
-            if not data["titleContent"]:
+            if not data.get("titleContent"):
                 episodes = data["episodeList"]["episodes"]
                 for episode in episodes:
                     details = episode["detail"]
