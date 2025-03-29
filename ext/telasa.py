@@ -270,9 +270,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 send_stop = session.put("https://api-videopass.kddi-video.com/v1/users/me/videos/played/"+str(message["data"]["id"])+"/1")
                 #print(a.json())
         elif url.__contains__("series"):
+            logger.error("I dont have telasa premium account. so this option is coming soon", extra={"service_name": __service_name__})
             # season episode mode
             return
         else:
+            logger.error("Unknown Pattern. Exiting...", extra={"service_name": __service_name__})
             # IDK WTF
             return
             
