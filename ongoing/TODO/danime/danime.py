@@ -67,7 +67,9 @@ class Download:
         }
         ab = requests.get("https://animestore.docomo.ne.jp/animestore/rest/WS010105", params=self.querystring, cookies=self.cookies, headers=header)
         get_temp_json = ab.json()
-
+        
+        if get_temp_json.get("data", None):
+            print("haha. cookie is invalid.")
         work_title = get_temp_json["data"]["workTitle"]
         onetimekey = get_temp_json["data"]["oneTimeKey"]
         get_mpd_content = requests.get(get_temp_json["data"]["contentUrls"]["highest"]).text
@@ -304,14 +306,14 @@ class Download:
         return hit
 
 if __name__ == "__main__":
-    #querystring = {
-    #    "viewType": 5,
-    #    "partId": 27146002,
-    #    "defaultPlay": 5
-    #}
-    #downloader = Download(querystring)
-    #downloader.downloader()
-    querystring = {}
+    querystring = {
+        "viewType": 5,
+        "partId": 27146002,
+        "defaultPlay": 5
+    }
     downloader = Download(querystring)
-    hit = downloader.get("状態異常")
-    downloader.series_downloader(hit[0]["workId"])
+    downloader.downloader()
+    #querystring = {}
+    #downloader = Download(querystring)
+    #hit = downloader.get("状態異常")
+    #downloader.series_downloader(hit[0]["workId"])
