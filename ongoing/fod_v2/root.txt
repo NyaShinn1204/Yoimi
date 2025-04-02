@@ -7,3 +7,14 @@
 7. (maybe?) Install adb root (https://github.com/evdenis/adb_root)
 8. Run HTTP-Toolkit (avd mode).
 9. Happy hacking.
+
+1. Android StudioからAndroid TV 13 x86 emulatorを作る
+2. 次のコマンドを実行する `emulator.exe @Android_TV_1080p_API_33 -writable-system` (実行場所は: c:\users\user\appdata\local\android\sdk\emulator)
+3. rootavd(https://gitlab.com/nwebit/rootAVD)をダウンロード (gitの#android-tv部分見ろ)
+4. rootavdを実行 (注意: 同じAPI versionが確認しろ！)
+5. magiskを実行(adb shell monkey -p com.topjohnwu.magisk -c android.intent.category.LAUNCHER 1).
+6. magiskを更新
+7. magisk cert-fixerをインストール (https://github.com/pwnlogs/cert-fixer)
+8. (多分?) adb rootをインストール (https://github.com/evdenis/adb_root)
+9. HTTP-Toolkitを実行 (avd mode).
+10. はっぴーくらっきんぐ
