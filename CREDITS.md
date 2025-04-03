@@ -10,3 +10,6 @@ Yoimi is created by the following people (repositories):
 | yuki9431          | Bandai Login script, Help with analysis (repo: [link](https://github.com/yuki9431/scraper_gundam_mobile))                                                               |
 | SocietyBox        | Help with abema tv DASH license decrypt (forum: [link](https://forum.videohelp.com/threads/414857-Help-me-to-download-this-video-from-abema#post2740694))               |
 | Frieren           | NHK + downloader ideas (like PSSH) (forum: [link](https://forum.videohelp.com/threads/415533-help-me-to-get-PSSH-from-NHK-Plus-and-convert-subtitles-to-normal-format)) |
+| Kamosika179       | Fanza Data Scrape (repo: [link](https://github.com/kamosika179/fanza_doujin_manga_and_audio_add_metadata))                                                              |
+| Syut9             | Test Telasa(dev module)                                                                                                                                                 |
+| shellcmd          | Help with fod hd                                                                                                                                                        |

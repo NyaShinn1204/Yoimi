@@ -78,11 +78,14 @@ def streams_list():
 @click.option('--only-download-comment', '-odc', 'use_odc', is_flag=True, default=False, help="Only Download Niconico Commment # Unsupported Anime3rb")
 
 # TODO
+@click.option('--get-subtitle', '-gsub', 'get_sub', is_flag=True, default=False, help="Coming soon")
+@click.option('--embed-sub', '-esub', 'embed_sub', is_flag=True, default=False, help="Coming soon")
+
+# TODO
 @click.option('--write-thumbnail', '-wthumb', 'write_thumbnail', is_flag=True, default=False, help="Coming soon")
 #@click.option('--write-description', '-wtdesc', 'write_description', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-thumbnail', '-ebthumb', 'embed_thumbnail', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-metadata', '-ebmeta', 'embed_metadata', is_flag=True, default=False, help="Coming soon")
-@click.option('--embed-subs', '-ebsubs', 'embed_subs', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-chapters', '-ebchap', 'embed_chapters', is_flag=True, default=False, help="Coming soon")
 
 # TODO: Coming Option list (maybe only available: abema or unext?)
@@ -94,7 +97,7 @@ def streams_list():
 # "--embed-metadata" // done for unext
 # "--embed-subs"     // maybe only availiable for nhk+ (but nkh+ is not done)
 # "--embed-chapters" // done for unext
-def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd, use_gnc, use_odc, write_thumbnail, embed_thumbnail, embed_metadata, embed_subs, embed_chapters):
+def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose, use_rd, use_gnc, use_odc, get_sub, embed_sub, write_thumbnail, embed_thumbnail, embed_metadata, embed_chapters):
     #print(input, username, password, proxy, res, resR, mux, muxfile, keep_, output, verbose)
     """
     Main command to access downloader
@@ -141,7 +144,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                 LOG_LEVEL = "DEBUG"
             else:
                 LOG_LEVEL = "INFO"
-            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, [__version__, use_rd, use_gnc, use_odc, write_thumbnail, embed_thumbnail, embed_metadata, embed_subs, embed_chapters])
+            yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, [__version__, use_rd, use_gnc, use_odc, write_thumbnail, embed_thumbnail, embed_metadata, embed_sub, get_sub, embed_chapters])
         except Exception as error:
             print(error)
     else:

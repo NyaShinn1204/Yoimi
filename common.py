@@ -19,7 +19,7 @@ from ext import wowow as WOD_Wowow
 from ext import bandai_ch as Bandai_ch
 from ext import telasa as Telasa
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 def get_parser(url):
     """

@@ -20,6 +20,7 @@ Currently, we have confirmed operation with the following devices
     - [Download](#basic-download)
     - [Supported Sites](#supported-sites)
 - [Existing Issues](#exsiting-issues)
+- [Credits](#credits)
 
 
 ## How to Install
@@ -111,7 +112,7 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 | U-Next               | ✅      |   X   |
 | Dmm-TV               | ✅      |  🔄️  |
 | Danime               | 🔄️      |  🔄️  |
-| FOD                  | ✅      |   X   | (V2 is currently being created)
+| FOD                  | ✅      |  ✅  |
 | NHK+                 | ✅      |  ✅  | 
 | Anime3rb             |  X       |  ✅  |
 | Crunchyroll          | 🔄️      |  ✅  |
@@ -122,9 +123,6 @@ Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 
-FOD V2 is currently being created.
-FOD V2 is the Android TV version with HD support.
-
 ## Existing Issues
 
 #### Decryption fails in Chinese environment
@@ -134,6 +132,10 @@ In this case, use the -rd option or the --random-directory option.
 #### Other
 
 Problem with occasional licensing failures and program stoppage
+
+## Credits
+
+Credits is [here](./CREDITS.md)!
 
 
 ## Have you found a problem?
@@ -148,4 +150,4 @@ Please contact us at
 > Yoimi is developed from the base part of a package called [Yuu](https://github.com/noaione/yuu). There are many similarities in the code
 > Yoimi also recommends that it be used for educational purposes only.
 
-<!-- https://discord.gg/e7G35TGjUv -->
+<!-- https://discord.gg/ReZT8E2F2j -->

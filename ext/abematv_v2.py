@@ -545,6 +545,26 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         play_res.append(temp)
                     resgex = re.compile(r'(\d*)(?:\/\w+.ts)')
             
+                    subtitles = []
+                    for media in r_all.media:
+                        if media.type == "SUBTITLES":
+                            subtitle_uri = base_link + media.uri
+                            sub_search_response = session.get(subtitle_uri)
+                            if sub_search_response.status_code == 200:
+                                tslist=re.findall('EXTINF:(.*),\n(.*)\n#',sub_search_response.text)
+                                subtitles.append({
+                                    "NAME": media.name,
+                                    "LANGUAGE": media.language,
+                                    "URI": "https://vod-abematv.akamaized.net"+tslist[0][1]
+                                })
+                    logger.info('Available subtitle:', extra={"service_name": __service_name__})
+                    print('{0: <{width}}{1: <{width}}'.format("   NAME", "LANGUAGE", width=16))
+                    if subtitles == []:
+                        print(">> Not Found Subtitles")
+                    else:
+                        for sub in subtitles:
+                            print('{0: <{width}}{1: <{width}}'.format('>> ' + sub['NAME'], sub['LANGUAGE'], width=16))
+                            
                     resolution_list = []
                     for resdata in play_res:
                         reswh, m3u8_uri = resdata
@@ -640,7 +660,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": __service_name__})
                     
                     output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
-                                        
+                    
+                    if (additional_info[8] or additional_info[7]) and not subtitles == []: # if get, or embed = true
+                        abema_downloader.download_subtitles(title_name, title_name_logger, subtitles, config, logger)       
+                    
                     try:
                         decrypt_module = getattr(abema, decrypt_type, None)
                         
@@ -805,7 +828,27 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         temp.append(base_link + r_p.uri)
                         play_res.append(temp)
                     resgex = re.compile(r'(\d*)(?:\/\w+.ts)')
-            
+                    
+                    subtitles = []
+                    for media in r_all.media:
+                        if media.type == "SUBTITLES":
+                            subtitle_uri = base_link + media.uri
+                            sub_search_response = session.get(subtitle_uri)
+                            if sub_search_response.status_code == 200:
+                                tslist=re.findall('EXTINF:(.*),\n(.*)\n#',sub_search_response.text)
+                                subtitles.append({
+                                    "NAME": media.name,
+                                    "LANGUAGE": media.language,
+                                    "URI": "https://vod-abematv.akamaized.net"+tslist[0][1]
+                                })
+                    logger.info('Available subtitle:', extra={"service_name": __service_name__})
+                    print('{0: <{width}}{1: <{width}}'.format("   NAME", "LANGUAGE", width=16))
+                    if subtitles == []:
+                        print(">> Not Found Subtitles")
+                    else:
+                        for sub in subtitles:
+                            print('{0: <{width}}{1: <{width}}'.format('>> ' + sub['NAME'], sub['LANGUAGE'], width=16))
+                    
                     resolution_list = []
                     for resdata in play_res:
                         reswh, m3u8_uri = resdata
@@ -901,6 +944,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": __service_name__})
                     
                     output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                    
+                    if (additional_info[8] or additional_info[7]) and not subtitles == []: # if get, or embed = true
+                        abema_downloader.download_subtitles(title_name, title_name_logger, subtitles, config, logger)
                     
                     try:
                         decrypt_module = getattr(abema, decrypt_type, None)
