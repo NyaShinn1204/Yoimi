@@ -289,10 +289,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         })
             logger.info('Available subtitle:', extra={"service_name": __service_name__})
             print('{0: <{width}}{1: <{width}}'.format("   NAME", "LANGUAGE", width=16))
-            for sub in subtitles:
-                if subtitles == []:
-                    print(">> Not Found Subtitles")
-                print('{0: <{width}}{1: <{width}}'.format('>> ' + sub['NAME'], sub['LANGUAGE'], width=16))
+            if subtitles == []:
+                print(">> Not Found Subtitles")
+            else:
+                for sub in subtitles:
+                    print('{0: <{width}}{1: <{width}}'.format('>> ' + sub['NAME'], sub['LANGUAGE'], width=16))
                 
             resgex = re.compile(r'(\d*)(?:\/\w+.ts)')
     
@@ -392,7 +393,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
             
-            if additional_info[8] or additional_info[7]: # if get, or embed = true
+            if (additional_info[8] or additional_info[7]) and not subtitles == []: # if get, or embed = true
                 abema_downloader.download_subtitles(title_name, title_name_logger, subtitles, config, logger)
                         
             try:
