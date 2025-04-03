@@ -19,6 +19,7 @@ import xml.etree.ElementTree as ET
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 
 import ext.utils.abema_util.decrypt_key as dash_decrypt
+import ext.utils.abema_util.decrypt_subtitle as sub_decrypt
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
@@ -699,3 +700,27 @@ class Abema_downloader:
                 pbar.n = 100
                 pbar.refresh()
             pbar.close()
+            
+    # hehe sub function
+    def download_subtitles(self, title_name, title_name_logger, subtitles, config, logger):
+        logger.info(f"Downloading Subtitles  | Total: {str(len(subtitles))} ", extra={"service_name": "Abema"})
+        #print(str(len(subtitles)))
+        #for single in subtitles:
+        #    print(single)
+        #exit(1)
+        with tqdm(total=len(subtitles), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{"Abema"}{COLOR_RESET} : ", unit="%") as pbar:
+            for i, f in enumerate(subtitles, start=1):
+                #with open(f, "rb") as infile:
+                #    outfile.write(infile.read())
+                #os.remove(f)
+                #pbar.set_postfix(file=f, refresh=True)
+                raw_subtitle = self.session.get(f["URI"]).content
+                decode_subtitle = sub_decrypt.parse_binary_content(raw_subtitle)
+                
+                output_sub_dr = os.path.join(config["directorys"]["Downloads"], title_name, "subtitle")
+                if not os.path.exists(output_sub_dr):
+                    os.makedirs(output_sub_dr, exist_ok=True)
+                
+                with open(os.path.join(output_sub_dr, title_name_logger+"_"+f["LANGUAGE"]+".vtt"), "wb") as infile:
+                    infile.write(decode_subtitle.encode())
+                pbar.update(1)

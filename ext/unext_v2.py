@@ -274,7 +274,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.error("Failed to Get Episode Playtoken", extra={"service_name": __service_name__})
                     exit(1)
                 else:
-                    if additional_info[6] or additional_info[8]:
+                    if additional_info[6] or additional_info[9]:
                         unext_downloader.create_ffmetadata(productionYear, [id_type, title_name, message.get("displayNo", ""), message.get("episodeName", "")], unixtime, additional_meta, message.get("displayNo", ""), message["duration"], message["introduction"], copyright, additional_info)
                     
                     logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
@@ -426,7 +426,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.error("Failed to Get Episode Playtoken", extra={"service_name": __service_name__})
                 exit(1)
             else:
-                if additional_info[6] or additional_info[8]:
+                if additional_info[6] or additional_info[9]:
                     unext_downloader.create_ffmetadata(productionYear, [id_type, title_name, message.get("displayNo", ""), message.get("episodeName", "")], unixtime, additional_meta, message.get("displayNo", ""), message["duration"], message["introduction"], copyright, additional_info)
                 logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
                 status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)

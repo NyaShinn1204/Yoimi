@@ -172,7 +172,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             user_id = message["profile"]["userId"]
             you_premium = False
         
-        decrypt_type = "dash" # hls or dash
+        decrypt_type = "hls" # hls or dash
         
         if url.__contains__("abema.app"):
             temp_url = session.get(url, allow_redirects=False)
@@ -279,31 +279,20 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             for media in r_all.media:
                 if media.type == "SUBTITLES":
                     subtitle_uri = base_link + media.uri
-                    # URIにアクセスしてEXTINFを抽出
                     sub_search_response = session.get(subtitle_uri)
                     if sub_search_response.status_code == 200:
                         tslist=re.findall('EXTINF:(.*),\n(.*)\n#',sub_search_response.text)
-                        #print(tslist[0][1]) # [('1420.085', '/vttpg/m2ts/25-283_s1_p1/1/1000304102.01jqqm76sk65fzpt0vnbmtpshz.E61G8WPJm9i/subtitles.vtt')]
                         subtitles.append({
                             "NAME": media.name,
                             "LANGUAGE": media.language,
-                            "URI": base_link+tslist[0][1]
+                            "URI": "https://vod-abematv.akamaized.net"+tslist[0][1]
                         })
-                        #lines = sub_search_response.text.splitlines()
-                        #for line in lines:
-                        #    if line.startswith("#EXTINF"):
-                        #        extinf_url = line.split(",")[1].strip()  # EXTINFのURLを取得
-                        #        subtitles.append({
-                        #            "NAME": media.name,
-                        #            "LANGUAGE": media.language,
-                        #            "URI": extinf_url
-                        #        })
             logger.info('Available subtitle:', extra={"service_name": __service_name__})
-            print('{0: <{width}}{1: <{width}}{2: <{width}}'.format("   NAME", "LANGUAGE", "URI", width=16))
+            print('{0: <{width}}{1: <{width}}'.format("   NAME", "LANGUAGE", width=16))
             for sub in subtitles:
                 if subtitles == []:
                     print(">> Not Found Subtitles")
-                print('{0: <{width}}{1: <{width}}{2: <{width}}'.format('>> ' + sub['NAME'], sub['LANGUAGE'], sub['URI'], width=16))
+                print('{0: <{width}}{1: <{width}}'.format('>> ' + sub['NAME'], sub['LANGUAGE'], width=16))
                 
             resgex = re.compile(r'(\d*)(?:\/\w+.ts)')
     
@@ -402,6 +391,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info('Estimated file size: {}'.format(filesize), extra={"service_name": __service_name__})
             
             output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+            
+            if additional_info[8] or additional_info[7]: # if get, or embed = true
+                abema_downloader.download_subtitles(title_name, title_name_logger, subtitles, config, logger)
                         
             try:
                 decrypt_module = getattr(abema, decrypt_type, None)

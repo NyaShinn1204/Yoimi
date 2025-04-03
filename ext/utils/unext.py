@@ -642,7 +642,7 @@ class Unext_downloader:
         ]
         
         # メタデータを追加する場合
-        if additional_info[6] or additional_info[8]:
+        if additional_info[6] or additional_info[9]:
             metadata_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, "metadata", f"{episode_number}_metadata.txt")
             base_command.extend(["-i", metadata_path, "-map_metadata", "2"])
         
@@ -972,7 +972,7 @@ class Unext_downloader:
             values[missing_key] = ""
             title = format_string.format(**values)
         #logger.info(f" + {title_name_logger}", extra={"service_name": "U-Next"})
-        if additional_info[8]:
+        if additional_info[9]:
             chapter_text = ""
             if chapter == [[]]:
                 pass
@@ -1006,7 +1006,7 @@ class Unext_downloader:
         # メタデータファイルの作成
         additional_meta = f"comment={comment}\ncopyright={copyright}\n"
         original_metadata = f";FFMETADATA1\ndate={productionYear}\ntitle={title}\n"+additional_meta+"\n"
-        if additional_info[8]:
+        if additional_info[9]:
             original_metadata = original_metadata + chapter_text
         filename = episode_number + "_metadata.txt"
         directory = os.path.join(self.config["directorys"]["Temp"], "content", unixtime, "metadata")

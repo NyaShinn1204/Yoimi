@@ -497,7 +497,7 @@ class Jff_downloader:
                 return re.sub(r'[<>"/\\|*]', "_", filename)
             output_name = os.path.join(config["directorys"]["Downloads"], sanitize_filename(title_name_logger+".mp4"))
         
-        if additional_info[6] or additional_info[8]:
+        if additional_info[6] or additional_info[9]:
             compile_command = [
                 "ffmpeg",
                 "-i", os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),  # 動画
