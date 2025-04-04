@@ -1,7 +1,7 @@
-import logging
 import os
-import shutil
 import sys
+import shutil
+import logging
 from datetime import datetime
 
 import click
@@ -51,7 +51,12 @@ def streams_list():
         "U-Next": ["Yes", "Yes", "Yes (JP)"],
         "DMM-tv": ["Yes", "Yes", "Unknown"],
         "FOD": ["Yes", "Yes", "Unknown"],
-        "Anime3rb": ["No", "No", "No"]
+        "NHK+": ["No", "Yes", "Unknown"],
+        "Anime3rb": ["No", "No", "No"],
+        "Crunchyroll": ["No", "Maybe", "Yes (US)"],
+        "Jff Theater": ["No", "No", "Yes (US)"],
+        "WOWOW": ["Yes", "Yes", "Unknown"],
+        "Bandai-Channel": ["No", "Yes", "Unknwon"],
     }
 
     print('[INFO] Supported website')
@@ -83,7 +88,6 @@ def streams_list():
 
 # TODO
 @click.option('--write-thumbnail', '-wthumb', 'write_thumbnail', is_flag=True, default=False, help="Coming soon")
-#@click.option('--write-description', '-wtdesc', 'write_description', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-thumbnail', '-ebthumb', 'embed_thumbnail', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-metadata', '-ebmeta', 'embed_metadata', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-chapters', '-ebchap', 'embed_chapters', is_flag=True, default=False, help="Coming soon")

@@ -5,8 +5,6 @@ import subprocess
 
 from tqdm import tqdm
 
-import re
-
 __version__ = "1.1.2"
 
 def get_parser(url):
