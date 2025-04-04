@@ -5,19 +5,7 @@ import subprocess
 
 from tqdm import tqdm
 
-from ext import *
-from ext import abematv_v2 as AbemaTV_v2
-from ext import unext_v2 as Unext_v2
-from ext import dmm_tv as Dmm_tv
-from ext import brainshark as Brainshark
-from ext import fod as FOD
-from ext import anime3rb as Anime3rb
-from ext import crunchyroll as Crunchyroll
-from ext import nhk_plus as Nhk_plus
-from ext import jff_theater as Jff_Theater
-from ext import wowow as WOD_Wowow
-from ext import bandai_ch as Bandai_ch
-from ext import telasa as Telasa
+import re
 
 __version__ = "1.1.2"
 
@@ -38,38 +26,55 @@ def get_parser(url):
     valid_crunchyroll = r'^["\']?https?://www\.crunchyroll\.com/(series|watch)/[^/]+/[^"\']+["\']?$'
     valid_b_ch = r'^["\']?https?://www\.b-ch\.com/titles/\d+(/\d+)?/?["\']?$'
     valid_telasa = r'^["\']?http(?:s)?://(?:www\.)?telasa\.jp/(?:videos|play)/\d+["\']?$'
-    
-    if re.match(valid_abema, url) and url.__contains__("-v1"):
+
+    if re.match(valid_abema, url) and "-v1" in url:
+        from ext import abematv as AbemaTV
         return AbemaTV, "abemav1"
     elif re.match(valid_abema, url):
+        from ext import abematv_v2 as AbemaTV_v2
         return AbemaTV_v2, "abema"
     elif re.match(valid_gyao, url):
+        from ext import gyao as GYAO
         return GYAO, "gyao"
     elif re.match(valid_aniplus, url):
+        from ext import aniplus as Aniplus
         return Aniplus, "aniplus"
     elif re.match(valid_unext, url):
+        from ext import unext_v2 as Unext_v2
         return Unext_v2, "unext"
     elif re.match(valid_dmm_tv, url):
+        from ext import dmm_tv as Dmm_tv
         return Dmm_tv, "dmm_tv"
     elif re.match(valid_brainshark, url):
+        from ext import brainshark as Brainshark
         return Brainshark, "brainshark"
     elif re.match(valid_fod, url):
+        from ext import fod as FOD
         return FOD, "fod"
-    elif re.match(valid_anime3rb, url) or url.__contains__("anime3rb.com/search?q="):
+    elif re.match(valid_anime3rb, url) or "anime3rb.com/search?q=" in url:
+        from ext import anime3rb as Anime3rb
         return Anime3rb, "anime3rb"
     elif re.match(valid_crunchyroll, url):
+        from ext import crunchyroll as Crunchyroll
         return Crunchyroll, "Crunchyroll"
-    elif url.__contains__("plus.nhk.jp"):
+    elif "plus.nhk.jp" in url:
+        from ext import nhk_plus as Nhk_plus
         return Nhk_plus, "NHK+"
-    elif url.__contains__("jff.jpf.go.jp"):
+    elif "jff.jpf.go.jp" in url:
+        from ext import jff_theater as Jff_Theater
         return Jff_Theater, "Jff Theater"
-    elif url.__contains__("wod.wowow.co.jp"):
+    elif "wod.wowow.co.jp" in url:
+        from ext import wowow as WOD_Wowow
         return WOD_Wowow, "WOD-WOWOW"
     elif re.match(valid_b_ch, url):
+        from ext import bandai_ch as Bandai_ch
         return Bandai_ch, "Bandai-Ch"
     elif re.match(valid_telasa, url):
+        from ext import telasa as Telasa
         return Telasa, "Telasa"
+
     return None, None
+
 
 def version_check(session):
     data = session.get("https://pastebin.com/raw/ajb3We1w").json()
