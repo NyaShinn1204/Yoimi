@@ -150,10 +150,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(f"Get Video, Audio, Sub Tracks:", extra={"service_name": __service_name__})
             track_data = Tracks.print_tracks(tracks)
             
-            print(tracks)
+            #print(tracks)
             print(track_data)
             
             get_best_track = Tracks.select_tracks(tracks)
+            
+            if (additional_info[8] or additional_info[7]) and not tracks["text_track"] == []: # if get, or embed = true
+                nhkplus_downloader.download_subtitles(title_name_logger, tracks["text_track"], config, logger)
             
             logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
             
