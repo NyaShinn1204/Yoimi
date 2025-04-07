@@ -19,7 +19,6 @@ from Crypto.Util.Padding import unpad
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse, parse_qs, unquote, urljoin
 
-import pytz  # pytz
 
 import ext.utils.abema_util.decrypt_subtitle as sub_decrypt
 
@@ -714,143 +713,77 @@ class NHKplus_downloader:
                 pbar.n = 100
                 pbar.refresh()
             pbar.close()
-    
-    def adjust_subtitle_timing(self, playlist_url, title_name, config, logger, sub_decrypt):
-        """
-        playlist.m3u8ファイルからVTTファイルをダウンロードし、字幕タイミングを調整して結合します。
-    
-        Args:
-            playlist_url (str): playlist.m3u8ファイルのURL
-            title_name (str): タイトル名
-            config (dict): 設定
-            logger: ロガー
-            sub_decrypt: vttファイルをutf-8にする関数
-        """
-    
-        logger.info(f"Downloading and Adjusting Subtitles from: {playlist_url}", extra={"service_name": "NHK+"})
-    
-        try:
-            response = requests.get(playlist_url)
-            response.raise_for_status()
-            playlist_content = response.text.splitlines()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to download playlist: {e}", extra={"service_name": "NHK+"})
-            return
-    
-        # 基本URLを抽出
-        base_url = playlist_url.rsplit('/', 1)[0] + '/'
-    
-        # 開始時間と字幕ファイル名のリスト
-        start_time = None
-        subtitle_files = []
-    
-        # プレイリストを解析
-        for i, line in enumerate(playlist_content):
-            line = line.strip()
-            if line.startswith("#EXT-X-MEDIA-SEQUENCE"):
-                pass
-            # 開始時間を取得
-            elif line.startswith("#"):
-              try:
-                start_time = re.search(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}\+\d{4})", line).group(1)
-                #datetime_obj = datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%f%z")
-                #print(datetime_obj)
-              except:
-                pass
-    
-            # 字幕ファイル名を取得
-            if line.endswith(".vtt"):
-                duration_line_index = i - 1
-                duration_line = playlist_content[duration_line_index]
-                duration_match = re.search(r"#EXTINF:([\d.]+),", duration_line)
-    
-                if duration_match:
-                    duration = float(duration_match.group(1))
-                else:
-                    duration = 0.0
-                    logger.warning(f"Duration not found for {line}. Setting duration to 0.", extra={"service_name": "NHK+"})
-    
-    
-                subtitle_files.append({"filename": line, "duration": duration})
-    
-        if not subtitle_files:
-            logger.warning("No subtitle files found in playlist.", extra={"service_name": "NHK+"})
-            return
-    
-    
-        # 字幕ファイルをダウンロードして結合
-        combined_subtitles = []
-        current_time = 0.0  # 開始からの経過時間
-    
-        with tqdm(total=len(subtitle_files), desc=f"[INFO] NHK+ : Combining subtitles", unit="file") as pbar:
-            for sub_file in subtitle_files:
-                vtt_filename = sub_file["filename"]
-                vtt_url = base_url + vtt_filename
-                duration = sub_file["duration"]
-    
-                try:
-                    vtt_resp = requests.get(vtt_url)
-                    vtt_resp.raise_for_status()
-                    vtt_content = sub_decrypt.parse_binary_content(vtt_resp.content)
-                except requests.exceptions.RequestException as e:
-                    logger.error(f"Failed to download VTT file {vtt_filename}: {e}", extra={"service_name": "NHK+"})
-                    continue
-    
-                # VTTコンテンツを解析してタイミングを調整
-                vtt_lines = vtt_content.splitlines()
-                adjusted_vtt_content = []
-                for line in vtt_lines:
-                    if "-->" in line:
-                        parts = line.split(" --> ")
-                        if len(parts) == 2:
-                            start_str, end_str = parts
-                            try:
-                                start_time_vtt = self.parse_vtt_time(start_str)
-                                end_time_vtt = self.parse_vtt_time(end_str)
-                                new_start_time = current_time + start_time_vtt
-                                new_end_time = current_time + end_time_vtt
-                                adjusted_line = self.format_time(new_start_time) + " --> " + self.format_time(new_end_time)
-                                adjusted_vtt_content.append(adjusted_line)
-                            except ValueError:
-                                adjusted_vtt_content.append(line)  # 変換失敗時は元の行を保持
-                    else:
-                        adjusted_vtt_content.append(line)
-    
-                combined_subtitles.extend(adjusted_vtt_content)
-                current_time += duration
-                pbar.update(1)
-    
-        # 出力ファイルに保存
-        output_filename = os.path.join(config["directorys"]["Downloads"], f"{title_name}.vtt")
-        try:
-            with io.open(output_filename, 'w', encoding='utf-8') as outfile:
-                outfile.write("WEBVTT\n\n")  # VTTファイルのヘッダー
-                for line in combined_subtitles:
-                    outfile.write(line + "\n")
-            logger.info(f"Combined subtitles saved to: {output_filename}", extra={"service_name": "NHK+"})
-        except Exception as e:
-            logger.error(f"Failed to save combined subtitles: {e}", extra={"service_name": "NHK+"})
-    
-    def parse_vtt_time(self, time_str):
-        """VTT形式の時間を秒数に変換する."""
-        parts = time_str.split(":")
-        hours = int(parts[0])
-        minutes = int(parts[1])
-        seconds, milliseconds = map(float, parts[2].split("."))
-        return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000
-    
-    
-    def format_time(self, seconds):
-        """秒数をVTT形式の時間文字列に変換する."""
-        hours = int(seconds // 3600)
-        minutes = int((seconds % 3600) // 60)
-        seconds = seconds % 60
-        return f"{hours:02}:{minutes:02}:{seconds:06.3f}"
 
     def download_subtitles(self, title_name, subtitles, config, logger):
         logger.info(f"Downloading Subtitles  | Total: {str(len(subtitles))} ", extra={"service_name": "NHK+"})
-        with tqdm(total=len(subtitles), desc=f"[INFO] NHK+ : ", unit="%") as pbar:
+        with tqdm(total=len(subtitles), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{"NHK+"}{COLOR_RESET} : ", unit="%") as pbar:
             for f in subtitles:
+                logger.debug("Parsing Subtitle...", extra={"service_name": "NHK+"})
                 playlist_url = f["url"]
-                self.adjust_subtitle_timing(playlist_url, title_name, config, logger, sub_decrypt)
-                pbar.update(1) # 1つのプレイリストを処理したらプログレスバーを更新
+                output_path = os.path.join(config["directorys"]["Downloads"], title_name+"-"+f["language"]+".vtt")
+                
+                
+                res = self.session.get(playlist_url)
+                res.raise_for_status()
+                lines = res.text.strip().splitlines()
+                
+                subtitles = []
+                duration = None
+                
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("#EXTINF:"):
+                        duration = float(line.split(":")[1].rstrip(','))
+                    elif line.endswith(".vtt") and duration is not None:
+                        vtt_url = urljoin(playlist_url, line)
+                        subtitles.append((vtt_url, duration))
+                        duration = None
+                
+                vtt_output_lines = []
+                timestamp_map_line = ""
+                current_time = 0.0
+                
+                for idx, (vtt_url, extinf_duration) in enumerate(subtitles):
+                    res = self.session.get(vtt_url)
+                    res.raise_for_status()
+                    vtt_lines = sub_decrypt.parse_binary_content(res.content).strip().splitlines()
+                
+                    if idx == 0:
+                        vtt_output_lines.append("WEBVTT")
+                        for line in vtt_lines:
+                            if line.startswith("X-TIMESTAMP-MAP="):
+                                timestamp_map_line = line
+                                vtt_output_lines.append(timestamp_map_line)
+                                break
+                        vtt_output_lines.append("")
+                
+                    cue_lines = []
+                    start_time = current_time
+                    end_time = current_time + extinf_duration
+                    current_time = end_time
+                
+                    def format_time(t):
+                        hours = int(t // 3600)
+                        minutes = int((t % 3600) // 60)
+                        seconds = t % 60
+                        return f"{hours:02}:{minutes:02}:{seconds:06.3f}".replace(".", ",")
+                
+                    in_cue = False
+                    for line in vtt_lines:
+                        if "-->" in line:
+                            in_cue = True
+                            cue_lines.append(f"{format_time(start_time)} --> {format_time(end_time)}")
+                        elif in_cue:
+                            if line == "":
+                                in_cue = False
+                            else:
+                                logger.debug(" + Text: " + line, extra={"service_name": "NHK+"})
+                                cue_lines.append(re.sub(r'\[[^\]]*?\]', '', line))
+                    cue_lines.append("")
+                
+                    vtt_output_lines.extend(cue_lines)
+                    
+                with open(output_path, "w", encoding="utf-8") as f:
+                    f.write("\n".join(vtt_output_lines))
+                
+                pbar.update(1)
