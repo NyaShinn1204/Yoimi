@@ -624,8 +624,6 @@ class NHKplus_downloader:
         
         random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
         
-        # 各セグメントをダウンロード
-        #print("ダウンロード中...")
         for i, segment_url in enumerate(tqdm(segment_urls, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ")):
             ts_file = os.path.join(download_dir, f"{random_string}_segment_{i}.ts")
             if not os.path.exists(ts_file):
@@ -635,15 +633,12 @@ class NHKplus_downloader:
                         if chunk:
                             f.write(chunk)
         
-        # 結合
-        #print("結合中...")
         with open(output_file, "wb") as output:
             for i in tqdm(range(len(segment_urls)), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : "):
                 ts_file = os.path.join(download_dir, f"{random_string}_segment_{i}.ts")
                 with open(ts_file, "rb") as f:
                     output.write(f.read())
         
-       # print(f"動画のダウンロードが完了しました： {output_file}")
         return os.path.join(config["directorys"]["Temp"], "content", unixtime, title_name)
     
     def mux_episode(self, video_name, audio_name, output_name, config, unixtime, duration, title_name_logger, episode_number, additional_info, service_name="NHK+"):
@@ -687,29 +682,21 @@ class NHKplus_downloader:
                 "-nostats",  # 標準出力を進捗情報のみにする
                 output_name,
             ]
-        #print(" ".join(compile_command))
-        # tqdmを使用した進捗表示
-        #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
             with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace") as process:
                 for line in process.stdout:   
-                    #print(line) 
-                    # "time=" の進捗情報を解析
                     match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
                     if match:
                         hours = int(match.group(1))
                         minutes = int(match.group(2))
                         seconds = float(match.group(3))
                         current_time = hours * 3600 + minutes * 60 + seconds
-    
-                        # 進捗率を計算して更新
                         progress = (current_time / duration) * 100
                         pbar.n = int(progress)
                         pbar.refresh()
-    
-            # プロセスが終了したら進捗率を100%にする
+            
             process.wait()
-            if process.returncode == 0:  # 正常終了の場合
+            if process.returncode == 0:
                 pbar.n = 100
                 pbar.refresh()
             pbar.close()
@@ -721,7 +708,6 @@ class NHKplus_downloader:
                 logger.debug("Parsing Subtitle...", extra={"service_name": "NHK+"})
                 playlist_url = f["url"]
                 output_path = os.path.join(config["directorys"]["Downloads"], title_name+"-"+f["language"]+".vtt")
-                
                 
                 res = self.session.get(playlist_url)
                 res.raise_for_status()
