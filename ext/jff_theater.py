@@ -68,7 +68,6 @@ def set_variable(session, LOG_LEVEL):
 
 def main_command(session, url, email, password, LOG_LEVEL, additional_info):
     try:
-        global media_code, playtoken
         #url = "https://video.unext.jp/title/SID0104147"
         #url = "https://video.unext.jp/play/SID0104147/ED00570918"
         #additional_info = [__version__, use_rd, use_gnc, use_odc, write_thumbnail, write_description, embed_thumbnail, embed_metadata, embed_subs, embed_chapters]

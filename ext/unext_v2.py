@@ -509,7 +509,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
                                        
-                
                 session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
                 session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
     except Exception as error:
