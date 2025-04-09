@@ -104,22 +104,22 @@ If you want to use your account, you can use your account as follows. Some cooki
 
 We currently support or are working on the following sites
 
-Completed: ✅ | Under construction: 🔄️ | Cancel: ❌
+Completed: ✅ | In Progress: 🔄️ | Cancelled: ❌ | Not Available: N/A
 
-|                      | Premium  | Free  | 
-| -------------------- | -------- | ----- |
-| Abema                | ✅      |  ✅  |
-| U-Next               | ✅      |   X   |
-| Dmm-TV               | ✅      |  🔄️  |
-| Danime               | 🔄️      |  🔄️  |
-| FOD                  | ✅      |  ✅  |
-| NHK+                 | ✅      |  ✅  | 
-| Anime3rb             |  X       |  ✅  |
-| Crunchyroll          | 🔄️      |  ✅  |
-| JFF Theater          |  X       |  ✅  |
-| WOWOW                | ✅      |   X   |
-| Bandai-Channel       | ✅      |  ✅  |
-| Fanza                | ❌      |  ❌  |
+| Service            | Premium | Free  | Subtitles              |
+|--------------------|---------|-------|------------------------|
+| Abema              | ✅      | ✅    | ✅ (Around 10~20 titles)  |
+| U-Next             | ✅      | N/A   | N/A                    |
+| DMM TV             | ✅      | 🔄️    | N/A                    |
+| Danime             | 🔄️      | 🔄️    | N/A                    |
+| FOD                | ✅      | ✅    | N/A                    |
+| NHK+               | ✅      | ✅    | ✅                     |
+| Anime3rb           | N/A     | ✅    | N/A                    |
+| Crunchyroll        | 🔄️      | ✅    | 🔄️                     |
+| JFF Theater        | N/A     | ✅    | N/A                    |
+| WOWOW              | ✅      | N/A   | N/A                    |
+| Bandai Channel     | ✅      | ✅    | N/A                    |
+| Fanza              | ❌      | ❌    | N/A                    |
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 
