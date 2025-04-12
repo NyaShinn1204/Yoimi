@@ -78,7 +78,7 @@ def streams_list():
 @click.option("--keep-fragments", "-keep", "keep_", is_flag=True, help="Keep downloaded fragment and combined fragment (If muxing) (Default: no)")
 @click.option("--output", "-o", required=False, default=None, help="Output filename")
 @click.option('--verbose', '-v', is_flag=True, help="Enable verbosity")
-@click.option('--random-directory', '-rd', 'use_rd', is_flag=True, default=False, help="Make temp a random directory")
+@click.option('--random-directory', '-rd', 'use_rd', is_flag=True, default=True, help="Make temp a random directory")
 @click.option('--get-niconico-comment', '-gnc', 'use_gnc', is_flag=True, default=False, help="Get Niconico Commment for Title # Unsupported Anime3rb")
 @click.option('--only-download-comment', '-odc', 'use_odc', is_flag=True, default=False, help="Only Download Niconico Commment # Unsupported Anime3rb")
 

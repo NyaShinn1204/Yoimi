@@ -5,6 +5,9 @@ import time
 import logging
 import shutil
 from rich.console import Console
+from urllib.parse import urlparse
+
+import ext.global_func.parser as parser
 
 from ext.utils import videomarket
 
@@ -166,6 +169,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         missing_key = e.args[0]
                         values[missing_key] = ""
                         title_name_logger = format_string.format(**values)
+                
+                series_title = title_summary.get("titleName", "")
+                #print(series_title)
                 if single["price"] == 0:
                     content_type = "FREE   "
                     content_status_lol = ""
@@ -187,7 +193,109 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(" + Playing Token (Temp): "+playing_token[:10]+"*****", extra={"service_name": __service_name__})
                 
                 logger.info("Get Streaming Data", extra={"service_name": __service_name__})
-                status, streaming_data = videomarket_downloader.get_streaming_info(single["packs"][0]["stories"][0]["fullStoryId"], playing_token, account_id)
+                status, streaming_data = videomarket_downloader.get_streaming_info(single["packs"][0]["stories"][0]["fullStoryId"], playing_token, account_id, playing_access_token)
+                #print(streaming_data)
+                
+                logger.debug("Get Codecs Info", extra={"service_name": __service_name__})
+                for s_codec_info in streaming_data["codecInfo"]:
+                    logger.debug(" + "+s_codec_info+" : "+str(streaming_data["codecInfo"][s_codec_info]), extra={"service_name": __service_name__})
+                
+                logger.info(f"Get Best Streaming URL:", extra={"service_name": __service_name__})
+                
+                
+                # lowFhdの辞書を取得
+                low_fhd = streaming_data["videoInfo"]["abr"]["avc"]["lowFhd"]
+                
+                ## 要素を取得
+                #file_type = last_entry["fileType"]
+                #play_url = last_entry["playUrl"]
+                #quality = last_entry["quality"]
+                
+                #print("fileType:", file_type)
+                #print("playUrl:", play_url)
+                #print("quality:", quality)
+                #print(low_fhd["playUrl"])
+                
+                logger.info(" + Quality:"+low_fhd["quality"]+" Type:"+low_fhd["fileType"], extra={"service_name": __service_name__})
+                
+                logger.info("Parse Best MPD file", extra={"service_name": __service_name__})
+                
+                Tracks = parser.global_parser()
+                transformed_data = Tracks.mpd_parser(session.get(low_fhd["playUrl"]).text)
+                                
+                logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
+                license_key = videomarket.VideoMarket_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, streaming_data["drmInfo"]["lowFhd"]["licenseUrl"])
+                
+                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})                
+                
+                logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+                logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+                track_data = Tracks.print_tracks(transformed_data)
+                
+                print(track_data)
+                
+                get_best_track = Tracks.select_best_tracks(transformed_data)
+                
+                logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+                logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+
+                parsed = urlparse(low_fhd["playUrl"])
+                base_path = parsed.path.rsplit('/', 1)[0]
+                base_url = f"{parsed.scheme}://{parsed.netloc}{base_path}/"
+                                
+                video_url = base_url+get_best_track["video"]["url"]
+                audio_url = base_url+get_best_track["audio"]["url"]
+                logger.debug(" + Video: "+video_url, extra={"service_name": __service_name__})
+                logger.debug(" + Audio: "+audio_url, extra={"service_name": __service_name__})
+                
+                def sanitize_filename(filename):
+                    filename = filename.replace(":", "：").replace("?", "？")
+                    return re.sub(r'[<>"/\\|*]', "_", filename)
+                
+                if additional_info[1]:
+                    random_string = str(int(time.time() * 1000))
+                    title_name_logger_video = random_string+"_video_encrypted.mp4"
+                    title_name_logger_audio = random_string+"_audio_encrypted.mp4"
+                else:
+                    title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
+                    title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
+                
+                series_title = sanitize_filename(series_title)
+                
+                logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": __service_name__})
+                    
+                video_downloaded = videomarket_downloader.aria2c(video_url, title_name_logger_video, config, unixtime)
+                audio_downloaded = videomarket_downloader.aria2c(audio_url, title_name_logger_audio, config, unixtime)                    
+                logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": __service_name__})
+                                
+                videomarket.VideoMarket_decrypt.decrypt_all_content(license_key["key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
+                
+                logger.info("Muxing Episode...", extra={"service_name": __service_name__})
+                
+                result = videomarket_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], series_title, title_name_logger+".mp4"), config, unixtime, sanitize_filename(series_title), int(int(single["playTime"]) / 1000), title_name_logger, None, additional_info)
+                
+                dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                
+                #if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                #    for filename in os.listdir(dir_path):
+                #        if filename == "metadata":
+                #            continue
+                #        
+                #        file_path = os.path.join(dir_path, filename)
+                #        try:
+                #            if os.path.isfile(file_path):
+                #                os.remove(file_path)
+                #            elif os.path.isdir(file_path):
+                #                shutil.rmtree(file_path)
+                #        except Exception as e:
+                #            print(f"削除エラー: {e}")
+                #else:
+                #    print(f"指定されたディレクトリは存在しません: {dir_path}")
+                
+                logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
     except Exception:
