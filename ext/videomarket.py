@@ -88,8 +88,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info("Loggined Account", extra={"service_name": __service_name__})
                 logger.info(" + ID: "+account_id[:3]+"*****", extra={"service_name": __service_name__})
             else:
+                account_id = str(message["userId"])
                 logger.info("Using Temp Account", extra={"service_name": __service_name__})
-                logger.info(" + ID: "+str(message["userId"]), extra={"service_name": __service_name__})
+                logger.info(" + ID: "+account_id, extra={"service_name": __service_name__})
                 
         status = videomarket_downloader.check_single(url)
         
@@ -176,8 +177,17 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.warning("This episode is require PREMIUM. Skipping...", extra={"service_name": __service_name__})
                     continue
                 
-                logger.info("Getting PlayingAccessToken...")
+                logger.info("Get Playing Access Token", extra={"service_name": __service_name__})
                 status, playing_access_token = videomarket_downloader.get_playing_access_token()
+                logger.info(" + Playing Access Token (Temp): "+playing_access_token[:10]+"*****", extra={"service_name": __service_name__})
+                
+                logger.info("Get Playing Token", extra={"service_name": __service_name__})
+                
+                status, playing_token = videomarket_downloader.get_playing_token(single["packs"][0]["stories"][0]["fullStoryId"], single["packs"][0]["fullPackId"], playing_access_token)
+                logger.info(" + Playing Token (Temp): "+playing_token[:10]+"*****", extra={"service_name": __service_name__})
+                
+                logger.info("Get Streaming Data", extra={"service_name": __service_name__})
+                status, streaming_data = videomarket_downloader.get_streaming_info(single["packs"][0]["stories"][0]["fullStoryId"], playing_token, account_id)
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
     except Exception:

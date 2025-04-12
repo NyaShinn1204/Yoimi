@@ -13,6 +13,17 @@ class VideoMarket_downloader:
             "accept-encoding": "gzip",
             "user-agent": "okhttp/4.12.0"
         }
+        self.hd_headers = {
+            "accept": "application/json",
+            "vm-device-info": "{\"model\":\"AOSP TV on x86\",\"deviceCode\":\"generic_x86_arm\",\"brand\":\"google\",\"platform\":\"Android TV OS\",\"platformVer\":\"13\",\"sdkVer\":33,\"hdcpVer\":1}",
+            "vm-app-info": "{\"ver\":\"tv.4.1.14\"}",
+            "vm-codec-info": "{\"isHdr\":false,\"isDdp\":false,\"isAtmos\":false,\"isUhd\":false,\"isHevc\":false}", # false...? trueだとなぜか最初のリクエストが飛ばない。謎
+            "content-type": "application/x-www-form-urlencoded",
+            "user-agent": "Dalvik/2.1.0 (Linux; U; Android 13; AOSP TV on x86 Build/TTT5.221206.003)",
+            "host": "pf-api.videomarket.jp",
+            "connection": "Keep-Alive",
+            "accept-encoding": "gzip"
+        }
     def authorize(self, email, password):
         _ENDPOINT_CC = 'https://bff.videomarket.jp/graphql'
         
@@ -96,7 +107,7 @@ class VideoMarket_downloader:
             print(e)
             return False, None, None
         
-    def get_title_parse_all(self, url):
+    def get_playing_access_token(self):
         '''Playing Access Tokenを取得するコード'''
         meta_json = {
             "operationName": "PlayingAccessToken",
@@ -114,3 +125,43 @@ class VideoMarket_downloader:
             print(e)
             return False
         
+    def get_playing_token(self, story_id, pack_id, access_token):
+        '''Playing Tokenを取得するコード'''
+        meta_json = {
+            "operationName": "PlayingToken",
+            "variables": {
+                "fullStoryId": story_id,
+                "fullPackId": pack_id,
+                "qualityType": 3,
+                "token": access_token
+            },
+            "query": "query PlayingToken($fullStoryId: String!, $fullPackId: String!, $qualityType: Int!, $token: String!) { playingToken(fullStoryId: $fullStoryId, fullPackId: $fullPackId, qualityType: $qualityType, token: $token) }"
+        }
+        try:
+            metadata_response = self.session.post("https://bff.videomarket.jp/graphql", json=meta_json, headers=self.tv_headers)
+            return_json = metadata_response.json()
+            if return_json != None:
+                return True, return_json['data']['playingToken']
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False
+        
+    def get_streaming_info(self, story_id, play_token, user_id):
+        '''該当エピソードのメディアデータを取得するコード'''
+        meta_json = {
+            "userId": user_id,
+            "playToken": play_token,
+            "fullStoryId": story_id
+        }
+        try:
+            metadata_response = self.session.post("https://bff.videomarket.jp/graphql", json=meta_json, headers=self.hd_headers)
+            return_json = metadata_response.json()
+            if return_json != None:
+                return True, return_json
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False
