@@ -344,7 +344,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     status_real = status_check[i]
                     #print(status_check[i])
                     if status_real["status"] == "false":
-                        logger.warning("This episode was require PREMIUM. Skipping...", extra={"service_name": __service_name__})
+                        logger.warning("This episode is require PREMIUM. Skipping...", extra={"service_name": __service_name__})
                         continue
                 video_duration = message["node"]["playInfo"]["duration"]
                 

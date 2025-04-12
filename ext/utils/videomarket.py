@@ -5,7 +5,13 @@ class VideoMarket_downloader:
         self.session = session
         self.config = config
         self.tv_headers = {
-            "": ""
+            "accept": "multipart/mixed; deferSpec=20220824, application/json",
+            "app-version": "tv.4.1.14",
+            "content-type": "application/json",
+            "host": "bff.videomarket.jp",
+            "connection": "Keep-Alive",
+            "accept-encoding": "gzip",
+            "user-agent": "okhttp/4.12.0"
         }
     def authorize(self, email, password):
         _ENDPOINT_CC = 'https://bff.videomarket.jp/graphql'
@@ -89,3 +95,22 @@ class VideoMarket_downloader:
         except Exception as e:
             print(e)
             return False, None, None
+        
+    def get_title_parse_all(self, url):
+        '''Playing Access Tokenを取得するコード'''
+        meta_json = {
+            "operationName": "PlayingAccessToken",
+            "variables": {},
+            "query": "query PlayingAccessToken { playingAccessToken }"
+        }
+        try:
+            metadata_response = self.session.post("https://bff.videomarket.jp/graphql", json=meta_json, headers=self.tv_headers)
+            return_json = metadata_response.json()
+            if return_json["data"]["playingAccessToken"] != None:
+                return True, return_json['data']['playingAccessToken']
+            else:
+                return False, None
+        except Exception as e:
+            print(e)
+            return False
+        

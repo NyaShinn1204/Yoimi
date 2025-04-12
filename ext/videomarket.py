@@ -133,8 +133,51 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     content_status_lol = ""
                 else:
                     content_type = "PREMIUM"
-                    content_status_lol = f" | PRICE {str(single["price"])}"
-                logger.info(f" + {content_type}{content_status_lol}| {title_name_logger}", extra={"service_name": __service_name__})
+                    content_status_lol = f"| PRICE {str(single["price"])}"
+                logger.info(f" + {content_type} {content_status_lol}| {title_name_logger}", extra={"service_name": __service_name__})
+            for single in message:
+                if single["groupType"] == "SINGLE_CHOICE":
+                    pass
+                else:
+                    continue
+                
+                if "アニメ" in id_type and "邦画" not in id_type:
+                    format_string = config["format"]["anime"].replace("_{episodename}", "")
+                    values = {
+                        "seriesname": title_summary.get("titleName", ""),
+                        "titlename": single.get("packName", ""),
+                    }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
+                elif "邦画" in id_type:
+                    format_string = config["format"]["movie"]
+                    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                    values = {
+                        "seriesname": title_summary.get("titleName", ""),
+                    }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
+                if single["price"] == 0:
+                    content_type = "FREE   "
+                    content_status_lol = ""
+                else:
+                    content_type = "PREMIUM"
+                    content_status_lol = f"| PRICE {str(single["price"])}"
+                    
+                if content_type == "PREMIUM":
+                    logger.warning("This episode is require PREMIUM. Skipping...", extra={"service_name": __service_name__})
+                    continue
+                
+                logger.info("Getting PlayingAccessToken...")
+                status, playing_access_token = videomarket_downloader.get_playing_access_token()
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
     except Exception:
