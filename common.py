@@ -24,6 +24,7 @@ def get_parser(url):
     valid_crunchyroll = r'^["\']?https?://www\.crunchyroll\.com/(series|watch)/[^/]+/[^"\']+["\']?$'
     valid_b_ch = r'^["\']?https?://www\.b-ch\.com/titles/\d+(/\d+)?/?["\']?$'
     valid_telasa = r'^["\']?http(?:s)?://(?:www\.)?telasa\.jp/(?:videos|play)/\d+["\']?$'
+    valid_videomarket = r'^["\']?https?://(?:www\.)?videomarket\.jp/(?:title|player)/[0-9A-Z]+(?:/[0-9A-Z]+)?["\']?$'
 
     if re.match(valid_abema, url) and "-v1" in url:
         from ext import abematv as AbemaTV
@@ -70,6 +71,9 @@ def get_parser(url):
     elif re.match(valid_telasa, url):
         from ext import telasa as Telasa
         return Telasa, "Telasa"
+    elif re.match(valid_videomarket, url):
+        from ext import videomarket as VideoMarket
+        return VideoMarket, "VideoMarket"
 
     return None, None
 
