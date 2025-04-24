@@ -20,6 +20,8 @@ def find_matching_auth_code(target_code, params, secret_key):
                     print(f"✅ 一致: {perm} → {joined}")
                     print(f"（試行数: {tested}）")
                     return code
+                else:
+                    print(f"Not Match （試行数: {tested}）")
 
                 # x-authorization が含まれている場合: Bearer を除去して再試行
                 if "x-authorization" in perm:

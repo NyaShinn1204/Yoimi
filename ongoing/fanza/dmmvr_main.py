@@ -2,20 +2,18 @@ import hmac
 import hashlib
 
 def generate_x_api_auth_code(params, secret_key):
-    # パラメータを順に連結（順序は仮）
-    #data = (
-    #    params["mylibrary_id"] +
-    #    params["part"] +
-    #    params["quality_group"] +
-    #    params["x-authorization"] +
-    #    params["x-exploit-id"] +
-    #    params["x-user-agent"] +
-    #    params["x-app-name"]
-    #)
-    data = (params["x-authorization"]+ params["mylibrary_id"]+ params["x-exploit-id"]+ params["x-user-agent"]+ params["quality_group"]+ params["part"])
+    data = (
+        params["x-authorization"]
+        + params["mylibrary_id"]
+        + params["x-exploit-id"]
+        + params["x-user-agent"]
+        + params["quality_group"]
+        + params["part"]
+    )
 
     hmac_hash = hmac.new(secret_key.encode(), data.encode(), hashlib.sha256).hexdigest()
     return hmac_hash
+
 
 params = {
     "x-authorization": "Bearer Xd3fN2jwKF1nYAMb3wzYUselycL42z7Ck26SCRLBzMgFiG875J8ycDgIwGaflZFDQggbG2eSbqKovQmQUpnBSn5Dvock4BHi0v9d8m9sw9b",
