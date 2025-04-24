@@ -119,7 +119,7 @@ Options:
 | JFF Theater         | N/A     | ✅   | N/A                  |
 | WOWOW               | ✅      | N/A  | N/A                  |
 | バンダイチャンネル    | ✅      | ✅   | N/A                  |
-| Fanza               | ❌      | ❌   | N/A                  |
+| Fanza                 | 🔄️      | N/A    | N/A                |
 
 Abemaで問題が発生したら、urlの最後に"-v1"をつけてみてください。v1のモードでダウンローダーが動きます。
 
