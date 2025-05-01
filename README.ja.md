@@ -108,18 +108,18 @@ Options:
 
 | サービス名           | Premium | Free | 字幕                 |
 |----------------------|---------|------|----------------------|
-| Abema               | ✅      | ✅   | ✅（10~20タイトルほど） |
-| U-Next              | ✅      | N/A  | N/A                  |
-| DMM TV              | ✅      | 🔄️   | N/A                  |
+| Abema                | ✅      | ✅   | ✅（10~20タイトルほど） |
+| U-Next               | ✅      | N/A  | N/A                  |
+| DMM TV               | ✅      | 🔄️   | N/A                  |
 | Dアニメストア        | 🔄️      | 🔄️   | N/A                  |
-| FOD                 | ✅      | ✅   | N/A                  |
-| NHK+                | ✅      | ✅   | ✅                   |
-| Anime3rb            | N/A     | ✅   | N/A                  |
-| Crunchyroll         | 🔄️      | ✅   | 🔄️                   |
-| JFF Theater         | N/A     | ✅   | N/A                  |
-| WOWOW               | ✅      | N/A  | N/A                  |
-| バンダイチャンネル    | ✅      | ✅   | N/A                  |
-| Fanza                 | 🔄️      | N/A    | N/A                |
+| FOD                  | ✅      | ✅   | N/A                  |
+| NHK+                 | ✅      | ✅   | ✅                   |
+| Anime3rb             | N/A     | ✅   | N/A                  |
+| Crunchyroll          | 🔄️      | ✅   | 🔄️                   |
+| JFF Theater          | N/A     | ✅   | N/A                  |
+| WOWOW                | ✅      | N/A  | N/A                  |
+| バンダイチャンネル   | ✅      | ✅   | N/A                  |
+| Fanza VR             | 🔄️      | N/A    | N/A                |
 
 Abemaで問題が発生したら、urlの最後に"-v1"をつけてみてください。v1のモードでダウンローダーが動きます。
 
