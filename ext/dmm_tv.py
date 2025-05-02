@@ -6,6 +6,8 @@ import shutil
 import logging
 import xml.etree.ElementTree as ET
 
+import ext.global_func.parser as parser
+
 from datetime import datetime
 from rich.console import Console
 
@@ -368,11 +370,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
                 status, mpd_content, hd_link_base = dmm_tv_downloader.get_mpd_content(hd_link)
                 
-                mpd_lic = dmm_tv.Dmm_TV_utils.parse_mpd_logic(mpd_content)
+                Tracks = parser.global_parser()
+                transformed_data = Tracks.mpd_parser(mpd_content)
                             
-                logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": __service_name__})
-                
-                license_key = dmm_tv.Dmm_TV__license.license_vd_ad(mpd_lic["pssh"][1], session)
+                logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
+                                            
+                license_key = dmm_tv.Dmm_TV__license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session)
                             
                 logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 
@@ -636,11 +639,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
             status, mpd_content, hd_link_base = dmm_tv_downloader.get_mpd_content(hd_link)
             
-            mpd_lic = dmm_tv.Dmm_TV_utils.parse_mpd_logic(mpd_content)
+            Tracks = parser.global_parser()
+            transformed_data = Tracks.mpd_parser(mpd_content)
                         
-            logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": __service_name__})
+            logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
             
-            license_key = dmm_tv.Dmm_TV__license.license_vd_ad(mpd_lic["pssh"][1], session)
+            license_key = dmm_tv.Dmm_TV__license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session)
                         
             logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
             
