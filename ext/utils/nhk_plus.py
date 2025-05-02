@@ -703,33 +703,67 @@ class NHKplus_downloader:
 
     def download_subtitles(self, title_name, subtitles, config, logger):
         logger.info(f"Downloading Subtitles  | Total: {str(len(subtitles))} ", extra={"service_name": "NHK+"})
-        with tqdm(total=len(subtitles), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{"NHK+"}{COLOR_RESET} : ", unit="%") as pbar:
+        with tqdm(total=len(subtitles), desc=f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}NHK+{COLOR_RESET} : ", unit="%") as pbar:
             for f in subtitles:
                 logger.debug("Parsing Subtitle...", extra={"service_name": "NHK+"})
                 playlist_url = f["url"]
-                output_path = os.path.join(config["directorys"]["Downloads"], title_name+"-"+f["language"]+".vtt")
-                
+                output_path = os.path.join(config["directorys"]["Downloads"], title_name + "-" + f["language"] + ".vtt")
+    
                 res = self.session.get(playlist_url)
                 res.raise_for_status()
                 lines = res.text.strip().splitlines()
+    
+                def parse_video_start_time(lines):
+                    for line in lines:
+                        if line.startswith("#") and re.search(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+\d{4}", line):
+                            ts_str = re.search(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+\d{4}", line).group()
+                            return datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S.%f%z")
+                    return None
                 
+                video_start_time = parse_video_start_time(lines)
+                
+    
+                def parse_program_datetime(line):
+                    return datetime.strptime(line.split(":", 1)[1], "%Y-%m-%dT%H:%M:%S.%f%z")
+    
+                #initial_time = parse_initial_datetime(lines)
                 subtitles = []
+    
+                current_start = None
+                current_vtt = None
                 duration = None
-                
+    
                 for line in lines:
                     line = line.strip()
                     if line.startswith("#EXTINF:"):
                         duration = float(line.split(":")[1].rstrip(','))
-                    elif line.endswith(".vtt") and duration is not None:
-                        vtt_url = urljoin(playlist_url, line)
-                        subtitles.append((vtt_url, duration))
-                        duration = None
-                
+                    elif line.startswith("#EXT-X-PROGRAM-DATE-TIME:"):
+                        current_time = parse_program_datetime(line)
+                        if current_start is not None and current_vtt:
+                            subtitles.append((current_vtt, current_start, current_time))
+                        current_start = current_time
+                    elif line.endswith(".vtt"):
+                        current_vtt = urljoin(playlist_url, line)
+    
+                # 最後のVTT (終了時刻が次に来ない場合) をEXTINFで補完
+                if current_start and current_vtt and duration is not None:
+                    end_time = current_start + timedelta(seconds=duration)
+                    subtitles.append((current_vtt, current_start, end_time))
+    
                 vtt_output_lines = []
                 timestamp_map_line = ""
-                current_time = 0.0
-                
-                for idx, (vtt_url, extinf_duration) in enumerate(subtitles):
+    
+                def format_time(dt, base):
+                    delta = dt - base
+                    if delta.total_seconds() < 0:
+                        delta = timedelta(seconds=0)
+                    total_seconds = delta.total_seconds()
+                    hours = int(total_seconds // 3600)
+                    minutes = int((total_seconds % 3600) // 60)
+                    seconds = total_seconds % 60
+                    return f"{hours:02}:{minutes:02}:{seconds:06.3f}".replace(".", ",")
+                    
+                for idx, (vtt_url, start_dt, end_dt) in enumerate(subtitles):
                     res = self.session.get(vtt_url)
                     res.raise_for_status()
                     vtt_lines = sub_decrypt.parse_binary_content(res.content).strip().splitlines()
@@ -743,33 +777,35 @@ class NHKplus_downloader:
                                 break
                         vtt_output_lines.append("")
                 
-                    cue_lines = []
-                    start_time = current_time
-                    end_time = current_time + extinf_duration
-                    current_time = end_time
-                
-                    def format_time(t):
-                        hours = int(t // 3600)
-                        minutes = int((t % 3600) // 60)
-                        seconds = t % 60
-                        return f"{hours:02}:{minutes:02}:{seconds:06.3f}".replace(".", ",")
-                
+                    text_lines = []
                     in_cue = False
                     for line in vtt_lines:
                         if "-->" in line:
                             in_cue = True
-                            cue_lines.append(f"{format_time(start_time)} --> {format_time(end_time)}")
                         elif in_cue:
                             if line == "":
                                 in_cue = False
                             else:
-                                logger.debug(" + Text: " + line, extra={"service_name": "NHK+"})
-                                cue_lines.append(re.sub(r'\[[^\]]*?\]', '', line))
-                    cue_lines.append("")
+                                clean_line = re.sub(r'\[[^\]]*?\]', '', line).strip()
+                                if clean_line:
+                                    logger.debug(" + Text: " + clean_line, extra={"service_name": "NHK+"})
+                                    text_lines.append(clean_line)
                 
+                    # 空VTTの場合はスキップ
+                    if not text_lines:
+                        logger.debug(f"Skipping empty subtitle: {vtt_url}", extra={"service_name": "NHK+"})
+                        continue
+                
+                    cue_lines = []
+                    cue_lines.append(f"{format_time(start_dt, video_start_time)} --> {format_time(end_dt, video_start_time)}")
+                    cue_lines.extend(text_lines)
+                    cue_lines.append("")
                     vtt_output_lines.extend(cue_lines)
-                    
+                
+
+    
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write("\n".join(vtt_output_lines))
-                
+    
                 pbar.update(1)
+    
