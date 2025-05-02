@@ -110,12 +110,12 @@ Completed: ✅ | In Progress: 🔄️ | Cancelled: ❌ | Not Available: N/A
 |--------------------|---------|-------|------------------------|
 | Abema              | ✅      | ✅    | ✅ (Around 10~20 titles)  |
 | U-Next             | ✅      | N/A   | N/A                    |
-| DMM TV             | ✅      | 🔄️    | N/A                    |
+| DMM TV             | ✅      | 🔄️    | 🔄️                    |
 | Danime             | 🔄️      | 🔄️    | N/A                    |
 | FOD                | ✅      | ✅    | N/A                    |
-| NHK+               | ✅      | ✅    | ✅                     |
+| NHK+               | ✅      | ✅    | ✅ (25/05 Now broken⛏️) |
 | Anime3rb           | N/A     | ✅    | N/A                    |
-| Crunchyroll        | 🔄️      | ✅    | 🔄️                     |
+| Crunchyroll        | 🔄️      | ✅    | 🔄️                    |
 | JFF Theater        | N/A     | ✅    | N/A                    |
 | WOWOW              | ✅      | N/A   | N/A                    |
 | Bandai Channel     | ✅      | ✅    | N/A                    |
@@ -128,6 +128,7 @@ If you have problems with Abema, try adding “-v1” to the end of the url, and
 #### Decryption fails in Chinese environment
 
 In this case, use the -rd option or the --random-directory option.
+(This setting was automatically enabled in v1.2.0)
 
 #### Other
 
