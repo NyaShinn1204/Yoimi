@@ -284,7 +284,6 @@ class Dmm_TV__license:
         session_id = cdm.open()
         
         headers = {
-            "authorization": "Bearer",
             "content-type": "application/octet-stream",
             "user-agent": "Android/33 AOSP TV on x86 com.dmm.app.androidtv/2.34.0",
             "host": "mlic.dmm.com",
