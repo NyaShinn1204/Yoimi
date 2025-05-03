@@ -284,38 +284,41 @@ class global_parser:
         }
 
     def calculate_video_duration(self, duration_str):
-        """ISO 8601 duration (PT format) を秒単位に変換"""
-        # (Implementation from previous step - kept as is)
-        if not duration_str or not isinstance(duration_str, str) or not duration_str.startswith('P'): return 0
+        """ISO 8601 duration (PnYnMnDTnHnMnS) を秒単位に変換"""
+        if not duration_str or not isinstance(duration_str, str) or not duration_str.startswith('P'):
+            return 0
         try:
-            match = re.match(r'P(?:(?P<days>\d+)D)?T(?:(?P<hours>\d+(?:\.\d+)?)H)?(?:(?P<minutes>\d+(?:\.\d+)?)M)?(?:(?P<seconds>\d+(?:\.\d+)?)S)?', duration_str)
-            if not match: match = re.match(r'PT(?:(?P<hours>\d+(?:\.\d+)?)H)?(?:(?P<minutes>\d+(?:\.\d+)?)M)?(?:(?P<seconds>\d+(?:\.\d+)?)S)?', duration_str)
-            if not match: return 0
-            parts = match.groupdict(); duration_sec = 0.0
+            # 正規表現で全フィールドをキャプチャ
+            pattern = (
+                r'P' 
+                r'(?:(?P<years>\d+(?:\.\d+)?)Y)?'
+                r'(?:(?P<months>\d+(?:\.\d+)?)M)?'
+                r'(?:(?P<days>\d+(?:\.\d+)?)D)?'
+                r'(?:T'
+                    r'(?:(?P<hours>\d+(?:\.\d+)?)H)?'
+                    r'(?:(?P<minutes>\d+(?:\.\d+)?)M)?'
+                    r'(?:(?P<seconds>\d+(?:\.\d+)?)S)?'
+                r')?'
+            )
+            match = re.match(pattern, duration_str)
+            if not match:
+                return 0
+            parts = match.groupdict()
+            duration_sec = 0.0
+            if parts['years']: duration_sec += float(parts['years']) * 31536000  # 365日換算
+            if parts['months']: duration_sec += float(parts['months']) * 2592000  # 30日換算
             if parts['days']: duration_sec += float(parts['days']) * 86400
             if parts['hours']: duration_sec += float(parts['hours']) * 3600
             if parts['minutes']: duration_sec += float(parts['minutes']) * 60
             if parts['seconds']: duration_sec += float(parts['seconds'])
-            if duration_str == "PT" and duration_sec == 0: return 0
-            time_parts = [parts['hours'], parts['minutes'], parts['seconds']]
-            if duration_sec > 0 or any(p for p in time_parts if p) or parts['days']: return duration_sec
-            else: return 0
-        except Exception: return 0
+            return duration_sec
+        except Exception:
+            return 0
 
-    def calculate_segments(self, media_duration_str, segment_duration_str, timescale_str):
-        """セグメント数を計算 (SegmentTemplate用)"""
-        # (Implementation from previous step - kept as is)
-        media_duration_sec = self.calculate_video_duration(media_duration_str)
-        if media_duration_sec <= 0: return 0
-        try:
-            if segment_duration_str in [None, "N/A"] or timescale_str in [None, "N/A"]: return 0
-            segment_duration = int(segment_duration_str); timescale = int(timescale_str)
-            if timescale <= 0 or segment_duration <= 0: return 0
-            segment_seconds = segment_duration / timescale
-            if segment_seconds <= 0: return 0
-            num_segments = media_duration_sec / segment_seconds
-            return math.ceil(num_segments)
-        except (ValueError, TypeError, ZeroDivisionError): return 0
+    def calculate_segments(self, media_duration, segment_duration, timescale):
+        """セグメント数を計算"""
+        segment_seconds = segment_duration / timescale
+        return round(media_duration / segment_seconds)  
 
 
     def extract_mpd_attributes(self, mpd_content):

@@ -386,7 +386,12 @@ class WOD_downloader:
         
         # 必要なデータを取得
         json_data = response.json()
-        allseason_metaid = json_data["jsonGraph"]["meta"][str(json_data["jsonGraph"]["program"][str(program_id)]["value"][1])]["seriesMeta"]["value"]["metaId"]
+        try:
+            allseason_metaid = json_data["jsonGraph"]["meta"][str(json_data["jsonGraph"]["program"][str(program_id)]["value"][1])]["seriesMeta"]["value"]["metaId"]
+        except:
+            content_id = json_data["jsonGraph"]["program"][str(program_id)]["value"][1]
+            return 1, [{"name": json_data["jsonGraph"]["meta"][str(content_id)]["name"]["value"],"meta_id": content_id}]
+        #allseason_metaid = "152113"
         
         headers = {
             "host": "mapi.wowow.co.jp",

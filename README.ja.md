@@ -113,11 +113,11 @@ Options:
 | DMM TV               | ✅      | 🔄️   | 🔄️                      |
 | Dアニメストア        | 🔄️      | 🔄️   | N/A                      |
 | FOD                  | ✅      | ✅   | N/A                      |
-| NHK+               | ✅      | ✅    | ✅                       |
+| NHK+                 | ✅      | ✅    | ✅                       |
 | Anime3rb             | N/A     | ✅   | N/A                       |
 | Crunchyroll          | 🔄️      | ✅   | 🔄️                       |
 | JFF Theater          | N/A     | ✅   | N/A                       |
-| WOWOW                | ✅      | N/A  | N/A                       |
+| WOWOW                | 🔄️(調整中)      | N/A  | N/A                       |
 | バンダイチャンネル   | ✅      | ✅   | N/A                      |
 | Fanza VR             | 🔄️      | N/A    | N/A                     |
 

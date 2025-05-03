@@ -293,10 +293,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     
                     logger.debug(f"Calculate about Manifest...", extra={"service_name": __service_name__})
+                    #print(transformed_data["info"]["mediaPresentationDuration"])
                     duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+                    #print(duration)
                     logger.debug(f" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
                     
                     logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
+                    #print(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
                     video_segment_list = Tracks.calculate_segments(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
                     logger.info(f" + Video Segments: "+str(int(video_segment_list)), extra={"service_name": __service_name__})                 
                     audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
@@ -346,7 +349,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         else:
             print("unsupported")
     except Exception as error:
-        wod_downloader.send_stop_signal(video_access_token, session_id)
+        try:
+            wod_downloader.send_stop_signal(video_access_token, session_id)
+        except:
+            pass
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")
