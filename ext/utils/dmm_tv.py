@@ -1,5 +1,6 @@
 import re
 import os
+import time
 import base64
 import requests
 import threading
@@ -271,7 +272,7 @@ class Dmm_TV_utils:
             return {}
 
 class Dmm_TV__license:
-    def license_vd_ad(pssh, session):
+    def license_vd_ad(pssh, session):        
         _WVPROXY = "https://mlic.dmm.com/drm/widevine/license"
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
@@ -281,9 +282,18 @@ class Dmm_TV__license:
         )
         cdm = Cdm.from_device(device)
         session_id = cdm.open()
+        
+        headers = {
+            "authorization": "Bearer",
+            "content-type": "application/octet-stream",
+            "user-agent": "Android/33 AOSP TV on x86 com.dmm.app.androidtv/2.34.0",
+            "host": "mlic.dmm.com",
+            "connection": "Keep-Alive",
+            "accept-encoding": "gzip"
+        }
     
         challenge = cdm.get_license_challenge(session_id, PSSH(pssh))
-        response = session.post(f"{_WVPROXY}", data=bytes(challenge))
+        response = session.post(f"{_WVPROXY}", data=bytes(challenge), headers=headers)
         response.raise_for_status()
     
         cdm.parse_license(session_id, response.content)
@@ -492,8 +502,41 @@ class Dmm_TV_downloader:
                     temp_json = {}
                     if res.json()["data"]["stream"]["contentTypeDetail"] == "VOD_FREE":
                         temp_json["status"] = "true"
-                        temp_json["start_at"] = episode["node"]["freeProduct"]["startDeliveryAt"]
-                        temp_json["end_at"] = episode["node"]["freeProduct"]["endDeliveryAt"]
+                        
+                        ## 開始時刻と終了配信時刻はここだと取得できないので、seasonidからシーズン情報を丸ごととり、一致するcontetnidを見つけそこから取得する、
+                        
+                        payload = {
+                            "operationName": "GetSeason",
+                            "variables": {
+                                "id": f"{sessionid}",
+                                "abSplitId": "detail_pv",
+                                "episodesSize": 200,
+                                "playDevice": "ANDROID_TV",
+                                "withAuth": self.auth_success,
+                            },
+                            "query": "query GetSeason($id: ID!, $abSplitId: ID!, $episodesSize: Int, $playDevice: PlayDevice!, $withAuth: Boolean!) { abSplit(abSplitId: $abSplitId) @include(if: $withAuth) { abGroup } firstView: video(id: $id) { __typename id seasonType ... on VideoSeason { id seasonType titleId titleName seasonName highlight description(format: PLAIN) isBeingDelivered packageImage isNewArrival isMonopoly: isExclusive viewingTypes url notices copyright productionYear endPublicAt isPublic isOnSale hasBookmark @include(if: $withAuth) rating { __typename ...videoRatingFragment } campaign { __typename ...videoCampaignFragment } customTag highlight keyVisualImage keyVisualWithoutLogoImage relatedSeasons { __typename ...videoRelatedSeasonFragment } nextDeliveryEpisode { isBeforeDelivered startDeliveryAt } svodEndDeliveryAt continueWatching @include(if: $withAuth) { id content { __typename ...videoContentFragment } } priceSummary { __typename ...videoPriceSummaryFragment } } ... on VideoStageSeason { id seasonType titleId titleName seasonName highlight description(format: PLAIN) isBeingDelivered packageImage isNewArrival isMonopoly: isExclusive viewingTypes url notices copyright productionYear endPublicAt isPublic isOnSale hasBookmark @include(if: $withAuth) rating { __typename ...videoRatingFragment } campaign { __typename ...videoCampaignFragment } customTag keyVisualImage keyVisualWithoutLogoImage priceSummary { __typename ...videoPriceSummaryFragment } } ... on VideoSpotLiveSeason { id seasonType titleId titleName seasonName highlight description(format: PLAIN) isBeingDelivered packageImage isNewArrival isMonopoly: isExclusive viewingTypes url notices copyright productionYear endPublicAt isPublic isOnSale hasBookmark @include(if: $withAuth) rating { __typename ...videoRatingFragment } campaign { __typename ...videoCampaignFragment } customTag spotLiveDescription: description keyVisualImage keyVisualWithoutLogoImage } } tab: video(id: $id) { __typename id ... on VideoSeason { id casts { __typename ...castFragment } staffs { __typename ...staffFragment } genres { __typename ...videoGenreFragment } reviewSummary { __typename ...reviewSummaryFragment } reviews(first: 3) { edges { node { __typename ...reviewFragment } } } purchasedContents(first: $episodesSize) @include(if: $withAuth) { total edges { node { __typename ...purchaseEpisodeFragment } } } episodes: episodes(type: MAIN, first: $episodesSize) { total edges { node { __typename ...mainEpisodeFragment } } } pvs: episodes(type: PV) { total edges { node { __typename ...pvEpisodeFragment } } } specials: episodes(type: SPECIAL, first: $episodesSize) { total edges { node { __typename ...specialEpisodeFragment } } } } ... on VideoStageSeason { id casts { __typename ...castFragment } staffs { __typename ...staffFragment } genres { __typename ...videoGenreFragment } reviewSummary { __typename ...reviewSummaryFragment } reviews(first: 3) { edges { node { __typename ...reviewFragment } } } purchasedContents(first: $episodesSize) @include(if: $withAuth) { total edges { node { __typename ...purchaseEpisodeFragment } } } purchasedStageContents @include(if: $withAuth) { purchasedContentsByPerformanceDate { performanceDate contents { __typename ...purchaseEpisodeFragment } } } allPerformances { __typename ...stagePerformanceFragment } } ... on VideoSpotLiveSeason { id casts { __typename ...castFragment } staffs { __typename ...staffFragment } genres { __typename ...videoGenreFragment } episodes: episodes(type: MAIN, first: $episodesSize) { edges { node { __typename ...mainEpisodeFragment } } } specials: episodes(type: SPECIAL, first: $episodesSize) { edges { node { __typename ...specialEpisodeFragment } } } pvs: episodes(type: PV) { total edges { node { __typename ...pvEpisodeFragment } } } } } }  fragment videoRatingFragment on VideoRating { category name }  fragment videoCampaignFragment on VideoCampaign { id name endAt isLimitedPremium }  fragment videoRelatedSeasonFragment on VideoRelatedSeason { id title video { __typename id seasonType ... on VideoSeason { id keyVisualImage keyVisualWithoutLogoImage } } }  fragment VideoPPVExpirationFragment on VideoPPVExpiration { expirationType viewingExpiration viewingStartExpiration startDeliveryAt }  fragment videoPriceSummaryFragment on VideoPriceSummary { campaignId highestPrice lowestPrice discountedHighestPrice discountedLowestPrice isLimitedPremium }  fragment videoViewingExpirationFragment on VideoViewingExpiration { __typename ... on VideoFixedViewingExpiration { expiresAt } ... on VideoLegacyViewingExpiration { expireDay } ... on VideoRentalViewingExpiration { startLimitDay expireDay expireHour } }  fragment videoPPVBundleProductSummaryFragment on VideoPPVProduct { id contentId contentType saleType isPreOrder saleUnitName episodeTitle episodeNumberName viewingExpiration { __typename ...videoViewingExpirationFragment } startDeliveryAt isBeingDelivered }  fragment videoPPVProductPriceFragment on VideoPPVProductPrice { price salePrice isLimitedPremium }  fragment videoPPVProductSummaryFragment on VideoPPVProduct { id contentId contentType contentPriority saleUnitPriority saleUnitName episodeTitle episodeNumberName saleType isPreOrder isPurchased @include(if: $withAuth) isBundleParent bundleProducts { __typename ...videoPPVBundleProductSummaryFragment } price { __typename ...videoPPVProductPriceFragment } viewingExpiration { __typename ...videoViewingExpirationFragment } isOnSale startDeliveryAt isBeingDelivered campaign { __typename ...videoCampaignFragment } hasGoods }  fragment videoFreeProductFragment on VideoFreeProduct { contentId startDeliveryAt endDeliveryAt isBeingDelivered }  fragment videoSVODProductFragment on VideoSVODProduct { contentId startDeliveryAt isBeingDelivered }  fragment videoViewingRightsFragment on VideoViewingRights { isStreamable isDownloadable contentType }  fragment videoPartFragment on VideoPart { contentId number duration resume @include(if: $withAuth) { point isCompleted } }  fragment videoPlayInfoSummaryFragment on VideoPlayInfo { contentId tags highestQuality highestAudioChannelLayout audioRenditions textRenditions isSupportHDR duration parts { __typename ...videoPartFragment } }  fragment videoContentFragment on VideoContent { id seasonId episodeType contentType episodeImage episodeTitle episodeDetail episodeNumber episodeNumberName ppvExpiration @include(if: $withAuth) { __typename ...VideoPPVExpirationFragment } priceSummary { __typename ...videoPriceSummaryFragment } ppvProducts { __typename ...videoPPVProductSummaryFragment } freeProduct { __typename ...videoFreeProductFragment } svodProduct { __typename ...videoSVODProductFragment } viewingRights(device: $playDevice) { __typename ...videoViewingRightsFragment } playInfo { __typename ...videoPlayInfoSummaryFragment } sampleMovie startLivePerformanceAt endLivePerformanceAt isAllowDownload isBeingDelivered }  fragment personFragment on Person { id name }  fragment castFragment on Cast { id castName actorName priority person { __typename ...personFragment } }  fragment staffFragment on Staff { id roleName staffName priority person { __typename ...personFragment } }  fragment videoGenreFragment on VideoGenre { id name }  fragment reviewSummaryFragment on ReviewSummary { reviewerCount reviewCommentCount }  fragment reviewFragment on Review { id reviewerName reviewerId title point hasSpoiler comment date postEvaluationCount helpfulVoteCount isReviewerPurchased }  fragment purchaseEpisodeFragment on VideoContent { id seasonId episodeImage episodeNumber episodeNumberName episodeTitle episodeDetail episodeType contentType playInfo { duration parts { __typename ...videoPartFragment } audioRenditions textRenditions } viewingRights(device: $playDevice) { __typename ...videoViewingRightsFragment } ppvExpiration { __typename ...VideoPPVExpirationFragment } ppvProducts { id contentId isBeingDelivered isPurchased @include(if: $withAuth) startDeliveryAt } priceSummary { __typename ...videoPriceSummaryFragment } startLivePerformanceAt endLivePerformanceAt isAllowDownload isBeingDelivered }  fragment mainEpisodeFragment on VideoContent { id seasonId episodeImage episodeNumber episodeNumberName episodeTitle episodeDetail episodeType contentType playInfo { duration audioRenditions textRenditions tags parts { __typename ...videoPartFragment } } svodProduct { __typename ...videoSVODProductFragment } freeProduct { __typename ...videoFreeProductFragment } ppvProducts { id isPurchased @include(if: $withAuth) isOnSale isBeingDelivered startDeliveryAt } priceSummary { __typename ...videoPriceSummaryFragment } viewingRights(device: $playDevice) { __typename ...videoViewingRightsFragment } ppvExpiration @include(if: $withAuth) { __typename ...VideoPPVExpirationFragment } isBeingDelivered isAllowDownload }  fragment pvEpisodeFragment on VideoContent { id seasonId episodeImage episodeNumber episodeTitle episodeDetail episodeType contentType playInfo { duration } viewingRights(device: $playDevice) { __typename ...videoViewingRightsFragment } sampleMovie }  fragment specialEpisodeFragment on VideoContent { id seasonId episodeImage episodeNumber episodeNumberName episodeTitle episodeDetail episodeType contentType playInfo { duration parts { __typename ...videoPartFragment } } svodProduct { __typename ...videoSVODProductFragment } freeProduct { __typename ...videoFreeProductFragment } ppvProducts { id isPurchased @include(if: $withAuth) isOnSale isBeingDelivered startDeliveryAt } priceSummary { __typename ...videoPriceSummaryFragment } viewingRights(device: $playDevice) { __typename ...videoViewingRightsFragment } ppvExpiration @include(if: $withAuth) { __typename ...VideoPPVExpirationFragment } isBeingDelivered }  fragment stagePerformanceFragment on VideoStagePerformance { performanceDate contents { id episodeTitle ppvProducts { __typename id ...videoPPVProductSummaryFragment } } }",
+                        }
+                        res = self.session.post(_ENDPOINT_CC, json=payload)
+                        result_list = []
+                        if res.status_code == 200:
+                            if res.json()["data"]["tab"]["episodes"]["edges"] != None:
+                                for episode in res.json()["data"]["tab"]["episodes"]["edges"]:
+                                    #if episode["node"]["freeProduct"] != None:
+                                    #    temp_json["status"] = "true"
+                                    #    temp_json["start_at"] = episode["node"]["freeProduct"]["startDeliveryAt"]
+                                    #    temp_json["end_at"] = episode["node"]["freeProduct"]["endDeliveryAt"]
+                                    #    result_list.append(temp_json)
+                                    #else:
+                                    #    temp_json["status"] = "false"
+                                    #    result_list.append(temp_json)
+                                    
+                                    if episode["node"]["id"] == contentid:
+                                        temp_json["start_at"] = episode["node"]["freeProduct"]["startDeliveryAt"]
+                                        temp_json["end_at"] = episode["node"]["freeProduct"]["endDeliveryAt"]
+                                        result_list.append(temp_json)
+                        
+                        #temp_json["start_at"] = episode["node"]["freeProduct"]["startDeliveryAt"]
+                        #temp_json["end_at"] = episode["node"]["freeProduct"]["endDeliveryAt"]
                         return(temp_json)
                     else:
                         temp_json["status"] = "false"
@@ -747,79 +790,98 @@ class Dmm_TV_downloader:
             if link["quality_name"] == "hd":
                 return link["link_mpd"]
 
-    def download_segment(self, segment_links, config, unixtime, service_name="Dmm-TV"):
-        downloaded_files = []
-        try:
-            # Define the base temp directory
-            base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
-            os.makedirs(base_temp_dir, exist_ok=True)
+    # def download_segment(self, segment_links, config, unixtime, service_name="Dmm-TV"):
+    #    downloaded_files = []
+    #    try:
+    #        # Define the base temp directory
+    #        base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+    #        os.makedirs(base_temp_dir, exist_ok=True)
     
-            # Progress bar setup
-            progress_lock = threading.Lock()  # Ensure thread-safe progress bar updates
-            with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", ascii=True, unit='file') as pbar:
-                
-                # Thread pool for concurrent downloads
-                with ThreadPoolExecutor(max_workers=8) as executor:
-                    future_to_url = {}
+    #        # Progress bar setup
+    #        progress_lock = threading.Lock()  # Ensure thread-safe progress bar updates
+    #        with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", ascii=True, unit='file') as pbar:
+               
+    #            # Thread pool for concurrent downloads
+    #            with ThreadPoolExecutor(max_workers=8) as executor:
+    #                future_to_url = {}
+                   
+    #                # Submit download tasks
+    #                for tsf in segment_links:
+    #                    output_temp = os.path.join(base_temp_dir, os.path.basename(tsf.replace("?cfr=4%2F15015", "")))
+    #                    future = executor.submit(self._download_and_save, tsf, output_temp)
+    #                    future_to_url[future] = output_temp
+    
+    #                # Process completed futures
+    #                for future in as_completed(future_to_url):
+    #                    output_temp = future_to_url[future]
+    #                    try:
+    #                        result = future.result()
+    #                        if result:
+    #                            downloaded_files.append(output_temp)
+    #                    except Exception as e:
+    #                        print(f"Error downloading {output_temp}: {e}")
+    #                    finally:
+    #                        with progress_lock:
+    #                            pbar.update()
+    
+    #    except KeyboardInterrupt:
+    #        print('User pressed CTRL+C, cleaning up...')
+    #        return None
+    
+    #    return downloaded_files
+    
+    # def _download_and_save(self, url, output_path):
+    #    """
+    #    Helper function to download a segment and save it to a file.
+    #    """
+    #    try:
+    #        with open(output_path, 'wb') as outf:
+    #            vid = self.session.get(url).content  # Download the segment
+    #            # vid = self._aes.decrypt(vid.content)  # Uncomment if decryption is needed
+    #            outf.write(vid)  # Write the content to file
+    #        return True
+    #    except Exception as err:
+    #        print(f"Error saving {output_path}: {err}")
+    #        return False
+    
+    
+    # def merge_m4s_files(self, input_files, output_file, service_name="Dmm-TV"):
+    #    """
+    #    m4sファイルを結合して1つの動画ファイルにする関数
+       
+    #    Args:
+    #        input_files (list): 結合するm4sファイルのリスト
+    #        output_file (str): 出力する結合済みのファイル名
+    #    """
+    #    total_files = len(input_files)
+       
+    #    # バイナリモードでファイルを結合
+    #    with open(output_file, "wb") as outfile:
+    #        with tqdm(total=total_files, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as pbar:
+    #            for i, f in enumerate(input_files, start=1):
+    #                with open(f, "rb") as infile:
+    #                    outfile.write(infile.read())
+    #                pbar.set_postfix(file=f, refresh=True)
+    #                pbar.update(1)
                     
-                    # Submit download tasks
-                    for tsf in segment_links:
-                        output_temp = os.path.join(base_temp_dir, os.path.basename(tsf.replace("?cfr=4%2F15015", "")))
-                        future = executor.submit(self._download_and_save, tsf, output_temp)
-                        future_to_url[future] = output_temp
-    
-                    # Process completed futures
-                    for future in as_completed(future_to_url):
-                        output_temp = future_to_url[future]
+    def download_segment(self, segment_links, config, unixtime, name, service_name="Dmm-TV"):
+        base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+        os.makedirs(base_temp_dir, exist_ok=True)
+        with open(os.path.join(config["directorys"]["Temp"], "content", unixtime, name), 'wb') as out_file:
+            with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as progress_bar:
+                for url in segment_links:
+                    retry = 0
+                    while retry < 3:
                         try:
-                            result = future.result()
-                            if result:
-                                downloaded_files.append(output_temp)
-                        except Exception as e:
-                            print(f"Error downloading {output_temp}: {e}")
-                        finally:
-                            with progress_lock:
-                                pbar.update()
-    
-        except KeyboardInterrupt:
-            print('User pressed CTRL+C, cleaning up...')
-            return None
-    
-        return downloaded_files
-    
-    def _download_and_save(self, url, output_path):
-        """
-        Helper function to download a segment and save it to a file.
-        """
-        try:
-            with open(output_path, 'wb') as outf:
-                vid = self.session.get(url).content  # Download the segment
-                # vid = self._aes.decrypt(vid.content)  # Uncomment if decryption is needed
-                outf.write(vid)  # Write the content to file
-            return True
-        except Exception as err:
-            print(f"Error saving {output_path}: {err}")
-            return False
-    
-    
-    def merge_m4s_files(self, input_files, output_file, service_name="Dmm-TV"):
-        """
-        m4sファイルを結合して1つの動画ファイルにする関数
-        
-        Args:
-            input_files (list): 結合するm4sファイルのリスト
-            output_file (str): 出力する結合済みのファイル名
-        """
-        total_files = len(input_files)
-        
-        # バイナリモードでファイルを結合
-        with open(output_file, "wb") as outfile:
-            with tqdm(total=total_files, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as pbar:
-                for i, f in enumerate(input_files, start=1):
-                    with open(f, "rb") as infile:
-                        outfile.write(infile.read())
-                    pbar.set_postfix(file=f, refresh=True)
-                    pbar.update(1)
+                            response = requests.get(url.strip(), timeout=10)
+                            response.raise_for_status()
+                            out_file.write(response.content)
+                            progress_bar.update(1)
+                            break
+                        except requests.exceptions.RequestException as e:
+                            retry += 1
+                            time.sleep(2)
+                            
         
         # 結合完了メッセージ
         #print(f"結合が完了しました: {output_file}")
