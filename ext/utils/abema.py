@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 
 import ext.utils.abema_util.decrypt_key as dash_decrypt
-import ext.utils.abema_util.decrypt_subtitle as sub_decrypt
+import ext.global_func.decrypt_subtitle as sub_decrypt
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"

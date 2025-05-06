@@ -187,7 +187,6 @@ class global_parser:
             if debug: print(f"  Extracted Audio Track Info: {track_info}")
             return track_info
         elif "text" in mime_type:
-            print("a")
             track_info["type"] = "text"
             lang = adaptation_set.attrib.get("lang")
             track_info["language"] = lang # Add language as it's often useful

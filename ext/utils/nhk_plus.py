@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse, parse_qs, unquote, urljoin
 
 
-import ext.utils.abema_util.decrypt_subtitle as sub_decrypt
+import ext.global_func.decrypt_subtitle as sub_decrypt
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"

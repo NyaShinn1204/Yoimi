@@ -3,13 +3,14 @@ import os
 import time
 import base64
 import requests
-import threading
 import subprocess
 from tqdm import tqdm
 from lxml import etree
 from datetime import datetime
 from urllib.parse import urljoin
-from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import ext.global_func.decrypt_subtitle as sub_decrypt
+
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
 COLOR_RESET = "\033[0m"
@@ -937,26 +938,24 @@ class Dmm_TV_downloader:
             pbar.close()
             
     def download_subtitles(self, title_name, title_name_logger, base_link, subtitles, config, logger):
-        logger.info(f"Downloading Subtitles  | Total: {str(len(subtitles))} ", extra={"service_name": "Abema"})
+        logger.info(f"Downloading Subtitles  | Total: {str(len(subtitles))} ", extra={"service_name": "Dmm-TV"})
         #print(str(len(subtitles)))
         #for single in subtitles:
         #    print(single)
         #exit(1)
-        with tqdm(total=len(subtitles), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{"Abema"}{COLOR_RESET} : ", unit="%") as pbar:
+        with tqdm(total=len(subtitles), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{"Dmm-TV"}{COLOR_RESET} : ", unit="%") as pbar:
             for i, f in enumerate(subtitles, start=1):
                 #with open(f, "rb") as infile:
                 #    outfile.write(infile.read())
                 #os.remove(f)
                 #pbar.set_postfix(file=f, refresh=True)
-                print(f)
-                subtitle_text = self.session.get(base_link+f["language"]+".vtt").text
-                
-                ## sub_decryptつかう！！！
+                raw_subtitle = self.session.get(base_link+f["language"]+".vtt").content
+                decode_subtitle = sub_decrypt.parse_binary_content(raw_subtitle)
                 
                 output_sub_dr = os.path.join(config["directorys"]["Downloads"], title_name, "subtitle")
                 if not os.path.exists(output_sub_dr):
                     os.makedirs(output_sub_dr, exist_ok=True)
                 
                 with open(os.path.join(output_sub_dr, title_name_logger+"_"+f["language"]+".vtt"), "wb") as infile:
-                    infile.write(subtitle_text.encode())
+                    infile.write(decode_subtitle.encode())
                 pbar.update(1)

@@ -110,7 +110,7 @@ Completed: ✅ | In Progress: 🔄️ | Cancelled: ❌ | Not Available: N/A
 |--------------------|---------|-------|---------------------------- |
 | Abema              | ✅      | ✅    | ✅ (Around 10~20 titles)  |
 | U-Next             | ✅      | N/A   | N/A                         |
-| DMM TV             | ✅      | 🔄️    | 🔄️                        |
+| DMM TV             | ✅      | ✅    | ✅                        |
 | Danime             | 🔄️      | 🔄️    | N/A                        |
 | FOD                | ✅      | ✅    | N/A                        |
 | NHK+               | ✅      | ✅    | ✅                        |
