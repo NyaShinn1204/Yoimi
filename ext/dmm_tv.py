@@ -650,16 +650,24 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
             
-            logger.info("Checking resolution...", extra={"service_name": __service_name__})
-            logger.info("Found resolution", extra={"service_name": __service_name__})
-            for resolution_one in links:
-                if resolution_one["quality_name"] == "auto":
-                    pixel_d = "Unknown"
-                elif resolution_one["quality_name"] == "hd":
-                    pixel_d = "1920x1080"
-                elif resolution_one["quality_name"] == "sd":
-                    pixel_d = "1280x720"
-                logger.info(" + {reso} {pixel}".format(reso=resolution_one["quality_name"], pixel=pixel_d), extra={"service_name": __service_name__})
+            #logger.info("Checking resolution...", extra={"service_name": __service_name__})
+            #logger.info("Found resolution", extra={"service_name": __service_name__})
+            #for resolution_one in links:
+            #    if resolution_one["quality_name"] == "auto":
+            #        pixel_d = "Unknown"
+            #    elif resolution_one["quality_name"] == "hd":
+            #        pixel_d = "1920x1080"
+            #    elif resolution_one["quality_name"] == "sd":
+            #        pixel_d = "1280x720"
+            #    logger.info(" + {reso} {pixel}".format(reso=resolution_one["quality_name"], pixel=pixel_d), extra={"service_name": __service_name__})
+             
+            logger.info("Get Tracks", extra={"service_name": __service_name__})
+            track_data = Tracks.print_tracks(transformed_data)
+            
+            print(track_data)
+            
+            if (additional_info[8] or additional_info[7]) and not transformed_data["text_track"] == []: # if get, or embed = true
+                dmm_tv_downloader.download_subtitles(title_name, title_name_logger, hd_link.replace("manifest.mpd", ""), transformed_data["text_track"], config, logger)
                 
             logger.debug("Get Segment URL", extra={"service_name": __service_name__})
             segemnt_content = dmm_tv.Dmm_TV_utils.parse_mpd_content(mpd_content)

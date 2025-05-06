@@ -935,3 +935,28 @@ class Dmm_TV_downloader:
                 pbar.n = 100
                 pbar.refresh()
             pbar.close()
+            
+    def download_subtitles(self, title_name, title_name_logger, base_link, subtitles, config, logger):
+        logger.info(f"Downloading Subtitles  | Total: {str(len(subtitles))} ", extra={"service_name": "Abema"})
+        #print(str(len(subtitles)))
+        #for single in subtitles:
+        #    print(single)
+        #exit(1)
+        with tqdm(total=len(subtitles), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{"Abema"}{COLOR_RESET} : ", unit="%") as pbar:
+            for i, f in enumerate(subtitles, start=1):
+                #with open(f, "rb") as infile:
+                #    outfile.write(infile.read())
+                #os.remove(f)
+                #pbar.set_postfix(file=f, refresh=True)
+                print(f)
+                subtitle_text = self.session.get(base_link+f["language"]+".vtt").text
+                
+                ## sub_decryptつかう！！！
+                
+                output_sub_dr = os.path.join(config["directorys"]["Downloads"], title_name, "subtitle")
+                if not os.path.exists(output_sub_dr):
+                    os.makedirs(output_sub_dr, exist_ok=True)
+                
+                with open(os.path.join(output_sub_dr, title_name_logger+"_"+f["language"]+".vtt"), "wb") as infile:
+                    infile.write(subtitle_text.encode())
+                pbar.update(1)

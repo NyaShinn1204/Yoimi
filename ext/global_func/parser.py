@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+from langcodes import Language
 import xml.etree.ElementTree as ET
 from urllib.parse import urljoin # BaseURL結合のため
 import math # for math.ceil
@@ -135,8 +136,11 @@ class global_parser:
             }
 
         else:
-            if debug: print(f"  SegmentTemplate and SegmentBase not found for Rep ID {rep_id}")
-            return None
+            if "subtitle" in rep_id: ## Bypass DMM-TV
+                track_info = {"id": "subtitle"}
+            else:
+                if debug: print(f"  SegmentTemplate and SegmentBase not found for Rep ID {rep_id}")
+                return None
 
         if not track_info:
             return None
@@ -151,6 +155,7 @@ class global_parser:
              if not content_type: content_type = representation.attrib.get("contentType")
              if content_type == "video": mime_type = "video/mp4"
              elif content_type == "audio": mime_type = "audio/mp4"
+             elif content_type == "text": mime_type = "text/vtt"
              elif debug: print(f"  MimeType/contentType not found for Rep ID {rep_id}.")
              # Allow proceeding without mimeType if needed, type-specific info will be missing
 
@@ -179,6 +184,23 @@ class global_parser:
             # Original code didn't extract language or channels here, add if needed
             lang = adaptation_set.attrib.get("lang", "und")
             track_info["language"] = lang # Add language as it's often useful
+            if debug: print(f"  Extracted Audio Track Info: {track_info}")
+            return track_info
+        elif "text" in mime_type:
+            print("a")
+            track_info["type"] = "text"
+            lang = adaptation_set.attrib.get("lang")
+            track_info["language"] = lang # Add language as it's often useful
+            locale_map = { # 調べた限りであった奴
+                "ja": "Japanese",
+                "en": "English",
+                "fr": "French",
+                "de": "German",
+                "es": "Spanish",
+                "zh": "Chinese",
+                "ko": "Korean",
+            }
+            track_info["name"] = locale_map.get(lang.split('-')[0].lower(), "Unknown")
             if debug: print(f"  Extracted Audio Track Info: {track_info}")
             return track_info
         else:
@@ -244,7 +266,7 @@ class global_parser:
         # --- トラック情報の抽出 ---
         video_tracks = []
         audio_tracks = []
-        # text_tracks = [] # Original didn't handle text tracks
+        text_tracks = [] # Original didn't handle text tracks
         periods = root.findall('mpd:Period', ns)
         if not periods and root.tag == '{' + ns['mpd'] + '}MPD': periods = [root]
 
@@ -269,7 +291,7 @@ class global_parser:
                         track_type = track_info.get("type")
                         if track_type == "video": video_tracks.append(track_info)
                         elif track_type == "audio": audio_tracks.append(track_info)
-                        # elif track_type == "text": text_tracks.append(track_info)
+                        elif track_type == "text": text_tracks.append(track_info)
 
         # --- MPDルート要素の属性を取得 ---
         more_info = self.extract_mpd_attributes(mpd_content) # Kept this method
@@ -279,8 +301,8 @@ class global_parser:
             "info": more_info,
             "pssh_list": pssh_list,
             "video_track": video_tracks,
-            "audio_track": audio_tracks
-            # "text_track": text_tracks # Keep commented out as per original
+            "audio_track": audio_tracks,
+            "text_track": text_tracks # Keep commented out as per original
         }
 
     def calculate_video_duration(self, duration_str):
@@ -379,10 +401,15 @@ class global_parser:
              output += "  No audio tracks found.\n"
 
         # Text tracks (Keep commented out as original)
-        # text_tracks = tracks_json.get('text_track', [])
-        # output += f"\n{len(text_tracks)} Text Tracks:\n"
-        # ...
-
+        text_tracks = tracks_json.get('text_track', [])
+        if text_tracks:
+            output += f"\n{len(text_tracks)} Text Tracks:\n"
+            prefixes = ["├─"] * (len(text_tracks) - 1) + ["└─"] if len(text_tracks) > 0 else []
+            for i, text in enumerate(text_tracks):
+                prefix = prefixes[i]
+                language = text.get('language', 'und')
+                name = text.get('name', 'N/A')
+                output += f"{prefix} SUB | [VTT] | {language} | {name}\n"
         return output.strip()
 
 
