@@ -194,13 +194,13 @@ class Jff_utils:
             return {}
 
 class Jff_license:
-    def license_vd_ad(pssh, session, drm_key):
+    def license_vd_ad(pssh, session, drm_key, config):
         _WVPROXY = "https://widevine-dash.ezdrm.com/widevine-php/widevine-foreignkey.php?pX=D6F9EE&key={}".format(drm_key) # pXは固定
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
         from pywidevine.pssh import PSSH
         device = Device.load(
-            "./l3.wvd"
+            config["cdms"]["widevine"]
         )
         cdm = Cdm.from_device(device)
         session_id = cdm.open()

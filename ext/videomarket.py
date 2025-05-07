@@ -224,7 +224,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 transformed_data = Tracks.mpd_parser(session.get(low_fhd["playUrl"]).text)
                                 
                 logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
-                license_key = videomarket.VideoMarket_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, streaming_data["drmInfo"]["lowFhd"]["licenseUrl"])
+                license_key = videomarket.VideoMarket_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, streaming_data["drmInfo"]["lowFhd"]["licenseUrl"], config)
                 
                 logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})                

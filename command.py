@@ -1,5 +1,6 @@
 import os
 import sys
+import yaml
 import shutil
 import logging
 from datetime import datetime
@@ -8,7 +9,7 @@ import click
 import requests
 import subprocess
 
-from common import (__version__, _prepare_yuu_data, get_parser, version_check, get_yuu_folder, merge_video, mux_video)
+from common import (__version__, _prepare_yuu_data, get_parser, version_check, cdms_check, get_yuu_folder, merge_video, mux_video)
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], ignore_unknown_options=True)
 
@@ -118,6 +119,10 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
     
     version_check(sesi)
     
+    with open('config.yml', 'r') as yml:
+        config = yaml.safe_load(yml)
+    return_cdms = cdms_check(config)
+    
     if site_text not in ["abemav1", "aniplus", "gyao"]:
         
         if proxy:
@@ -135,11 +140,11 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                 print("[!] Requirement to install {}".format(cmd))
                 error_found = True
                 
-        if os.path.exists("l3.wvd"):
-            pass
-        else:
-            print("[-] Error: Widevine CDM File (l3.wvd) is not found")
-            sys.exit(1)
+        #if os.path.exists("l3.wvd"):
+        #    pass
+        #else:
+        #    print("[-] Error: Widevine CDM File (l3.wvd) is not found")
+        #    sys.exit(1)
                 
         if error_found:
             sys.exit(1)

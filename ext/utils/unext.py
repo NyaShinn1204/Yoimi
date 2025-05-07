@@ -185,13 +185,13 @@ class Unext_utils:
         return result
     
 class Unext_license:
-    def license_vd_ad(video_pssh, audio_pssh, playtoken, session):
+    def license_vd_ad(video_pssh, audio_pssh, playtoken, session, config):
         _WVPROXY = "https://wvproxy.unext.jp/proxy"
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
         from pywidevine.pssh import PSSH
         device = Device.load(
-            "./l3.wvd"
+            config["cdms"]["widevine"]
         )
         cdm = Cdm.from_device(device)
         session_id_video = cdm.open()
@@ -201,7 +201,7 @@ class Unext_license:
         challenge_audio = cdm.get_license_challenge(session_id_audio, PSSH(audio_pssh))
         response_video = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_video)    
         if response_video.text == "Possibly compromised client":
-            print("THIS WVD IS NOT ALLOWED")
+            print("THIS WVD IS REVOKE")
             #return None
         response_video.raise_for_status()
         response_audio = session.post(f"{_WVPROXY}?play_token={playtoken}", data=challenge_audio)    

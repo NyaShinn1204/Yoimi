@@ -10,13 +10,13 @@ COLOR_RESET = "\033[0m"
 COLOR_BLUE = "\033[94m"
 
 class VideoMarket_license:
-    def license_vd_ad(pssh, session, url):
+    def license_vd_ad(pssh, session, url, config):
         _WVPROXY = url
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
         from pywidevine.pssh import PSSH
         device = Device.load(
-            "./l3.wvd"
+            config["cdms"]["widevine"]
         )
         cdm = Cdm.from_device(device)
         session_id = cdm.open()

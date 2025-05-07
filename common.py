@@ -1,7 +1,9 @@
-import json
 import os
 import re
+import json
 import subprocess
+from ruamel.yaml import YAML
+from pathlib import Path
 
 from tqdm import tqdm
 
@@ -87,6 +89,65 @@ def version_check(session):
         print("\n")
         print(data["changelog_en"])
 
+def find_files_with_extension(folder, extension):
+    if not os.path.isdir(folder):
+        return []
+    return [
+        os.path.abspath(os.path.join(folder, f))
+        for f in os.listdir(folder)
+        if f.endswith(extension)
+    ]
+
+
+def cdms_check(config):
+    wv_folder = "./cdms/wv/"
+    pr_folder = "./cdms/pr/"
+
+    wvd_files = find_files_with_extension(wv_folder, ".wvd")
+    prd_files = find_files_with_extension(pr_folder, ".prd")
+
+    result = {
+        "wvd": wvd_files,
+        "prd": prd_files
+    }
+
+    if (not wvd_files or not prd_files) or config["cdms"]["widevine"] == "":
+        yaml = YAML()
+        yaml.preserve_quotes = True
+        
+        config_path = Path('config.yml')
+        
+        if not wvd_files and config["cdms"]["widevine"] == "":
+            print("Please check whether the WVD file is located inside `./cdms/wv`")
+            exit(1)
+        if len(wvd_files) == 1 and config["cdms"]["widevine"] == "":
+            selected_file = wvd_files[0]
+            print(f"Update config to use {os.path.basename(selected_file)} cdm")
+            config["cdms"]["widevine"] = selected_file
+            with config_path.open('w', encoding='utf-8') as f:
+                yaml.dump(config, f)
+        if len(wvd_files) > 1 and config["cdms"]["widevine"] == "":
+            print("Available Widevine CDM:")
+            for i, path in enumerate(wvd_files, 1):
+                print(f"{i}. {os.path.basename(path)}")
+            
+            while True:
+                try:
+                    choice = int(input("Enter the number of the file you want to use: "))
+                    if 1 <= choice <= len(wvd_files):
+                        selected_file = wvd_files[choice - 1]
+                        break
+                    else:
+                        print("Invalid number. Please re-try.")
+                except ValueError:
+                    print("Please type number.")
+        
+            print(f"Update config to use {os.path.basename(selected_file)} cdm")
+            config["cdms"]["widevine"] = selected_file
+            with config_path.open('w', encoding='utf-8') as f:
+                yaml.dump(config, f)
+    
+    return result
 def merge_video(path, output):
     """
     Merge every video chunk to a single file output

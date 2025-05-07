@@ -195,7 +195,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 
-                keys = nhk_plus.NHKplus_license.license_vd_ad(pssh_box, session, drm_token)
+                keys = nhk_plus.NHKplus_license.license_vd_ad(pssh_box, session, drm_token, config)
                 
                 logger.info(f"Decrypt Video, Audio License", extra={"service_name": __service_name__})
                 
@@ -332,7 +332,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 
-                keys = nhk_plus.NHKplus_license.license_vd_ad(pssh_box, session, drm_token)
+                keys = nhk_plus.NHKplus_license.license_vd_ad(pssh_box, session, drm_token, config)
                 
                 logger.info(f"Decrypt Video, Audio License", extra={"service_name": __service_name__})
                 

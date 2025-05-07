@@ -11,3 +11,4 @@ beautifulsoup4
 click
 lxml
 pywidevine
+ruamel.yaml

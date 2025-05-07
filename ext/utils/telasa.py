@@ -61,13 +61,13 @@ class Telasa_decrypt:
                     inner_pbar.refresh()
 
 class Telasa_license:
-    def license_vd_ad(pssh, session, playback_token):
+    def license_vd_ad(pssh, session, playback_token, config):
         _WVPROXY = "https://license.kddi-video.com/"
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
         from pywidevine.pssh import PSSH
         device = Device.load(
-            "./l3.wvd"
+            config["cdms"]["widevine"]
         )
         cdm = Cdm.from_device(device)
         session_id = cdm.open()

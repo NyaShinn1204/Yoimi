@@ -140,7 +140,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": __service_name__})
         
-        license_key = jff_theater.Jff_license.license_vd_ad(mpd_lic["pssh"][1], session, drm_key)
+        license_key = jff_theater.Jff_license.license_vd_ad(mpd_lic["pssh"][1], session, drm_key, config)
                     
         logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
         

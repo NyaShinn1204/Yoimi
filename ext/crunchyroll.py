@@ -116,7 +116,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 mpd_lic = crunchyroll.Crunchyroll_utils.parse_mpd_logic(mpd_content)
                 logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": __service_name__})
                 
-                license_key = crunchyroll.Crunchyroll_license.license_vd_ad(mpd_lic["pssh"][1], session, player_info["token"], single_info["id"])
+                license_key = crunchyroll.Crunchyroll_license.license_vd_ad(mpd_lic["pssh"][1], session, player_info["token"], single_info["id"], config)
                 session.delete(f"https://www.crunchyroll.com/playback/v1/token/{single_info["id"]}/{player_info["token"]}", json={}, headers=headers)
                             
                 logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
@@ -202,7 +202,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     mpd_lic = crunchyroll.Crunchyroll_utils.parse_mpd_logic(mpd_content)
                     logger.info(f" + Video, Audio PSSH: {mpd_lic["pssh"][1]}", extra={"service_name": __service_name__})
                     
-                    license_key = crunchyroll.Crunchyroll_license.license_vd_ad(mpd_lic["pssh"][1], session, player_info["token"], meta_i["id"])
+                    license_key = crunchyroll.Crunchyroll_license.license_vd_ad(mpd_lic["pssh"][1], session, player_info["token"], meta_i["id"], config)
                     session.delete(f"https://www.crunchyroll.com/playback/v1/token/{meta_i["id"]}/{player_info["token"]}", json={}, headers=headers)
                                 
                     logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})

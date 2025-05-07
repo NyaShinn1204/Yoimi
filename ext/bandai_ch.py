@@ -273,7 +273,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 transformed_data = Tracks.mpd_parser(session.get(urls[0]).text)
                             
                 logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
-                license_key = bandai_ch.Bandai_ch_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, license_authkey)
+                license_key = bandai_ch.Bandai_ch_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, license_authkey, config)
                 
                 logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
@@ -475,7 +475,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             transformed_data = Tracks.mpd_parser(session.get(urls[0]).text)
                         
             logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
-            license_key = bandai_ch.Bandai_ch_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, license_authkey)
+            license_key = bandai_ch.Bandai_ch_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, license_authkey, config)
             
             logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
             logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})

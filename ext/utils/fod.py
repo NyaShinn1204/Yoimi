@@ -217,13 +217,13 @@ class FOD_utils:
             raise RuntimeError(f"An unexpected error occurred: {e}")
 
 class FOD_license:
-    def license_vd_ad(all_pssh, custom_data, session):
+    def license_vd_ad(all_pssh, custom_data, session, config):
         _WVPROXY = f"https://cenc.webstream.ne.jp/drmapi/wv/fujitv?custom_data={custom_data}"
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
         from pywidevine.pssh import PSSH
         device = Device.load(
-            "./l3.wvd"
+            config["cdms"]["widevine"]
         )
         cdm = Cdm.from_device(device)
         session_id = cdm.open()

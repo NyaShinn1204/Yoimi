@@ -1,17 +1,18 @@
 headers:
-  Login-Agent: 'U-NEXT Phone App Android7.1.2 5.29.0 SM-G955N'
-  User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0'
-
+  Login-Agent: U-NEXT Phone App Android7.1.2 5.29.0 SM-G955N
+  User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+    like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0
 directorys:
-  Temp: './temp'
-  Downloads: './downloads'
-  Binaries: './binaries'
-  Service_util: './ext/utils/{servicename}_util'
-
+  Temp: ./temp
+  Downloads: ./downloads
+  Binaries: ./binaries
+  Service_util: ./ext/utils/{servicename}_util
+cdms:
+  widevine: ''
+  playready: ''
 authorization: # option
   use_token: False
   token: '' # 'Bearer eyJhbG.....' this option is not recomended
-
 format:
   anime: '{seriesname}_{titlename}_{episodename}' # seriesname, titlename, episodename are availiable
   movie: '{seriesname}_{titlename}_{episodename}' # if not found episode_name, auto to delete episode_name

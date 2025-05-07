@@ -273,13 +273,13 @@ class Dmm_TV_utils:
             return {}
 
 class Dmm_TV__license:
-    def license_vd_ad(pssh, session):        
+    def license_vd_ad(pssh, session, config):        
         _WVPROXY = "https://mlic.dmm.com/drm/widevine/license"
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
         from pywidevine.pssh import PSSH
         device = Device.load(
-            "./l3.wvd"
+            config["cdms"]["widevine"]
         )
         cdm = Cdm.from_device(device)
         session_id = cdm.open()

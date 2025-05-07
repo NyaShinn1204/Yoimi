@@ -215,13 +215,13 @@ class Crunchyroll_utils:
             print(f"予期せぬエラーが発生しました: {e}")
             return {}
 class Crunchyroll_license:
-    def license_vd_ad(pssh, session, token, id):
+    def license_vd_ad(pssh, session, token, id, config):
         _WVPROXY = "https://www.crunchyroll.com/license/v1/license/widevine"
         from pywidevine.cdm import Cdm
         from pywidevine.device import Device
         from pywidevine.pssh import PSSH
         device = Device.load(
-            "./l3.wvd"
+            config["cdms"]["widevine"]
         )
         cdm = Cdm.from_device(device)
         session_id = cdm.open()

@@ -290,7 +290,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": __service_name__})
                     logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": __service_name__})
                     
-                    license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
+                    license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session, config)
                     
                     logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                     
@@ -439,7 +439,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(f" + Video PSSH: {mpd_lic["video_pssh"]}", extra={"service_name": __service_name__})
                 logger.info(f" + Audio PSSH: {mpd_lic["audio_pssh"]}", extra={"service_name": __service_name__})
                 
-                license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
+                license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session, config)
                 
                 logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 

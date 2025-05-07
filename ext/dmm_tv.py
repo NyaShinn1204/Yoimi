@@ -375,7 +375,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             
                 logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
                                             
-                license_key = dmm_tv.Dmm_TV__license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session)
+                license_key = dmm_tv.Dmm_TV__license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, config)
                             
                 logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 
@@ -644,7 +644,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         
             logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
             
-            license_key = dmm_tv.Dmm_TV__license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session)
+            license_key = dmm_tv.Dmm_TV__license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, config)
                         
             logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
             

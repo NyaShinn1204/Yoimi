@@ -143,7 +143,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     
                     logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
-                    license_key = wowow.WOD_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url)
+                    license_key = wowow.WOD_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, config)
                     
                     logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                     logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
@@ -271,7 +271,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     
                     logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
-                    license_key = wowow.WOD_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url)
+                    license_key = wowow.WOD_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, config)
                     
                     logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                     logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
