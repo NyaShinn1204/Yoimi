@@ -141,7 +141,7 @@ Credits is [here](./CREDITS.md)!
 
 ## Have you found a problem?
 
-discord: nyanyakko005 (https://discord.gg/Jt9h5A7C) Recently made. :)
+discord: nyanyakko005 (https://discord.gg/KvGuzNh5UP) Recently made. :)
 or
 telegmra: skidnyarara
 
