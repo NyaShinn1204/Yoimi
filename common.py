@@ -7,7 +7,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 
 def get_parser(url):
     """
