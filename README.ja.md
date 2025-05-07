@@ -141,7 +141,7 @@ creditsは[ここ](./CREDITS.md)から見れるよ！
 
 ## 問題を発見しましたか？
 
-discord: nyanyakko005
+discord: nyanyakko005 (https://discord.gg/Jt9h5A7C) 最近鯖作りました :)
 または
 telegmra: skidnyarara
 
