@@ -271,6 +271,23 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 #print(a.json())
         elif url.__contains__("series"):
             logger.error("I dont have telasa premium account. so this option is coming soon", extra={"service_name": __service_name__})
+            
+            logger.info("Hehe now ongoing", extra={"service_name": __service_name__})
+            
+            match = re.search(r'/series/(\d+)', url)
+            
+            if match:
+                series_id = match.group(1)
+                #print(series_id)  # 出力: 15662
+                
+            metadata = telasa_downloader.get_series_info(series_id)
+            
+            series_title = metadata['name']
+            episode_ids = metadata.get('episode_ids', [])
+            copyright = metadata.get('copyright', "")
+            
+            episodes_metadata = telasa_downloader.get_episodes_info(episode_ids)
+            
             # season episode mode
             return
         else:

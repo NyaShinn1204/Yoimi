@@ -238,6 +238,44 @@ class Telasa_downloader:
         streaming_list = self.session.post("https://playback.kddi-video.com/graphql", json=payload).json()
         return streaming_list
     
+    def get_series_info(self, series_id):
+        url = "https://api-videopass.kddi-video.com/v3/series/"+series_id
+        
+        headers = {
+            "accept-encoding": "compress, gzip",
+            "user-agent": "com.kddi.android.videopass/4.0.131-master (build:40000131; model:22081212C; device:star2qltechn; mcc:310; mnc:005; os:Android; osv:samsung/star2qltezh/star2qltechn:9/PQ3B.190801.10101846/G9650ZHU2ARC6:user/release-keys; appId:Videopass2;)",
+            "host": "api-videopass.kddi-video.com",
+            "connection": "Keep-Alive"
+        }
+        
+        response = self.session.get(url, headers=headers).json()["data"]
+        return response
+
+    def get_episodes_info(self, episode_ids):
+        url = "https://api-videopass.kddi-video.com/v3/batch/query"
+        
+        headers = {
+            "accept-encoding": "compress, gzip",
+            "user-agent": "com.kddi.android.videopass/4.0.131-master (build:40000131; model:22081212C; device:star2qltechn; mcc:310; mnc:005; os:Android; osv:samsung/star2qltezh/star2qltechn:9/PQ3B.190801.10101846/G9650ZHU2ARC6:user/release-keys; appId:Videopass2;)",
+            "host": "api-videopass.kddi-video.com",
+            "connection": "Keep-Alive"
+        }
+        payload = {
+            "video_ids": episode_ids
+        }
+        
+        response = self.session.post(url, headers=headers, json=payload).json()['data']['items']
+        
+        episode_list = []
+        for i in response:
+            episode_list.append([
+                i["data"]["subtitle"],
+                i["data"]["duration"],
+                i["data"]["title_id"]
+            ])
+        
+        return episode_list
+
     def download_segment(self, segment_links, config, unixtime, name, service_name="Telasa"):
         base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
         os.makedirs(base_temp_dir, exist_ok=True)
