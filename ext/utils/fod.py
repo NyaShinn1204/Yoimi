@@ -471,9 +471,11 @@ class FOD_downloader:
         
         uid = check_token_status.json()["uid"]
         
+        login_token = self.re_generate_login_token(uid)
         
-        default_headers["x-authorization"] = "Bearer "+fodid_login_token
-        self.session.headers.update({"x-authorization": "Bearer "+fodid_login_token})
+        
+        default_headers["x-authorization"] = "Bearer "+login_token
+        self.session.headers.update({"x-authorization": "Bearer "+login_token})
         
         #
         #login_status_1 = self.session.get(_AUTH_SENT_CODE.format(code=mail_auth_code), headers=headers)
@@ -519,7 +521,7 @@ class FOD_downloader:
             #pass
             #self.session.headers.update({'x-authorization': 'Bearer ' + user_info_res.cookies.get("UT")})
             self.web_headers = {
-                "x-authorization": "Bearer "+fodid_login_token,
+                "x-authorization": "Bearer "+login_token,
                 "host": "fod-sp.fujitv.co.jp",
                 "connection": "Keep-Alive",
                 "accept-encoding": "gzip",
@@ -548,9 +550,23 @@ class FOD_downloader:
         
         jwt_token = jwt.encode(payload, secret_key, algorithm='HS256')
         return jwt_token
+    def re_generate_login_token(self, uid):
+        secret_key = "II1pq1aFylVZNASr0mea7zXFOhrAPZURZp6Ru3LuqqsUVZ4lyJj2R4kufetQN9mx"
+        device_type = "androidTV"
+        device_id = "google_google_aosp tv on x86_13"
+        
+        payload = {
+            "iss": "FOD",
+            "uid": uid,
+            "dv_type": device_type,
+            "dv_id": device_id,
+        }
+        
+        jwt_token = jwt.encode(payload, secret_key, algorithm='HS256')
+        return jwt_token
     def gen_temptoken(self):
         global login_status
-        secret_key = "II1pq1aFylVZNASr0mea7zXFOhrAPZURZp6Ru3LuqqsUVZ4lyJj2R4kufetQN9mx" # Haha cracked from AndroidTV APK
+        secret_key = "II1pq1aFylVZNASr0mea7zXFOhrAPZURZp6Ru3LuqqsUVZ4lyJj2R4kufetQN9mx"
         device_type = "androidTV"
         device_id = "google_google_aosp tv on x86_13"
         
