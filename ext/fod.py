@@ -7,6 +7,8 @@ import logging
 import shutil
 import ext.global_func.niconico as comment
 
+import ext.global_func.parser as parser
+
 from rich.console import Console
 
 from ext.utils import fod
@@ -213,21 +215,34 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                 logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
                        
-                logger.info("Checking resolution...", extra={"service_name": __service_name__})
+                #logger.info("Checking resolution...", extra={"service_name": __service_name__})
                 resolution_s, bandwidth_list = fod.mpd_parse.get_resolutions(mpd_content)
-                logger.info("Found resolution", extra={"service_name": __service_name__})
-                for resolution_one in resolution_s:
-                    logger.info(" + "+resolution_one, extra={"service_name": __service_name__})
-                for bandwidth_one in bandwidth_list:
-                    logger.debug(" + "+bandwidth_one, extra={"service_name": __service_name__})
+                #logger.info("Found resolution", extra={"service_name": __service_name__})
+                #for resolution_one in resolution_s:
+                #    logger.info(" + "+resolution_one, extra={"service_name": __service_name__})
+                #for bandwidth_one in bandwidth_list:
+                #    logger.debug(" + "+bandwidth_one, extra={"service_name": __service_name__})
                 duration = fod.mpd_parse.get_duration(mpd_content)
-                logger.debug("+ duration: "+duration, extra={"service_name": __service_name__})
+                #logger.debug("+ duration: "+duration, extra={"service_name": __service_name__})
                 if login_status != False:
                     fod_downloader.sent_start_stop_signal(bandwidth_list[-1], url, duration)
-                    
+                #    
+                #logger.info("Video, Audio Content Link", extra={"service_name": __service_name__})
+                #video_url = fod.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
+                #audio_url = fod.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
+                #logger.info(" + Video_URL: "+video_url, extra={"service_name": __service_name__})
+                #logger.info(" + Audio_URL: "+audio_url, extra={"service_name": __service_name__})
+                
+                Tracks = parser.global_parser()
+                transformed_data = Tracks.mpd_parser(mpd_content)
+                
+                logger.info("Get Tracks", extra={"service_name": __service_name__})
+                track_data = Tracks.print_tracks(transformed_data)
+                print(track_data)
+                get_best_track = Tracks.select_best_tracks(transformed_data)
                 logger.info("Video, Audio Content Link", extra={"service_name": __service_name__})
-                video_url = fod.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
-                audio_url = fod.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
+                video_url = get_best_track["video"]["url"]
+                audio_url = get_best_track["audio"]["url"]
                 logger.info(" + Video_URL: "+video_url, extra={"service_name": __service_name__})
                 logger.info(" + Audio_URL: "+audio_url, extra={"service_name": __service_name__})
                 
@@ -346,21 +361,34 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
             logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
                    
-            logger.info("Checking resolution...", extra={"service_name": __service_name__})
+            #logger.info("Checking resolution...", extra={"service_name": __service_name__})
             resolution_s, bandwidth_list = fod.mpd_parse.get_resolutions(mpd_content)
-            logger.info("Found resolution", extra={"service_name": __service_name__})
-            for resolution_one in resolution_s:
-                logger.info(" + "+resolution_one, extra={"service_name": __service_name__})
-            for bandwidth_one in bandwidth_list:
-                logger.debug(" + "+bandwidth_one, extra={"service_name": __service_name__})
+            #logger.info("Found resolution", extra={"service_name": __service_name__})
+            #for resolution_one in resolution_s:
+            #    logger.info(" + "+resolution_one, extra={"service_name": __service_name__})
+            #for bandwidth_one in bandwidth_list:
+            #    logger.debug(" + "+bandwidth_one, extra={"service_name": __service_name__})
             duration = fod.mpd_parse.get_duration(mpd_content)
-            logger.debug("+ duration: "+duration, extra={"service_name": __service_name__})
+            #logger.debug("+ duration: "+duration, extra={"service_name": __service_name__})
             if login_status != False:
                 fod_downloader.sent_start_stop_signal(bandwidth_list[-1], url, duration)
-                
+            #    
+            #logger.info("Video, Audio Content Link", extra={"service_name": __service_name__})
+            #video_url = fod.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
+            #audio_url = fod.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
+            #logger.info(" + Video_URL: "+video_url, extra={"service_name": __service_name__})
+            #logger.info(" + Audio_URL: "+audio_url, extra={"service_name": __service_name__})
+            
+            Tracks = parser.global_parser()
+            transformed_data = Tracks.mpd_parser(mpd_content)
+            
+            logger.info("Get Tracks", extra={"service_name": __service_name__})
+            track_data = Tracks.print_tracks(transformed_data)
+            print(track_data)
+            get_best_track = Tracks.select_best_tracks(transformed_data)
             logger.info("Video, Audio Content Link", extra={"service_name": __service_name__})
-            video_url = fod.mpd_parse.extract_video_info(mpd_content, resolution_s[-1])["base_url"]
-            audio_url = fod.mpd_parse.extract_audio_info(mpd_content, "48000 audio/mp4 mp4a.40.2")["base_url"]
+            video_url = get_best_track["video"]["url"]
+            audio_url = get_best_track["audio"]["url"]
             logger.info(" + Video_URL: "+video_url, extra={"service_name": __service_name__})
             logger.info(" + Audio_URL: "+audio_url, extra={"service_name": __service_name__})
             
