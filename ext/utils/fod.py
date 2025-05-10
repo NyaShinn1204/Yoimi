@@ -682,7 +682,7 @@ class FOD_downloader:
             print(e)
             return False, None
         
-    def get_mpd_content(self, uuid, url, ut):
+    def get_mpd_content(self, acc_uuid, url, ut):
         global mpd_content_response
         tries = 3
         
@@ -699,24 +699,28 @@ class FOD_downloader:
                     response = self.session.get(url)
                     ut = response.cookies.get("CT")
                 
+                if acc_uuid == None:
+                    import uuid
+                    acc_uuid = str(uuid.uuid4())
                 
-                unixtime = str(int(time.time() * 1000))
+                #unixtime = str(int(time.time() * 1000))
                 matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
-                self.web_headers["X-Authorization"] = "Bearer "+ut
-                self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
+                #self.web_headers["X-Authorization"] = "Bearer "+ut
+                #self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
                 self.web_headers["host"] = base_host
-                self.web_headers["sec-fetch-site"] = "same-origin"
+                #self.web_headers["sec-fetch-site"] = "same-origin"
                 #print(self.web_headers)
-                mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
+                mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={acc_uuid}&starttime=0&dv_type=tv", headers=self.web_headers)
                 #print(mpd_content_response.text)
                 if mpd_content_response.json():
                     if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
-                        self.web_headers["X-Authorization"] = "Bearer "+mpd_content_response.cookies.get("UT")
-                        self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
-                        self.web_headers["host"] = base_host
-                        self.web_headers["sec-fetch-site"] = "same-origin"
-                        unixtime = str(int(time.time() * 1000))
-                        mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
+                        #self.web_headers["X-Authorization"] = "Bearer "+mpd_content_response.cookies.get("UT")
+                        #self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
+                        #self.web_headers["host"] = base_host
+                        #self.web_headers["sec-fetch-site"] = "same-origin"
+                        #unixtime = str(int(time.time() * 1000))
+                        # https://fod-sp.fujitv.co.jp/apps/api/auth/contents/tv_common/?site_id=fodapp&ep_id=b0i0110001&qa=auto&uuid=5613dd44-5f4e-444b-bab4-51e04d58b11b&starttime=0&dv_type=tv
+                        mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={acc_uuid}&starttime=0&dv_type=tv", headers=self.web_headers)
                         if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
                             pass
                         else:
@@ -760,7 +764,7 @@ class FOD_downloader:
     #            self.web_headers["host"] = base_host
     #            self.web_headers["sec-fetch-site"] = "same-origin"
     #            #print(self.web_headers)
-    #            mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
+    #            mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&dv_type=tv", headers=self.web_headers)
     #            #print(mpd_content_response.text)
     #            if mpd_content_response.json():
     #                prm = matches_url.group("episode_id")+"androidtv_"+datetime.now().strftime("%Y%m%d%H%M%S")+"_fod_"
@@ -770,7 +774,7 @@ class FOD_downloader:
     #                    self.web_headers["host"] = base_host
     #                    self.web_headers["sec-fetch-site"] = "same-origin"
     #                    unixtime = str(int(time.time() * 1000))
-    #                    mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
+    #                    mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&dv_type=tv", headers=self.web_headers)
     #                    if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
     #                        pass
     #                    else:

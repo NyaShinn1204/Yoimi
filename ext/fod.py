@@ -86,9 +86,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 account_coin = str(message["user_coin"])
                 account_point = str(message["user_point"])
                 logger.info("Loggined Account", extra={"service_name": __service_name__})
-                logger.info(" + ID: "+message["member_id"], extra={"service_name": __service_name__})
+                #logger.info(" + ID: "+message["member_id"], extra={"service_name": __service_name__})
                 logger.info(" + Coin: "+account_coin, extra={"service_name": __service_name__})
-                logger.info(" + Point: "+account_point, extra={"service_name": __service_name__})  
+                logger.info(" + Point: "+account_point, extra={"service_name": __service_name__})
+                login_status = True  
         else:
             status, message = fod_downloader.gen_temptoken()
             if status == False:
