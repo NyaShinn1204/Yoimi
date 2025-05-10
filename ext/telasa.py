@@ -282,11 +282,26 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
             metadata = telasa_downloader.get_series_info(series_id)
             
-            series_title = metadata['name']
+            title_name = metadata['name']
             episode_ids = metadata.get('episode_ids', [])
             copyright = metadata.get('copyright', "")
             
             episodes_metadata = telasa_downloader.get_episodes_info(episode_ids)
+            
+            logger.info("Get title for season", extra={"service_name": __service_name__})
+            for single in episodes_metadata:
+                format_string = config["format"]["anime"].replace("_{titlename}", "")
+                values = {
+                    "seriesname": title_name,
+                    "episodename": single[0]
+                }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
+                logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
             
             # season episode mode
             return
