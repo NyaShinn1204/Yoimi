@@ -337,7 +337,7 @@ class FOD_downloader:
             "connection": "Keep-Alive",
             "accept-encoding": "gzip",
             "user-agent": "okhttp/4.12.0",
-            "x-authorization": temp_token,
+            "x-authorization": "Bearer "+temp_token,
             #"x-newrelic-id": "VgADV1VXCRAGV1ZSAwUCU1A="
         }
         if not re.fullmatch('[0-9]+', email):
@@ -472,7 +472,7 @@ class FOD_downloader:
         uid = check_token_status.json()["uid"]
         
         
-        default_headers["x-authorization"] = fodid_login_token
+        default_headers["x-authorization"] = "Bearer "+fodid_login_token
         self.session.headers.update({"x-authorization": "Bearer "+fodid_login_token})
         
         #
@@ -724,59 +724,60 @@ class FOD_downloader:
                 #print(traceback.format_tb(e.__traceback__))
                 if attempt == tries -1:
                     return False, None, None
-    def get_mpd_content_free(self, uuid, url, ut):
-        global mpd_content_response
-        tries = 3
-        
-        #device_code = "web"
-        device_code = "tv_common/"
-        #base_url = "https://fod.fujitv.co.jp/apps/api/1/auth/contents"
-        base_url = "https://fod-sp.fujitv.co.jp/apps/api/auth/contents"
-        #base_host = "fod.fujitv.co.jp"
-        base_host = "fod-sp.fujitv.co.jp"
-        
-        for attempt in range(tries):
-            try:
-                unixtime = str(int(time.time() * 1000))
-                matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
-                self.web_headers["X-Authorization"] = "Bearer "+ut
-                self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
-                self.web_headers["host"] = base_host
-                self.web_headers["sec-fetch-site"] = "same-origin"
-                #print(self.web_headers)
-                mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
-                #print(mpd_content_response.text)
-                if mpd_content_response.json():
-                    prm = matches_url.group("episode_id")+"androidtv_"+datetime.now().strftime("%Y%m%d%H%M%S")+"_fod_"
-                    if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
-                        self.web_headers["X-Authorization"] = "Bearer "+mpd_content_response.cookies.get("UT")
-                        self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
-                        self.web_headers["host"] = base_host
-                        self.web_headers["sec-fetch-site"] = "same-origin"
-                        unixtime = str(int(time.time() * 1000))
-                        mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
-                        if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
-                            pass
-                        else:
-                            ticket = mpd_content_response.json()["ticket"]
-                            mpd_url = mpd_content_response.json()["url"]
-                            mpd_content_res = self.session.get(mpd_url)
-                            self.session.get(f"https://fod.fujitv.co.jp/api/msd/view_log_free_v2/?epid={matches_url.group("episode_id")}&uid=&dvid=google_google_aosp+tv+on+x86_13&prm={prm}")
-                            return True, ticket, mpd_content_res.text
-                    else:
-                        ticket = mpd_content_response.json()["ticket"]
-                        mpd_url = mpd_content_response.json()["url"]
-                        mpd_content_res = self.session.get(mpd_url)
-                        self.session.get(f"https://fod.fujitv.co.jp/api/msd/view_log_free_v2/?epid={matches_url.group("episode_id")}&uid=&dvid=google_google_aosp+tv+on+x86_13&prm={prm}")
-                        return True, ticket, mpd_content_res.text
-            except Exception as e:
-                import traceback
-                import sys
-                t, v, tb = sys.exc_info()
-                print(traceback.format_exception(t,v,tb))
-                print(traceback.format_tb(e.__traceback__))
-                if attempt == tries -1:
-                    return False, None
+    #def get_mpd_content_free(self, uuid, url, ut):
+    #    global mpd_content_response
+    #    tries = 3
+    #    
+    #    #device_code = "web"
+    #    device_code = "tv_common/"
+    #    #base_url = "https://fod.fujitv.co.jp/apps/api/1/auth/contents"
+    #    base_url = "https://fod-sp.fujitv.co.jp/apps/api/auth/contents"
+    #    #base_host = "fod.fujitv.co.jp"
+    #    base_host = "fod-sp.fujitv.co.jp"
+    #    
+    #    for attempt in range(tries):
+    #        try:
+    #            unixtime = str(int(time.time() * 1000))
+    #            matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+    #            self.web_headers["X-Authorization"] = "Bearer "+ut
+    #            self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
+    #            self.web_headers["host"] = base_host
+    #            self.web_headers["sec-fetch-site"] = "same-origin"
+    #            #print(self.web_headers)
+    #            mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
+    #            #print(mpd_content_response.text)
+    #            if mpd_content_response.json():
+    #                prm = matches_url.group("episode_id")+"androidtv_"+datetime.now().strftime("%Y%m%d%H%M%S")+"_fod_"
+    #                if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
+    #                    self.web_headers["X-Authorization"] = "Bearer "+mpd_content_response.cookies.get("UT")
+    #                    self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
+    #                    self.web_headers["host"] = base_host
+    #                    self.web_headers["sec-fetch-site"] = "same-origin"
+    #                    unixtime = str(int(time.time() * 1000))
+    #                    mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={uuid}&starttime=0&is_pt=false&dt=&_={unixtime}", headers=self.web_headers)
+    #                    if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
+    #                        pass
+    #                    else:
+    #                        ticket = mpd_content_response.json()["ticket"]
+    #                        mpd_url = mpd_content_response.json()["url"]
+    #                        mpd_content_res = self.session.get(mpd_url)
+    #                        self.session.get(f"https://fod.fujitv.co.jp/api/msd/view_log_free_v2/?epid={matches_url.group("episode_id")}&uid=&dvid=google_google_aosp+tv+on+x86_13&prm={prm}")
+    #                        return True, ticket, mpd_content_res.text
+    #                else:
+    #                    ticket = mpd_content_response.json()["ticket"]
+    #                    mpd_url = mpd_content_response.json()["url"]
+    #                    mpd_content_res = self.session.get(mpd_url)
+    #                    self.session.get(f"https://fod.fujitv.co.jp/api/msd/view_log_free_v2/?epid={matches_url.group("episode_id")}&uid=&dvid=google_google_aosp+tv+on+x86_13&prm={prm}")
+    #                    return True, ticket, mpd_content_res.text
+    #        except Exception as e:
+    #            import traceback
+    #            import sys
+    #            t, v, tb = sys.exc_info()
+    #            print(traceback.format_exception(t,v,tb))
+    #            print(traceback.format_tb(e.__traceback__))
+    #            if attempt == tries -1:
+    #                return False, None
+    
     def sent_start_stop_signal(self, bandwidth, video_url, duration):
         matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', video_url)
         uuid = self.session.cookies.get("uuid")
