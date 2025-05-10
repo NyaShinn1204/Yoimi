@@ -302,7 +302,7 @@ class FOD_downloader:
         self.session = session
         self.web_headers = {}
     def authorize(self, email, password):
-        global user_info_res
+        global user_info_res, login_status
         _AUTH_MAIN_PAGE = "https://fod.fujitv.co.jp/auth/login/"
         _AUTH_TEST_1 = "https://fod.fujitv.co.jp/loginredir/?r=https%3A%2F%2Ffod.fujitv.co.jp%2Fauth%2Fmail_auth"
         _AUTH_USER_STATUS = "https://fod.fujitv.co.jp/apps/api/1/user/status"
@@ -477,10 +477,12 @@ class FOD_downloader:
             self.web_headers["host"] = "i.fod.fujitv.co.jp"
             self.web_headers["sec-fetch-site"] = "same-site"
             self.web_headers["X-Authorization"] = "Bearer " + get_loginredir.cookies.get("CT")
+            login_status = True
             return True, user_info_res.json(), user_info_res.cookies.get("uuid")
         else:
             return False, "Authentication Failed: Failed to get user_status_2", None
     def gen_temptoken(self):
+        global login_status
         secret_key = "II1pq1aFylVZNASr0mea7zXFOhrAPZURZp6Ru3LuqqsUVZ4lyJj2R4kufetQN9mx" # Haha cracked from AndroidTV APK
         device_type = "androidTV"
         device_id = "google_google_aosp tv on x86_13"
@@ -515,7 +517,7 @@ class FOD_downloader:
         self.web_headers["host"] = "i.fod.fujitv.co.jp"
         self.web_headers["sec-fetch-site"] = "same-site"
         self.web_headers["X-Authorization"] = "Bearer " + jwt_token
-        
+        login_status = False
         return True, None
 
     def get_title_parse_single(self, url):
@@ -610,6 +612,11 @@ class FOD_downloader:
         
         for attempt in range(tries):
             try:
+                if ut == None:
+                    response = self.session.get(url)
+                    ut = response.cookies.get("CT")
+                
+                
                 unixtime = str(int(time.time() * 1000))
                 matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
                 self.web_headers["X-Authorization"] = "Bearer "+ut
@@ -641,14 +648,15 @@ class FOD_downloader:
                         mpd_content_res = self.session.get(mpd_url)
                         self.session.get(f"https://fod.fujitv.co.jp/api/premium/view_log_pc/?epid={matches_url.group("episode_id")}&_={str(int(time.time() * 1000))}")
                         return True, ticket, mpd_content_res.text
-            except Exception as e:
-                import traceback
-                import sys
-                t, v, tb = sys.exc_info()
-                print(traceback.format_exception(t,v,tb))
-                print(traceback.format_tb(e.__traceback__))
+            except Exception as error:
+                print(error)
+                #import traceback
+                #import sys
+                #t, v, tb = sys.exc_info()
+                #print(traceback.format_exception(t,v,tb))
+                #print(traceback.format_tb(e.__traceback__))
                 if attempt == tries -1:
-                    return False, None
+                    return False, None, None
     def get_mpd_content_free(self, uuid, url, ut):
         global mpd_content_response
         tries = 3
@@ -709,7 +717,10 @@ class FOD_downloader:
         episode_id = matches_url.group("episode_id")
         enq_id = self.session.cookies.get("plus7_guid")
         episode_id_for_web = mpd_content_response.json()["samba"]
-        foduser_id = user_info_res.json()["member_id"]
+        if login_status:
+            foduser_id = user_info_res.json().get("member_id")
+        else:
+            foduser_id = ""
         td_write_key = "257/1dbef148fc11ca71d992972db31166af2b5dba41"
         mpd_video_play_band = bandwidth
         
