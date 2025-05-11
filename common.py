@@ -27,6 +27,7 @@ def get_parser(url):
     valid_b_ch = r'^["\']?https?://www\.b-ch\.com/titles/\d+(/\d+)?/?["\']?$'
     valid_telasa = r'^["\']?http(?:s)?://(?:www\.)?telasa\.jp/(?:videos|play|series)/\d+["\']?$'
     valid_videomarket = r'^["\']?https?://(?:www\.)?videomarket\.jp/(?:title|player)/[0-9A-Z]+(?:/[0-9A-Z]+)?["\']?$'
+    valid_hulu_jp = r'^["\']?https?://(?:www\.)?hulu\.jp/(?:watch/)?[^"\']+["\']?$'
 
     if re.match(valid_abema, url) and "-v1" in url:
         from ext import abematv as AbemaTV
@@ -76,7 +77,9 @@ def get_parser(url):
     elif re.match(valid_videomarket, url):
         from ext import videomarket as VideoMarket
         return VideoMarket, "VideoMarket"
-
+    elif re.match(valid_hulu_jp, url):
+        from ext import hulu_jp as Hulu_jp
+        return Hulu_jp, "Hulu-jp"
     return None, None
 
 
