@@ -5,6 +5,7 @@ import json
 import yaml
 import shutil
 import logging
+import ext.global_func.parser as parser
 import ext.global_func.niconico as comment
 
 from datetime import datetime
@@ -106,14 +107,85 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             profile_num = int(input("Please enter the number of the profile you want to use >> ")) -1
             
             select_profile_uuid = message[profile_num][2]
+            if message[profile_num][1] == "Yes":
+                pin = input("Profile PIN >> ")
+            else:
+                pin = ""
             #print(select_profile_uuid)
             
-            status, message = hulu_jp_downloader.select_profile(select_profile_uuid)
+            status, message = hulu_jp_downloader.select_profile(select_profile_uuid, pin=pin)
+            
+            if status != True:
+                logger.error(message, extra={"service_name": __service_name__})
             
             logger.info("Success change profile", extra={"service_name": __service_name__})
             logger.info(" + Nickname: "+message["profile"]["nickname"], extra={"service_name": __service_name__})
             
-            
+        
+        print("getting episode info")
+        match = re.search(r'/watch/(\d+)', url)
+
+        if match:
+            episode_id = match.group(1)
+        
+        status, metadata = hulu_jp_downloader.playback_auth(episode_id)
+        print(status, metadata)
+        
+        print("get video ovp_video_id")
+        print(metadata["media"]["ovp_video_id"])
+        print("get playback sessionid")
+        print(metadata["playback_session_id"])
+        
+        print("try to open play session....")
+        
+        status, playdata = hulu_jp_downloader.open_playback_session(metadata["media"]["ovp_video_id"], metadata["playback_session_id"], episode_id)
+        
+        print(playdata["name"], playdata["duration"])
+        
+        urls = []
+        
+        widevine_url = None
+        playready_url = None
+        
+        for source in playdata["sources"]:
+            if source["resolution"] == "1920x1080" and "manifest.mpd" in source["src"]:
+                urls.append(source["src"])
+                if source["key_systems"]:
+                    widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url", None)
+                    playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url", None)
+        
+        print("have subtitle?")
+        found_sub = False
+        for single in playdata["tracks"]:
+            if single["kind"] == "subtitles":
+                found_sub = True
+        print(found_sub)
+        print("get hd mpd")
+        hd_link = urls[0]
+        print(hd_link)
+        print("get license url")
+        print(widevine_url)
+        
+        logger.info(f"Parse MPD file", extra={"service_name": __service_name__})
+        Tracks = parser.global_parser()
+        transformed_data = Tracks.mpd_parser(session.get(hd_link).text)
+        
+        
+        logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
+        license_key = hulu_jp.Hulu_jp_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, config)
+        
+        logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+        logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
+    
+        #wod_downloader.send_stop_signal(video_access_token, session_id)
+        
+        
+        logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+        logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+        track_data = Tracks.print_tracks(transformed_data)
+        
+        print(track_data)
+        
             #account_point = str(message["points"])
             #logger.info("Loggined Account", extra={"service_name": __service_name__})
             #logger.info(" + ID: "+message["id"], extra={"service_name": __service_name__})

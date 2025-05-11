@@ -1,5 +1,36 @@
 import re
+import uuid
 from ext.utils.hulu_jp_util.pymazda.sensordata.sensor_data_builder import SensorDataBuilder
+
+class Hulu_jp_license:
+    def license_vd_ad(pssh, session, url, config):
+        _WVPROXY = url
+        from pywidevine.cdm import Cdm
+        from pywidevine.device import Device
+        from pywidevine.pssh import PSSH
+        device = Device.load(
+            config["cdms"]["widevine"]
+        )
+        cdm = Cdm.from_device(device)
+        session_id = cdm.open()
+    
+        challenge = cdm.get_license_challenge(session_id, PSSH(pssh))
+        response = session.post(f"{_WVPROXY}", data=bytes(challenge))
+        response.raise_for_status()
+    
+        cdm.parse_license(session_id, response.content)
+        keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id)
+        ]
+    
+        cdm.close(session_id)
+                
+        keys = {
+            "key": keys,
+        }
+        
+        return keys
 
 class Hulu_jp_downloader:
     def __init__(self, session, config):
@@ -8,6 +39,7 @@ class Hulu_jp_downloader:
         self.web_headers = {}
     def authorize(self, email, password):
         #global user_info_res
+        global test_temp_token
         _SESSION_CREATE = "https://mapi.prod.hjholdings.tv/api/v1/sessions/create"
         _LOGIN_API = "https://mapi-auth.prod.hjholdings.tv/api/v1/users/auth"
         _USER_INFO_API = "https://mapi.prod.hjholdings.tv/api/v1/users/me"
@@ -77,6 +109,9 @@ class Hulu_jp_downloader:
             "app_id": "3",
             "device_code": "5"
         }
+        
+        test_temp_token = "Bearer " + login_response["access_token"]
+        
         default_headers.update({
             "authorization": "Bearer " + login_response["access_token"],
             "x-session-token": login_response["session_token"],
@@ -285,9 +320,9 @@ class Hulu_jp_downloader:
             return True, user_info_res.json(), user_info_res.cookies.get("uuid")
         else:
             return False, "Authentication Failed: Failed to get user_status_2", None
-    def select_profile(self, uuid):
+    def select_profile(self, uuid, pin=""):
         payload = {
-            "pin": "",
+            "pin": pin,
             "profile_id": uuid
         }
         headers = self.web_headers.copy()
@@ -299,10 +334,45 @@ class Hulu_jp_downloader:
             if meta_response.status_code == 200:
                 profile_change_response = meta_response.json()
                 self.web_headers.update({
-                    "authorization": "Bearer " + profile_change_response["access_token"],
+                    #"authorization": "Bearer " + profile_change_response["access_token"],
                     "x-session-token": profile_change_response["session_token"],
-                    "x-gaia-authorization": "extra " + profile_change_response["gaia_token"]
                 })
-                return True, meta_response.json()
+                return True, profile_change_response
         except:
             return False, "Failed to login profile"
+    def playback_auth(self, episode_id):
+        payload = {
+            "service": "hulu",
+            "meta_id": "asset:"+episode_id,
+            "device_code": 5,
+            "vuid": str(uuid.uuid4()).replace("-",""),
+            "with_resume_point": False,
+            "user_id": self.web_headers["x-user-id"],
+            "app_id": 3
+        }
+        meta_response = self.session.post("https://papi.prod.hjholdings.tv/api/v1/playback/auth", json=payload, headers=self.web_headers)
+        try:
+            if meta_response.status_code == 201:
+                episode_metadata = meta_response.json()
+                return True, episode_metadata
+        except:
+            return False, "Failed to auth playback"
+    def open_playback_session(self, ovp_video_id, session_id, episode_id):
+        payload = {
+            "device_code": "5",
+            "codecs": "avc",
+            "viewing_url": "https://www.hulu.jp/watch/"+episode_id,
+            "app_id": "3"
+        }
+        headers = self.web_headers.copy()
+        headers["host"] = "playback.prod.hjholdings.tv"
+        headers["x-playback-session-id"] = session_id
+        headers["x-acf-sensor-data"] = None
+        headers["x-gaia-authorization"] = None
+        meta_response = self.session.get("https://playback.prod.hjholdings.tv/session/open/v1/merchants/hulu/medias/"+ovp_video_id, params=payload, headers=headers)
+        try:
+            if meta_response.status_code == 200:
+                episode_playdata = meta_response.json()
+                return True, episode_playdata
+        except:
+            return False, "Failed to get episode_playdata"
