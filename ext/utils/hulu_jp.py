@@ -50,7 +50,7 @@ class Hulu_jp_downloader:
                 return False, "Hulu jp require email and password", None
             
         default_headers = {
-            "user-agent": "jp.happyon.android/3.24.0 (Android 9; 22081212C Build/PQ3B.190801.10101846)",
+            "user-agent": "jp.happyon.android/3.24.0 (Linux; Android 8.0.0; BRAVIA 4K GB Build/OPR2.170623.027.S32) AndroidTV",
             "accept-language": "ja",
             "host": "mapi.prod.hjholdings.tv",
             "connection": "Keep-Alive",
@@ -68,7 +68,7 @@ class Hulu_jp_downloader:
             "os_version": "9",
             "os_build_id": "PQ3B.190801.10101846 release-keys",
             "device_manufacturer": "Redmi",
-            "device_model": "22081212C",
+            "device_model": "AirStick 4K",
             "device_name": "star2qltechn",
             "user_agent": "",
             "device_higher_category": "android_tv",
@@ -84,15 +84,15 @@ class Hulu_jp_downloader:
         payload = {
             "mail_address": email,
             "password": password,
-            "app_id": 3,
-            "device_code": 5        
+            "app_id": 5,
+            "device_code": 8        
         }   
         sensor_data_builder = SensorDataBuilder()
         default_headers.update({
             "x-gaia-authorization": "extra " + gaia_token_1,
             "x-session-token": session_token_1,
             "x-acf-sensor-data": sensor_data_builder.generate_sensor_data(),
-            "user-agent": "jp.happyon.android/3.24.0 (Android 9; 22081212C Build/PQ3B.190801.10101846)",
+            "user-agent": "jp.happyon.android/3.24.0 (Linux; Android 8.0.0; BRAVIA 4K GB Build/OPR2.170623.027.S32) AndroidTV",
         })
         
         login_response = self.session.post(_LOGIN_API, json=payload, headers=default_headers).json()
@@ -106,8 +106,8 @@ class Hulu_jp_downloader:
         ## get profile list
         payload_query = {
             "with_profiles": "true",
-            "app_id": "3",
-            "device_code": "5"
+            "app_id": 5,
+            "device_code": 8
         }
         
         test_temp_token = "Bearer " + login_response["access_token"]
@@ -344,11 +344,11 @@ class Hulu_jp_downloader:
         payload = {
             "service": "hulu",
             "meta_id": "asset:"+episode_id,
-            "device_code": 5,
+            "device_code": 8,
             "vuid": str(uuid.uuid4()).replace("-",""),
             "with_resume_point": False,
             "user_id": self.web_headers["x-user-id"],
-            "app_id": 3
+            "app_id": 5
         }
         meta_response = self.session.post("https://papi.prod.hjholdings.tv/api/v1/playback/auth", json=payload, headers=self.web_headers)
         try:
@@ -359,10 +359,10 @@ class Hulu_jp_downloader:
             return False, "Failed to auth playback"
     def open_playback_session(self, ovp_video_id, session_id, episode_id):
         payload = {
-            "device_code": "5",
+            "device_code": 8,
             "codecs": "avc",
             "viewing_url": "https://www.hulu.jp/watch/"+episode_id,
-            "app_id": "3"
+            "app_id": 5
         }
         headers = self.web_headers.copy()
         headers["host"] = "playback.prod.hjholdings.tv"
