@@ -268,6 +268,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
         elif re.search(r'/watchssss/(\d+)', url): ## season download
             print("ongoing")
+            # curnchyrollから撮ってくる
+            
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")

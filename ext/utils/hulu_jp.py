@@ -464,7 +464,7 @@ class Hulu_jp_downloader:
     def open_playback_session(self, ovp_video_id, session_id, episode_id):
         payload = {
             "device_code": 7,
-            "codecs": "vp9", # List: "avc", "hevc", "h264", "h265", "vp9"         NOTICE: avc, hevc is return some title 1600x900. if you want 1080p, just use vp9
+            "codecs": "h264", # List: "avc", "hevc", "h264", "h265", "vp9"         NOTICE: avc, hevc is return some title 1600x900. if you want 1080p, just use vp9
             "viewing_url": "https://www.hulu.jp/watch/"+episode_id,
             "app_id": 4
         }
