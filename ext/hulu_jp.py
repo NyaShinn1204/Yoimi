@@ -120,14 +120,37 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             #407078
             status, url_metadata = hulu_jp_downloader.get_title_info(metadata["log_params"]["meta_id"])
             #print("get episode metadata")
-            
+            logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
             if url_metadata["season_id"] == None:
                 season_title = None
-                title_name = url_metadata["name"]
+                #title_name = url_metadata["name"]
+                format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                values = {
+                    "seriesname": url_metadata["name"],
+                }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
             else:
+                format_string = config["format"]["anime"]
+                values = {
+                    "seriesname": url_metadata["season_number_title"],
+                    "titlename": url_metadata["video_categories"][0]["name"],
+                    "episodename": url_metadata["header"].replace(url_metadata["video_categories"][0]["name"]+" ", "")
+                }
+                try:
+                    title_name_logger = format_string.format(**values)
+                except KeyError as e:
+                    missing_key = e.args[0]
+                    values[missing_key] = ""
+                    title_name_logger = format_string.format(**values)
+                    
                 season_title = url_metadata["season_number_title"]
-                title_name = url_metadata["name"]
-            
+                #title_name = url_metadata["name"]
+            logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
             #print("try to open play session....")
             
             status, playdata = hulu_jp_downloader.open_playback_session(metadata["media"]["ovp_video_id"], metadata["playback_session_id"], episode_id)
@@ -224,9 +247,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info("Muxing Episode...", extra={"service_name": __service_name__})
             
             if season_title != None:
-                output_path = os.path.join(config["directorys"]["Downloads"], season_title, title_name+".mp4")
+                output_path = os.path.join(config["directorys"]["Downloads"], season_title, title_name_logger+".mp4")
             else:
-                output_path = os.path.join(config["directorys"]["Downloads"], title_name+".mp4")
+                output_path = os.path.join(config["directorys"]["Downloads"], title_name_logger+".mp4")
             
             result = hulu_jp_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", output_path, config, unixtime, season_title, int(duration))
             dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -242,7 +265,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                        print(f"削除エラー: {e}")
             else:
                print(f"指定されたディレクトリは存在しません: {dir_path}")
-            logger.info('Finished download: {}'.format(title_name), extra={"service_name": __service_name__})
+            logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
         elif re.search(r'/watchssss/(\d+)', url): ## season download
             print("ongoing")
     except Exception as error:

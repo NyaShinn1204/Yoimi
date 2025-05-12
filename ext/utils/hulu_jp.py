@@ -179,9 +179,9 @@ class Hulu_jp_downloader:
         })
         
         login_response = self.session.post(_LOGIN_API, json=payload, headers=default_headers)
-        print(_LOGIN_API)
-        print(login_response.headers)
-        print(login_response.text)
+        #print(_LOGIN_API)
+        #print(login_response.headers)
+        #print(login_response.text)
         
         login_response = login_response.json()
         
