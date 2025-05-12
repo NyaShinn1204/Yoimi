@@ -133,7 +133,7 @@ class Hulu_jp_downloader:
                 return False, "Hulu jp require email and password", None
             
         default_headers = {
-            "user-agent": "jp.happyon.android/3.24.0 (Linux; Android 8.0.0; BRAVIA 4K GB Build/OPR2.170623.027.S32) AndroidTV",
+            "user-agent": "Mozilla/5.0 (Linux; Android 9; 22081212C Build/PQ3B.190801.10101846; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.82 Safari/537.36",
             "accept-language": "ja",
             "host": "mapi.prod.hjholdings.tv",
             "connection": "Keep-Alive",
@@ -444,16 +444,53 @@ class Hulu_jp_downloader:
                 return True, episode_metadata
         except:
             return False, "Failed to get Meta"
-    def playback_auth(self, episode_id):
-        payload = {
-            "service": "hulu",
-            "meta_id": "asset:"+episode_id,
+    def find_4k(self, meta_id):
+        querystring = {
+            "fields": "values",
+            "app_id": 4,
             "device_code": 7,
-            "vuid": str(uuid.uuid4()).replace("-",""),
-            "with_resume_point": False,
-            "user_id": self.web_headers["x-user-id"],
-            "app_id": 4
+            "datasource": "decorator"
         }
+        
+        meta_response = self.session.get("https://mapi.prod.hjholdings.tv/api/v1/metas/"+str(meta_id)+"/medias", params=querystring)
+        try:
+            if meta_response.status_code == 200:
+                episode_metadata = meta_response.json()
+                def find_4k_videos(data):
+                    result = []
+                    for media in data.get("medias", []):
+                        values = media.get("values", {})
+                        if values.get("file_type") == "video/4k":
+                            result.append(media)
+                    return result
+                
+                result = find_4k_videos(episode_metadata)
+                return result
+        except:
+            return None
+        
+    def playback_auth(self, episode_id, uhd=False, media_id=None):
+        if uhd:
+            payload = {
+                "service": "hulu",
+                "meta_id": "asset:100011115",
+                "media_id": str(media_id),
+                "device_code": 7,
+                "with_resume_point": False,
+                "vuid": str(uuid.uuid4()).replace("-",""),
+                "user_id": self.web_headers["x-user-id"],
+                "app_id": 4
+            }
+        else:
+            payload = {
+                "service": "hulu",
+                "meta_id": "asset:"+episode_id,
+                "device_code": 7,
+                "vuid": str(uuid.uuid4()).replace("-",""),
+                "with_resume_point": False,
+                "user_id": self.web_headers["x-user-id"],
+                "app_id": 4
+            }
         meta_response = self.session.post("https://papi.prod.hjholdings.tv/api/v1/playback/auth", json=payload, headers=self.web_headers)
         try:
             if meta_response.status_code == 201:

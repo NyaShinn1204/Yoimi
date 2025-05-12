@@ -1,0 +1,1 @@
+frida -U -f jp.happyon.android -l bypass4k.js

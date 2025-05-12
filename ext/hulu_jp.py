@@ -151,31 +151,68 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                 season_title = url_metadata["season_number_title"]
                 #title_name = url_metadata["name"]
+                
+            #def find_4k_videos(data):
+            #    result = []
+            #    for media in data.get("medias", []):
+            #        values = media.get("values", {})
+            #        if values.get("file_type") == "video/4k":
+            #            result.append(media)
+            #    return result
+            #
+            #result = find_4k_videos(url_metadata["medias"])
+            #print(result)
+            #exit(1)
+            found4k = hulu_jp_downloader.find_4k(metadata["log_params"]["meta_id"])
+            #print(data)
+            #exit(1)
+            if found4k != []:
+                status, message = hulu_jp_downloader.close_playback_session(metadata["playback_session_id"])
+                logger.info("Close Video Session", extra={"service_name": __service_name__})
+                ovp_video_id = found4k[0]["ovp_video_id"]
+                media_id = found4k[0]["media_id"]
+                logger.info("Creating Video Sesson 4K...", extra={"service_name": __service_name__})
+                status, metadata = hulu_jp_downloader.playback_auth(episode_id, uhd=True, media_id=media_id)
+                logger.info(" + Session Token: "+metadata["playback_session_id"][:10]+"*****", extra={"service_name": __service_name__})
+            else:
+                ovp_video_id= metadata["media"]["ovp_video_id"]
+            
             logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
             #print("try to open play session....")
             
-            status, playdata = hulu_jp_downloader.open_playback_session(metadata["media"]["ovp_video_id"], metadata["playback_session_id"], episode_id)
+            status, playdata = hulu_jp_downloader.open_playback_session(ovp_video_id, metadata["playback_session_id"], episode_id)
             
             status, message = hulu_jp_downloader.close_playback_session(metadata["playback_session_id"])
             logger.info("Close Video Session", extra={"service_name": __service_name__})
             #print(status, message)
             #
             #print(playdata["name"], playdata["duration"])
-            logger.info("Got HD Link", extra={"service_name": __service_name__})
-            urls = []
-            
-            widevine_url = None
-            playready_url = None
-            
-            for source in playdata["sources"]:
-                if source["resolution"] == "1920x1080" and "manifest.mpd" in source["src"]:
-                    urls.append(source["src"])
-                    if source["key_systems"]:
-                        widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url", None)
-                        playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url", None)
-            
-            hd_link = urls[0]
-            logger.info(f" + HD_link: {hd_link[:15]+"*****"}", extra={"service_name": __service_name__})
+            if found4k != []:
+                logger.info("Got 4k Link", extra={"service_name": __service_name__})
+                urls = []
+                widevine_url = None
+                playready_url = None
+                for source in playdata["sources"]:
+                    if source["resolution"] == "3840x2160" and "manifest.mpd" in source["src"]:
+                        urls.append(source["src"])
+                        if source["key_systems"]:
+                            widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url", None)
+                            playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url", None)
+                hd_link = urls[0]
+                logger.info(f" + 4K_link: {hd_link[:15]+"*****"}", extra={"service_name": __service_name__})
+            else:
+                logger.info("Got HD Link", extra={"service_name": __service_name__})
+                urls = []
+                widevine_url = None
+                playready_url = None
+                for source in playdata["sources"]:
+                    if source["resolution"] == "1920x1080" and "manifest.mpd" in source["src"]:
+                        urls.append(source["src"])
+                        if source["key_systems"]:
+                            widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url", None)
+                            playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url", None)
+                hd_link = urls[0]
+                logger.info(f" + HD_link: {hd_link[:15]+"*****"}", extra={"service_name": __service_name__})
             
             logger.info("Checking Subtitle...", extra={"service_name": __service_name__})
             #print("have subtitle?")
