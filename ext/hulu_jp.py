@@ -123,6 +123,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
             if url_metadata["season_id"] == None:
                 season_title = None
+                format_string = config["format"]["movie"]
                 #title_name = url_metadata["name"]
                 format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
                 values = {
