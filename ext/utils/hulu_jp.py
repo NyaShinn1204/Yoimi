@@ -1,7 +1,90 @@
 import re
+import os
+import time
 import uuid
+import requests
+import subprocess
+
+from tqdm import tqdm
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from ext.utils.hulu_jp_util.pymazda.sensordata.sensor_data_builder import SensorDataBuilder
 
+COLOR_GREEN = "\033[92m"
+COLOR_GRAY = "\033[90m"
+COLOR_RESET = "\033[0m"
+COLOR_BLUE = "\033[94m"
+
+class Hulu_jp_decrypt:
+    def mp4decrypt(keys, config):
+        if os.name == 'nt':
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
+        else:
+            mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
+        for key in keys:
+            if key["type"] == "CONTENT":
+                mp4decrypt_command.extend(
+                    [
+                        "--show-progress",
+                        "--key",
+                        "{}:{}".format(key["kid_hex"], key["key_hex"]),
+                    ]
+                )
+        return mp4decrypt_command
+    def shaka_packager(keys, config):
+        if os.name == 'nt':
+            shaka_decrypt_command = [os.path.join(config["directorys"]["Binaries"], "3.4.2_packager-win-x64.exe")]
+        else:
+            shaka_decrypt_command = [os.path.join(config["directorys"]["Binaries"], "3.4.2_packager-linux-arm64")]
+        for key in keys:
+            if key["type"] == "CONTENT":
+                shaka_decrypt_command.extend(
+                    [
+                        "--enable_raw_key_decryption",
+                        "--keys",
+                        "key_id={}:key={}".format(key["kid_hex"], key["key_hex"]),
+                    ]
+                )
+        return shaka_decrypt_command
+    def decrypt_all_content(video_keys, video_input_file, video_output_file, audio_keys, audio_input_file, audio_output_file, config, service_name="Hulu_jp"):
+        with tqdm(total=2, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ") as outer_pbar:
+            Hulu_jp_decrypt.decrypt_content_shaka(video_keys, video_input_file, video_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 1つ目の進捗を更新
+    
+            Hulu_jp_decrypt.decrypt_content(audio_keys, audio_input_file, audio_output_file, config, service_name=service_name)
+            outer_pbar.update(1)  # 2つ目の進捗を更新
+    
+    def decrypt_content(keys, input_file, output_file, config, service_name="Hulu_jp"):
+        mp4decrypt_command = Hulu_jp_decrypt.mp4decrypt(keys, config)
+        mp4decrypt_command.extend([input_file, output_file])
+        
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
+            with subprocess.Popen(mp4decrypt_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
+                for line in process.stdout:
+                    match = re.search(r"(ｲ+)", line)  # 進捗解析
+                    if match:
+                        progress_count = len(match.group(1))
+                        inner_pbar.n = progress_count
+                        inner_pbar.refresh()
+                
+                process.wait()
+                if process.returncode == 0:
+                    inner_pbar.n = 100
+                    inner_pbar.refresh()
+    def decrypt_content_shaka(keys, input_file, output_file, config, service_name="Hulu_jp"):
+        shaka_command = Hulu_jp_decrypt.shaka_packager(keys, config)
+        shaka_command.extend([f"input={input_file},stream=video,output={output_file}"])
+        #shaka_command.extend([input_file, output_file])
+        #f"input={input_file},stream=video,output={output_file}"
+        
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
+            with subprocess.Popen(shaka_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:                
+                #for line in process.stdout:
+                #    print(line)
+                process.wait()
+                if process.returncode == 0:
+                    inner_pbar.n = 100
+                    inner_pbar.refresh()
 class Hulu_jp_license:
     def license_vd_ad(pssh, session, url, config):
         _WVPROXY = url
@@ -41,7 +124,7 @@ class Hulu_jp_downloader:
         #global user_info_res
         global test_temp_token
         _SESSION_CREATE = "https://mapi.prod.hjholdings.tv/api/v1/sessions/create"
-        _LOGIN_API = "https://mapi-auth.prod.hjholdings.tv/api/v1/users/auth"
+        _LOGIN_API = "https://mapi.prod.hjholdings.tv/api/v1/users/auth"
         _USER_INFO_API = "https://mapi.prod.hjholdings.tv/api/v1/users/me"
         
         mail_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -95,7 +178,12 @@ class Hulu_jp_downloader:
             "user-agent": "jp.happyon.android/3.24.0 (Linux; Android 8.0.0; BRAVIA 4K GB Build/OPR2.170623.027.S32) AndroidTV",
         })
         
-        login_response = self.session.post(_LOGIN_API, json=payload, headers=default_headers).json()
+        login_response = self.session.post(_LOGIN_API, json=payload, headers=default_headers)
+        print(_LOGIN_API)
+        print(login_response.headers)
+        print(login_response.text)
+        
+        login_response = login_response.json()
         
         default_headers.update({
             "x-user-id": str(login_response["id"])
@@ -340,6 +428,22 @@ class Hulu_jp_downloader:
                 return True, profile_change_response
         except:
             return False, "Failed to login profile"
+        
+    def get_title_info(self, meta_id):
+        querystring = {
+            "expand_object_flag": "0",
+            "app_id": 4,
+            "device_code": 7,
+            "datasource": "decorator"
+        }
+        
+        meta_response = self.session.get("https://mapi.prod.hjholdings.tv/api/v1/metas/"+str(meta_id), params=querystring)
+        try:
+            if meta_response.status_code == 200:
+                episode_metadata = meta_response.json()
+                return True, episode_metadata
+        except:
+            return False, "Failed to get Meta"
     def playback_auth(self, episode_id):
         payload = {
             "service": "hulu",
@@ -376,3 +480,104 @@ class Hulu_jp_downloader:
                 return True, episode_playdata
         except:
             return False, "Failed to get episode_playdata"
+    
+    def close_playback_session(self, session_id):
+        headers = self.web_headers.copy()
+        headers["host"] = "playback.prod.hjholdings.tv"
+        headers["x-playback-session-id"] = session_id
+        close_response = self.session.post("https://playback.prod.hjholdings.tv/session/close", headers=headers)
+        try:
+            if close_response.status_code == 200 and close_response.json()["result"]:
+                return True, None
+        except:
+            return False, close_response.json()
+        
+    def download_segment(self, segment_links, config, unixtime, name, service_name="Hulu_jp"):
+        base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+        os.makedirs(base_temp_dir, exist_ok=True)
+    
+        def fetch_and_save(index_url):
+            index, url = index_url
+            retry = 0
+            while retry < 3:
+                try:
+                    response = self.session.get(url.strip(), timeout=10)
+                    response.raise_for_status()
+                    temp_path = os.path.join(base_temp_dir, f"{index:05d}.ts")
+                    with open(temp_path, 'wb') as f:
+                        f.write(response.content)
+                    return index  # 成功したインデックスを返す
+                except requests.exceptions.RequestException:
+                    retry += 1
+                    time.sleep(2)
+            raise Exception(f"Failed to download segment {index}: {url}")
+    
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            futures = [executor.submit(fetch_and_save, (i, url)) for i, url in enumerate(segment_links)]
+            with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as pbar:
+                for future in as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as e:
+                        print(f"Error: {e}")
+                    pbar.update(1)
+    
+       #結合処理
+        output_path = os.path.join(base_temp_dir, name)
+        with open(output_path, 'wb') as out_file:
+            for i in range(len(segment_links)):
+                temp_path = os.path.join(base_temp_dir, f"{i:05d}.ts")
+                with open(temp_path, 'rb') as f:
+                    out_file.write(f.read())
+                os.remove(temp_path)  # 一時ファイル削除
+
+    def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="Hulu_jp"):
+        # 出力ディレクトリを作成
+        
+        if title_name != None:
+            os.makedirs(os.path.join(config["directorys"]["Downloads"], title_name), exist_ok=True)
+    
+        compile_command = [
+            "ffmpeg",
+            "-i",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime, video_name),
+            "-i",
+            os.path.join(config["directorys"]["Temp"], "content", unixtime, audio_name),
+            "-c:v",
+            "copy",               # 映像はコピー
+            "-c:a",
+            "copy",                # 音声をコピー
+            "-b:a",
+            "192k",               # 音声ビットレートを設定（192kbpsに調整）
+            "-strict",
+            "experimental",
+            "-y",
+            "-progress", "pipe:1",  # 進捗を標準出力に出力
+            "-nostats",            # 標準出力を進捗情報のみにする
+            output_name,
+        ]
+
+        # tqdmを使用した進捗表示
+        #duration = 1434.93  # 動画全体の長さ（秒）を設定（例: 23分54.93秒）
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
+            with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
+                for line in process.stdout:    
+                    # "time=" の進捗情報を解析
+                    match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
+                    if match:
+                        hours = int(match.group(1))
+                        minutes = int(match.group(2))
+                        seconds = float(match.group(3))
+                        current_time = hours * 3600 + minutes * 60 + seconds
+    
+                        # 進捗率を計算して更新
+                        progress = (current_time / duration) * 100
+                        pbar.n = int(progress)
+                        pbar.refresh()
+    
+            # プロセスが終了したら進捗率を100%にする
+            process.wait()
+            if process.returncode == 0:  # 正常終了の場合
+                pbar.n = 100
+                pbar.refresh()
+            pbar.close()

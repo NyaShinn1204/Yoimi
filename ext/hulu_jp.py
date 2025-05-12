@@ -136,9 +136,25 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         print("get playback sessionid")
         print(metadata["playback_session_id"])
         
+        #title_name = metadata["media"]["name"].replace(episode_id+":", "")
+        #print(title_name)
+        #407078
+        status, url_metadata = hulu_jp_downloader.get_title_info(metadata["log_params"]["meta_id"])
+        print("get episode metadata")
+        
+        if url_metadata["season_id"] == None:
+            season_title = None
+            title_name = url_metadata["name"]
+        else:
+            season_title = url_metadata["season_number_title"]
+            title_name = url_metadata["name"]
+        
         print("try to open play session....")
         
         status, playdata = hulu_jp_downloader.open_playback_session(metadata["media"]["ovp_video_id"], metadata["playback_session_id"], episode_id)
+        
+        status, message = hulu_jp_downloader.close_playback_session(metadata["playback_session_id"])
+        print(status, message)
         
         print(playdata["name"], playdata["duration"])
         
@@ -169,8 +185,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         logger.info(f"Parse MPD file", extra={"service_name": __service_name__})
         Tracks = parser.global_parser()
         transformed_data = Tracks.mpd_parser(session.get(hd_link).text)
-        
-        
+                
         logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
         license_key = hulu_jp.Hulu_jp_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, config)
         
@@ -192,8 +207,66 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
         logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
         logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
-                    
         
+        logger.debug(f"Calculate about Manifest...", extra={"service_name": __service_name__})
+        #print(transformed_data["info"]["mediaPresentationDuration"])
+        duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+        #print(duration)
+        logger.debug(f" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
+        
+        logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
+        #print(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
+        video_segment_list = Tracks.calculate_segments(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
+        logger.info(f" + Video Segments: "+str(int(video_segment_list)), extra={"service_name": __service_name__})                 
+        audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
+        logger.info(f" + Audio Segments: "+str(int(audio_segment_list)), extra={"service_name": __service_name__})
+        
+        video_segment_links = []
+        audio_segment_links = []
+        video_segment_links.append(get_best_track["video"]["url"])
+        audio_segment_links.append(get_best_track["audio"]["url"])
+        
+        for single_segment in range(video_segment_list):
+            temp_link = get_best_track["video"]["url_base"]+get_best_track["video"]["url_segment_base"].replace("$Number$", str(single_segment))
+            video_segment_links.append(temp_link)
+        for single_segment in range(audio_segment_list):
+            temp_link = get_best_track["audio"]["url_base"]+get_best_track["audio"]["url_segment_base"].replace("$Number$", str(single_segment))
+            audio_segment_links.append(temp_link)
+        
+        logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+        
+        hulu_jp_downloader.download_segment(video_segment_links, config, unixtime, "download_encrypt_video.mp4")
+        hulu_jp_downloader.download_segment(audio_segment_links, config, unixtime, "download_encrypt_audio.mp4")
+        
+        logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+        
+        #hulu_jp.Hulu_jp_decrypt.decrypt_content_shaka(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
+        #hulu_jp.Hulu_jp_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
+        
+        hulu_jp.Hulu_jp_decrypt.decrypt_all_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
+        
+        logger.info("Muxing Episode...", extra={"service_name": __service_name__})
+        
+        if season_title != None:
+            output_path = os.path.join(config["directorys"]["Downloads"], season_title, title_name+".mp4")
+        else:
+            output_path = os.path.join(config["directorys"]["Downloads"], title_name+".mp4")
+        
+        result = hulu_jp_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", output_path, config, unixtime, season_title, int(duration))
+        #dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+        #if os.path.exists(dir_path) and os.path.isdir(dir_path):
+        #    for filename in os.listdir(dir_path):
+        #        file_path = os.path.join(dir_path, filename)
+        #        try:
+        #            if os.path.isfile(file_path):
+        #                os.remove(file_path)
+        #            elif os.path.isdir(file_path):
+        #                shutil.rmtree(file_path)
+        #        except Exception as e:
+        #            print(f"削除エラー: {e}")
+        #else:
+        #    print(f"指定されたディレクトリは存在しません: {dir_path}")
+        logger.info('Finished download: {}'.format(title_name), extra={"service_name": __service_name__})
             #account_point = str(message["points"])
             #logger.info("Loggined Account", extra={"service_name": __service_name__})
             #logger.info(" + ID: "+message["id"], extra={"service_name": __service_name__})
