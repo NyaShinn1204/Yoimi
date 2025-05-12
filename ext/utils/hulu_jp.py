@@ -506,30 +506,46 @@ class Hulu_jp_downloader:
                     temp_path = os.path.join(base_temp_dir, f"{index:05d}.ts")
                     with open(temp_path, 'wb') as f:
                         f.write(response.content)
-                    return index  # 成功したインデックスを返す
+                    return index
                 except requests.exceptions.RequestException:
                     retry += 1
                     time.sleep(2)
             raise Exception(f"Failed to download segment {index}: {url}")
     
-        with ThreadPoolExecutor(max_workers=8) as executor:
-            futures = [executor.submit(fetch_and_save, (i, url)) for i, url in enumerate(segment_links)]
-            with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as pbar:
-                for future in as_completed(futures):
-                    try:
-                        future.result()
-                    except Exception as e:
-                        print(f"Error: {e}")
-                    pbar.update(1)
+        futures = []
+        try:
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                futures = [executor.submit(fetch_and_save, (i, url)) for i, url in enumerate(segment_links)]
+                with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as pbar:
+                    for future in as_completed(futures):
+                        try:
+                            future.result()
+                        except Exception as e:
+                            print(f"Error: {e}")
+                        pbar.update(1)
     
-       #結合処理
-        output_path = os.path.join(base_temp_dir, name)
-        with open(output_path, 'wb') as out_file:
+            # 結合処理
+            output_path = os.path.join(base_temp_dir, name)
+            with open(output_path, 'wb') as out_file:
+                for i in range(len(segment_links)):
+                    temp_path = os.path.join(base_temp_dir, f"{i:05d}.ts")
+                    with open(temp_path, 'rb') as f:
+                        out_file.write(f.read())
+                    os.remove(temp_path)
+    
+        except KeyboardInterrupt:
+            #print("\nダウンロード中断されました。クリーンアップを実行します...")
+            for future in futures:
+                future.cancel()
+            # 未完了ファイルを削除（存在すれば）
             for i in range(len(segment_links)):
                 temp_path = os.path.join(base_temp_dir, f"{i:05d}.ts")
-                with open(temp_path, 'rb') as f:
-                    out_file.write(f.read())
-                os.remove(temp_path)  # 一時ファイル削除
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except:
+                        pass
+            raise  # 終了ステータスを外に伝えるため再送出
 
     def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="Hulu_jp"):
         # 出力ディレクトリを作成
