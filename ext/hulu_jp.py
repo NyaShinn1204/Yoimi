@@ -243,8 +243,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             else:
                print(f"指定されたディレクトリは存在しません: {dir_path}")
             logger.info('Finished download: {}'.format(title_name), extra={"service_name": __service_name__})
-        elif re.search(r'/watch/(\d+)', url): ## season download
-            
+        elif re.search(r'/watchssss/(\d+)', url): ## season download
+            print("ongoing")
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
