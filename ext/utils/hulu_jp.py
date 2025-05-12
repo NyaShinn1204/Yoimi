@@ -84,8 +84,8 @@ class Hulu_jp_downloader:
         payload = {
             "mail_address": email,
             "password": password,
-            "app_id": 5,
-            "device_code": 8        
+            "app_id": 4,
+            "device_code": 7        
         }   
         sensor_data_builder = SensorDataBuilder()
         default_headers.update({
@@ -106,8 +106,8 @@ class Hulu_jp_downloader:
         ## get profile list
         payload_query = {
             "with_profiles": "true",
-            "app_id": 5,
-            "device_code": 8
+            "app_id": 4,
+            "device_code": 7
         }
         
         test_temp_token = "Bearer " + login_response["access_token"]
@@ -344,11 +344,11 @@ class Hulu_jp_downloader:
         payload = {
             "service": "hulu",
             "meta_id": "asset:"+episode_id,
-            "device_code": 8,
+            "device_code": 7,
             "vuid": str(uuid.uuid4()).replace("-",""),
             "with_resume_point": False,
             "user_id": self.web_headers["x-user-id"],
-            "app_id": 5
+            "app_id": 4
         }
         meta_response = self.session.post("https://papi.prod.hjholdings.tv/api/v1/playback/auth", json=payload, headers=self.web_headers)
         try:
@@ -359,10 +359,10 @@ class Hulu_jp_downloader:
             return False, "Failed to auth playback"
     def open_playback_session(self, ovp_video_id, session_id, episode_id):
         payload = {
-            "device_code": 8,
-            "codecs": "avc",
+            "device_code": 7,
+            "codecs": "vp9", # List: "avc", "hevc", "h264", "h265", "vp9"         NOTICE: avc, hevc is return some title 1600x900. if you want 1080p, just use vp9
             "viewing_url": "https://www.hulu.jp/watch/"+episode_id,
-            "app_id": 5
+            "app_id": 4
         }
         headers = self.web_headers.copy()
         headers["host"] = "playback.prod.hjholdings.tv"

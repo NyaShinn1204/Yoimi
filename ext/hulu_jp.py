@@ -186,6 +186,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         print(track_data)
         
+        get_best_track = Tracks.select_best_tracks(transformed_data)
+        
+        logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+        logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+        logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+        logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+                    
+        
             #account_point = str(message["points"])
             #logger.info("Loggined Account", extra={"service_name": __service_name__})
             #logger.info(" + ID: "+message["id"], extra={"service_name": __service_name__})
