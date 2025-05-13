@@ -304,10 +304,40 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             else:
                print(f"指定されたディレクトリは存在しません: {dir_path}")
             logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
-        elif re.search(r'/watchssss/(\d+)', url): ## season download
-            print("ongoing")
-            # curnchyrollから撮ってくる
+        #elif re.search(r'/watchssss/(\d+)', url): ## season download
+        #    print("ongoing")
+        #    # curnchyrollから撮ってくる
+        else:
+            logger.info("Get Season for Series", extra={"service_name": __service_name__})
             
+            status, message = hulu_jp_downloader.find_season_id(url)
+            print(status, message)
+            
+            metadata_series_info, nice_season_metadata = hulu_jp_downloader.get_season_list(message)
+            logger.info("Found "+str(len(nice_season_metadata))+" Season", extra={"service_name": __service_name__})
+            #for single in nice_season_metadata:
+            #    season_message = metadata_series_info["name"]+"_"+single["name"]
+            #    logger.info(" + "+season_message, extra={"service_name": __service_name__})
+            for idx, single in enumerate(nice_season_metadata, 1):
+                season_message = metadata_series_info["name"]+"_"+single["name"]
+                logger.info(" + "+str(idx)+": "+season_message, extra={"service_name": __service_name__})
+            
+            season_num = input("Please enter the number of the season you want to download (e.x: 1, 2, all) >> ")
+
+            if season_num.isdigit():
+                season_num = int(season_num)-1
+                
+                single_season_metadata = nice_season_metadata[season_num]
+                season_message = metadata_series_info["name"]+"_"+single_season_metadata["name"]
+                logger.info("Processing "+season_message, extra={"service_name": __service_name__})
+                
+                logger.info("Get Title for Season", extra={"service_name": __service_name__})
+                logger.info("Total episode: "+str(single_season_metadata["episode_list"]["total_count"]), extra={"service_name": __service_name__})
+                for single in single_season_metadata["episode_list"]["metas"]:
+                    print(single)
+            elif season_num.lower() == "all" or "a":
+                season_num = "all"                
+            #logger.info("")
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")

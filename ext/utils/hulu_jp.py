@@ -1,12 +1,14 @@
 import re
 import os
 import time
+import json
 import uuid
 import requests
 import subprocess
 
 from tqdm import tqdm
 from datetime import datetime
+from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ext.utils.hulu_jp_util.pymazda.sensordata.sensor_data_builder import SensorDataBuilder
 
@@ -469,6 +471,91 @@ class Hulu_jp_downloader:
         except:
             return None
         
+    ## season logic
+    def find_season_id(self, url):
+        meta_response = self.session.get(url, headers={"user-agent":"Mozilla/5.0 (Linux; Android 9; 22081212C Build/PQ3B.190801.10101846; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.82 Safari/537.36"})
+        try:
+            if meta_response.status_code == 200:
+                soup = BeautifulSoup(meta_response.text, 'html.parser')
+                
+                # <script> タグの中で window.app を含むものを探す
+                script_tags = soup.find_all('script')
+                app_data = None
+                
+                for script in script_tags:
+                    if script.string and 'window.app' in script.string:
+                        match = re.search(r'window\.app\s*=\s*(\{.*?\});', script.string, re.DOTALL)
+                        if match:
+                            js_obj_str = match.group(1)
+                            app_data = json.loads(js_obj_str.replace("undefined","null"))
+                #if app_data:
+                #    print("appの中身:")
+                #    print(app_data["falcorCache"]["titleSlug"][next(iter(app_data["falcorCache"]["titleSlug"]))]["value"][1])
+                #else:
+                #    print("window.app が見つかりませんでした。")
+                if app_data:
+                    return True, app_data["falcorCache"]["titleSlug"][next(iter(app_data["falcorCache"]["titleSlug"]))]["value"][1]
+                else:
+                    return False, None
+        except:
+            return False, None 
+    def get_season_list(self, series_id):
+        querystring = {
+            "expand_object_flag": "0",
+            "app_id": 4,
+            "device_code": 7,
+            "datasource": "decorator"
+        }
+        
+        meta_response = self.session.get("https://mapi.prod.hjholdings.tv/api/v1/metas/"+str(series_id), params=querystring)
+        try:
+            if meta_response.status_code == 200:
+                meta_res = meta_response.json()
+                total_season = []
+                for single_season in meta_res["seasons"]:
+                    ## Sample response:
+                    #    {
+                    #      "id": 7434,
+                    #      "name": "シーズン1",
+                    #      "language_support_types": [
+                    #        "sub",
+                    #        "dub"
+                    #      ],
+                    #      "has_closed_caption": false,
+                    #      "has_en_caption": true
+                    #    },
+                    single_res = self.get_total_episode(single_season["id"])
+                    
+                    temp_json = {}
+                    temp_json = single_season
+                    temp_json["episode_list"] = single_res
+                    
+                    total_season.append(temp_json)
+                    
+                return meta_res, total_season
+        except:
+            return None
+    def get_total_episode(self, season_id):
+        querystring = {
+            "expand_object_flag": "0",
+            "sort": "sort:asc,id_in_schema:asc",
+            "order": "asc",
+            "app_id": 4,
+            "device_code": 7,
+            "datasource": "decorator",
+            "limit": 999,
+            "page": "1",
+            "with_total_count": "true",
+            "hierarchy_type": "episode_sub",
+            "only_searchable": "true"
+        }
+        meta_response = self.session.get("https://mapi.prod.hjholdings.tv/api/v1/metas/"+str(season_id)+"/children", params=querystring)
+        try:
+            if meta_response.status_code == 200:
+                meta_res = meta_response.json()
+                return meta_res
+        except:
+            return None
     def playback_auth(self, episode_id, uhd=False, media_id=None):
         if uhd:
             payload = {
