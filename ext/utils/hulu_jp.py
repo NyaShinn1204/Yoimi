@@ -4,6 +4,7 @@ import time
 import json
 import uuid
 import requests
+import threading
 import subprocess
 
 from tqdm import tqdm
@@ -620,10 +621,12 @@ class Hulu_jp_downloader:
         base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
         os.makedirs(base_temp_dir, exist_ok=True)
     
+        stop_flag = threading.Event()  # ← フラグの作成
+    
         def fetch_and_save(index_url):
             index, url = index_url
             retry = 0
-            while retry < 3:
+            while retry < 3 and not stop_flag.is_set():
                 try:
                     response = self.session.get(url.strip(), timeout=10)
                     response.raise_for_status()
@@ -634,7 +637,8 @@ class Hulu_jp_downloader:
                 except requests.exceptions.RequestException:
                     retry += 1
                     time.sleep(2)
-            raise Exception(f"Failed to download segment {index}: {url}")
+            if not stop_flag.is_set():
+                raise Exception(f"Failed to download segment {index}: {url}")
     
         futures = []
         try:
@@ -658,10 +662,11 @@ class Hulu_jp_downloader:
                     os.remove(temp_path)
     
         except KeyboardInterrupt:
-            #print("\nダウンロード中断されました。クリーンアップを実行します...")
+            #print("\nダウンロード中断されました。停止信号を送信します...")
+            stop_flag.set()  # ← ここで全スレッドに停止を通知
             for future in futures:
                 future.cancel()
-            # 未完了ファイルを削除（存在すれば）
+            # 未完了ファイルの削除
             for i in range(len(segment_links)):
                 temp_path = os.path.join(base_temp_dir, f"{i:05d}.ts")
                 if os.path.exists(temp_path):
@@ -669,7 +674,7 @@ class Hulu_jp_downloader:
                         os.remove(temp_path)
                     except:
                         pass
-            raise  # 終了ステータスを外に伝えるため再送出
+            raise  # 終了ステータスを再送出
 
     def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="Hulu_jp"):
         # 出力ディレクトリを作成
