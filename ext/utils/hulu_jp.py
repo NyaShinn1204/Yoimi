@@ -473,7 +473,7 @@ class Hulu_jp_downloader:
         if uhd:
             payload = {
                 "service": "hulu",
-                "meta_id": "asset:100011115",
+                "meta_id": "asset:"+episode_id,
                 "media_id": str(media_id),
                 "device_code": 7,
                 "with_resume_point": False,
