@@ -315,13 +315,29 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 parse_ids = parse_season_ids[0] 
             else:
                 parse_ids = None
-            metadata_series_info, nice_season_metadata = hulu_jp_downloader.get_season_list(message)
+            metadata_series_info, nice_season_metadata = hulu_jp_downloader.get_season_list(message, "episode")
             logger.info("Found "+str(len(nice_season_metadata))+" Season", extra={"service_name": __service_name__})
             
             for idx, single in enumerate(nice_season_metadata, 1):
                 season_message = metadata_series_info["name"]+"_"+single["name"]
                 logger.info(" + "+str(idx)+": "+season_message, extra={"service_name": __service_name__})
                         
+            # hierarchy_types から key を盗む！！！
+            hierarchy_keys = [item["key"] for item in metadata_series_info["hierarchy_types"]]
+            
+            # sub/dub 両方含まれているかを殴り込みで確認
+            if "episode_sub" in hierarchy_keys and "episode_dub" in hierarchy_keys:
+                logger.info("Found Sub, Dub type", extra={"service_name": __service_name__})
+                input_episode_type = input("Please enter the type of the season you want to download (e.x: sub, dub) >> ")
+                if input_episode_type.lower() == "sub":
+                    episode_type = "episode_sub"
+                elif input_episode_type.lower() == "dub":
+                    episode_type = "episode_dub"
+            else:
+                episode_type = "episode"
+            if episode_type != "episode":
+                metadata_series_info, nice_season_metadata = hulu_jp_downloader.get_season_list(message, episode_type)
+                
             if parse_ids == None:
                 season_num = input("Please enter the number of the season you want to download (e.x: 1, 2, all) >> ")
             else:

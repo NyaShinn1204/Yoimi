@@ -500,7 +500,7 @@ class Hulu_jp_downloader:
                     return False, None
         except:
             return False, None 
-    def get_season_list(self, series_id):
+    def get_season_list(self, series_id, episode_type):
         querystring = {
             "expand_object_flag": "0",
             "app_id": 4,
@@ -525,7 +525,7 @@ class Hulu_jp_downloader:
                     #      "has_closed_caption": false,
                     #      "has_en_caption": true
                     #    },
-                    single_res = self.get_total_episode(single_season["id"])
+                    single_res = self.get_total_episode(single_season["id"], episode_type)
                     
                     temp_json = {}
                     temp_json = single_season
@@ -536,7 +536,7 @@ class Hulu_jp_downloader:
                 return meta_res, total_season
         except:
             return None
-    def get_total_episode(self, season_id):
+    def get_total_episode(self, season_id, episode_type):
         querystring = {
             "expand_object_flag": "0",
             "sort": "sort:asc,id_in_schema:asc",
@@ -547,7 +547,7 @@ class Hulu_jp_downloader:
             "limit": 999,
             "page": "1",
             "with_total_count": "true",
-            "hierarchy_type": "episode_sub",
+            "hierarchy_type": episode_type,
             "only_searchable": "true"
         }
         meta_response = self.session.get("https://mapi.prod.hjholdings.tv/api/v1/metas/"+str(season_id)+"/children", params=querystring)
