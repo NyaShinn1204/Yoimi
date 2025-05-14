@@ -99,6 +99,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 exit(1)
             else:
                 login_status = False
+                account_point = 0
                 logger.info("Using Temp Account", extra={"service_name": __service_name__})
         #episode_id = "70v8110012"
         #unixtime = str(int(time.time() * 1000))
@@ -190,11 +191,15 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 if message["price"] != 0:
                     logger.info(f" ! {title_name_logger} require {message["price"]}", extra={"service_name": __service_name__})
-                    if int(message["price"]) > int(account_point):
-                        logger.info(f" ! ポイントが足りません", extra={"service_name": __service_name__})
-                        pass
+                    if login_status:
+                        if int(message["price"]) > int(account_point):
+                            logger.info(f" ! ポイントが足りません", extra={"service_name": __service_name__})
+                            pass
+                        else:
+                            logger.info(f" ! {title_name_logger} require BUY or RENTAL", extra={"service_name": __service_name__})
                     else:
-                        logger.info(f" ! {title_name_logger} require BUY or RENTAL", extra={"service_name": __service_name__})
+                        logger.info(f" ! Require Account", extra={"service_name": __service_name__})
+                        exit(1)
                 
                 logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
                 uuid = session.cookies.get("uuid")
@@ -336,12 +341,16 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             global_comment.download_niconico_comment(logger, additional_info, title_name, f"{message.get("disp_ep_no", "")} {message.get("ep_title", "").replace(message.get("disp_ep_no", "")+" ", "")}", message.get("disp_ep_no", "").replace("第", "").replace("話", ""), config, title_name_logger, service_type="FOD")                        
             
             if point[1] != 0:
-                logger.info(f" ! {title_name_logger} require {point[1]}", extra={"service_name": __service_name__})
-                if int(point[1]) > int(account_point):
-                    logger.info(f" ! ポイントが足りません", extra={"service_name": __service_name__})
-                    pass
+                logger.info(f" ! {title_name_logger} require {message["price"]}", extra={"service_name": __service_name__})
+                if login_status:
+                    if int(message["price"]) > int(account_point):
+                        logger.info(f" ! ポイントが足りません", extra={"service_name": __service_name__})
+                        pass
+                    else:
+                        logger.info(f" ! {title_name_logger} require BUY or RENTAL", extra={"service_name": __service_name__})
                 else:
-                    logger.info(f" ! {title_name_logger} require BUY or RENTAL", extra={"service_name": __service_name__})
+                    logger.info(f" ! Require Account", extra={"service_name": __service_name__})
+                    exit(1)
                     
             logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
             uuid = session.cookies.get("uuid")
