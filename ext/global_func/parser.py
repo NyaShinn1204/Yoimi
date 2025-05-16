@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 import re
-from langcodes import Language
 import xml.etree.ElementTree as ET
-from urllib.parse import urljoin # BaseURL結合のため
-import math # for math.ceil
+
+from urllib.parse import urljoin 
 
 class global_parser:
-
+    # MPD PARSER
     def _resolve_base_url(self, element, current_base_url, ns):
         """
         要素とその親からBaseURLを解決する。
@@ -19,7 +18,6 @@ class global_parser:
             resolved = urljoin(current_base_url, base_url_elem.text.strip())
             new_base_url = resolved
         return new_base_url
-
     def _extract_track_info_from_representation(self, representation, adaptation_set, current_period_base_url, ns, debug=False):
         """
         Representation要素からトラック情報を抽出するヘルパー関数。
@@ -208,8 +206,6 @@ class global_parser:
             # Let's return the info, downstream code can filter later if needed
             track_info["type"] = "unknown"
             return track_info
-
-
     def mpd_parser(self, mpd_content, mpd_url="", debug=False):
         """MPDコンテンツを解析し、トラック情報やPSSHなどを抽出する (元の形式に近いPSSHリスト)"""
         try:
@@ -303,7 +299,6 @@ class global_parser:
             "audio_track": audio_tracks,
             "text_track": text_tracks # Keep commented out as per original
         }
-
     def calculate_video_duration(self, duration_str):
         """ISO 8601 duration (PnYnMnDTnHnMnS) を秒単位に変換"""
         if not duration_str or not isinstance(duration_str, str) or not duration_str.startswith('P'):
@@ -335,13 +330,10 @@ class global_parser:
             return duration_sec
         except Exception:
             return 0
-
     def calculate_segments(self, media_duration, segment_duration, timescale):
         """セグメント数を計算"""
         segment_seconds = segment_duration / timescale
         return round(media_duration / segment_seconds)  
-
-
     def extract_mpd_attributes(self, mpd_content):
         """
         MPD文字列からルート要素の属性を抽出します。
@@ -359,8 +351,6 @@ class global_parser:
                  attributes[local_name] = value
             return attributes
         except ET.ParseError: return {}
-
-
     def print_tracks(self, tracks_json):
         """解析結果を元のシンプルな形式で表示する文字列を生成"""
         # --- Reverted to the original print_tracks code ---
@@ -410,8 +400,6 @@ class global_parser:
                 name = text.get('name', 'N/A')
                 output += f"{prefix} SUB | [VTT] | {language} | {name}\n"
         return output.strip()
-
-
     def select_best_tracks(self, tracks_json):
         """利用可能なトラックの中から最もビットレートが高いものを選択"""
         # (Implementation from previous step - kept as is, robust version)
@@ -432,3 +420,93 @@ class global_parser:
                  else: highest_audio = audio_tracks[0] if audio_tracks else None
              except (ValueError, TypeError, IndexError): highest_audio = audio_tracks[0] if audio_tracks else None
         return {"video": highest_video, "audio": highest_audio}
+    
+    # HLS PARSER
+    def hls_parser(self, hls_content, hls_url="", debug=False):
+        """HLSコンテンツを解析し、トラック情報を抽出する"""
+
+        video_tracks = []
+        audio_tracks = []
+        text_tracks = []
+
+        lines = hls_content.splitlines()
+        base_url = hls_url  # 初期値としてHLSのURLを設定
+
+        # HLSのEXT-X-MEDIAタグとEXT-X-STREAM-INFタグを解析
+        for line in lines:
+            line = line.strip()
+
+            if line.startswith("#EXT-X-MEDIA:"):
+                # 字幕トラックを解析
+                if "TYPE=SUBTITLES" in line:
+                    text_track = self._parse_media_tag(line, base_url)
+                    if text_track:
+                        text_tracks.append(text_track)
+            elif line.startswith("#EXT-X-STREAM-INF:"):
+                # ビデオトラックを解析
+                video_track = self._parse_stream_inf_tag(line, base_url, lines)
+                if video_track:
+                    video_tracks.append(video_track)
+
+        return {
+            "info": {},  # HLSにはMPDのような詳細なルート情報がないため、空の辞書
+            "video_track": video_tracks,
+            "audio_track": audio_tracks,
+            "text_track": text_tracks
+        }
+
+    def _parse_media_tag(self, line, base_url):
+        """EXT-X-MEDIAタグを解析して字幕トラック情報を抽出する"""
+        attributes = {}
+        for attr in re.findall(r'([A-Z-]+)="([^"]*)"', line):
+            attributes[attr[0]] = attr[1]
+
+        if "URI" in attributes:
+            uri = attributes["URI"]
+            # URIが相対パスの場合、base_urlと結合
+            if not uri.startswith(('http://', 'https://')):
+                uri = urljoin(base_url, uri)
+
+            text_track = {
+                "type": "text",
+                "name": attributes.get("NAME", "N/A"),
+                "language": attributes.get("LANGUAGE", "N/A"),
+                "url": uri,
+                "default": attributes.get("DEFAULT", "NO") == "YES",
+                "autoselect": attributes.get("AUTOSELECT", "NO") == "YES"
+            }
+            return text_track
+        return None
+
+    def _parse_stream_inf_tag(self, line, base_url, lines):
+        """EXT-X-STREAM-INFタグを解析してビデオトラック情報を抽出する"""
+        attributes = {}
+        for attr in re.findall(r'([A-Z-]+)=([^,]*)', line):  # カンマで区切られた属性を抽出
+            attributes[attr[0]] = attr[1]
+
+        # 解像度がない場合、0x0を設定
+        resolution = attributes.get("RESOLUTION", "0x0").split("x")
+        width = int(resolution[0]) if len(resolution) == 2 else 0
+        height = int(resolution[1]) if len(resolution) == 2 else 0
+
+        # 次の行からURIを取得
+        try:
+            uri = lines[lines.index(line) + 1].strip()
+            # URIが相対パスの場合、base_urlと結合
+            if not uri.startswith(('http://', 'https://')):
+                uri = urljoin(base_url, uri)
+        except IndexError:
+            print("Error: No URI found after EXT-X-STREAM-INF tag.")
+            return None
+
+        video_track = {
+            "type": "video",
+            "bandwidth": int(attributes.get("BANDWIDTH", 0)),
+            "width": width,
+            "height": height,
+            "url": uri,
+            "bitrate": int(int(attributes.get("BANDWIDTH", 0)) / 1000),
+            "resolution": f"{width}x{height}" if width and height else "N/A",
+            "frame_rate": float(attributes.get("FRAME-RATE", 0)) if attributes.get("FRAME-RATE") else None,
+        }
+        return video_track
