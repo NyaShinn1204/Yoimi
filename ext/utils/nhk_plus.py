@@ -588,8 +588,8 @@ class NHKplus_downloader:
                    return True, single_meta
             return False, "Not found"
         else:
-            meta_response = self.session.get(f"https://api-plus.nhk.jp/r5/pl2/streams/4/{st_id}?area_id=130&is_rounded=false").json()
-            
+            meta_response = self.session.get(f"https://vod-npd2.cdn.plus.nhk.jp/npd2/r5/pl2/streams/4/{st_id}.json").json()
+
             for single_meta in meta_response["body"]:
                 if single_meta["stream_id"] == st_id:
                    return True, single_meta
@@ -616,8 +616,9 @@ class NHKplus_downloader:
         
         if login_status == False:
             video_url = video_url
-        else:
-            base_url = ""
+        #else:
+        #    print()
+        #    base_url = ""
         
         segment_urls = [seg.uri for seg in m3u8_obj.segments]
         segment_urls.insert(0, video_url)

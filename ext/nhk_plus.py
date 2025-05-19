@@ -154,7 +154,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             print(track_data)
             
             get_best_track = Tracks.select_tracks(tracks)
-            
+                        
             if (additional_info[8] or additional_info[7]) and not tracks["text_track"] == []: # if get, or embed = true
                 nhkplus_downloader.download_subtitles(title_name_logger, tracks["text_track"], config, logger)
             
@@ -164,9 +164,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             temp_audio_meta = session.get(get_best_track["audio"]["url"]).text
             
             video_url = re.search(r'#EXT-X-MAP:URI="([^"]+)"', temp_video_meta).group(1)
-            
-            if login_status == False:
-                video_url = get_best_track["video"]["url"].replace("playlist.m3u8", "")+video_url 
+                        
+            #if login_status == False:
+            #print(get_best_track["video"]["url"])
+            #print(video_url)
+            video_url = get_best_track["video"]["url"].replace("playlist.m3u8", "")+video_url 
             
             moov_box = Tracks.find_moov_box(session.get(video_url).content)
             
@@ -302,8 +304,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             video_url = re.search(r'#EXT-X-MAP:URI="([^"]+)"', temp_video_meta).group(1)
             
-            if login_status == False:
-                video_url = get_best_track["video"]["url"].replace("playlist.m3u8", "")+video_url 
+            #if login_status == False:
+            video_url = get_best_track["video"]["url"].replace("playlist.m3u8", "")+video_url 
             
             moov_box = Tracks.find_moov_box(session.get(video_url).content)
             
