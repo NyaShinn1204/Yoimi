@@ -29,7 +29,7 @@ Currently, we have confirmed operation with the following devices
 
     git clone https://github.com/nyashinn1204/yoimi
 
-Note: you will need layer3 widevine cdm if downloading from git. (l3.wvd)
+Note: you will need layer3 widevine cdm if downloading from git. 
 
 If you are able to prepare it, please use this option if at all possible!
 
@@ -38,7 +38,9 @@ If you are able to prepare it, please use this option if at all possible!
 
 Download the latest version of Yoimi from [here](https://github.com/NyaShinn1204/Yoimi/releases/latest).
 
-This zip contains l3.wvd and other files. If you are having trouble preparing it, use this one.
+~~This zip contains l3.wvd and other files. If you are having trouble preparing it, use this one.~~
+
+l3.wvd will not be provided in the future, get it from drmlab or somewhere else.
 
 Also, sometimes there are modifications to the Yoimi-hot-fix-0.zip.
 
@@ -63,13 +65,14 @@ Options:
                                  video
   -p, --proxy <ip:port/url>      Use http(s)/socks5 proxies (please add
                                  `socks5://` if you use socks5)
-  -r, --resolution TEXT          Resolution to be downloaded (Default: best)
-  -R, --resolutions              Show available resolutions
-  -m, --mux                      Mux .ts to .mkv (Need ffmpeg or mkvmerge)
-  -mf, --muxfile TEXT            Mux .ts to opticial file
-  -keep, --keep-fragments        Keep downloaded fragment and combined
-                                 fragment (If muxing) (Default: no)
-  -o, --output TEXT              Output filename
+   THIS OPTION IS NO LONGER AVAILABLE.
+     -r, --resolution TEXT          Resolution to be downloaded (Default: best)
+     -R, --resolutions              Show available resolutions
+     -m, --mux                      Mux .ts to .mkv (Need ffmpeg or mkvmerge)
+     -mf, --muxfile TEXT            Mux .ts to opticial file
+     -keep, --keep-fragments        Keep downloaded fragment and combined
+                                    fragment (If muxing) (Default: no)
+     -o, --output TEXT              Output filename
   -v, --verbose                  Enable verbosity
   -rd, --random-directory        Make temp a random directory
   -gnc, --get-niconico-comment   Get Niconico Commment for Title # Unsupported

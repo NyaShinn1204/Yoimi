@@ -29,7 +29,7 @@
 
     git clone https://github.com/nyashinn1204/yoimi
 
-注意: gitからのダウンロードの場合layer3のwidevine cdmが必要となります。(l3.wvd)
+注意: gitからのダウンロードの場合layer3のwidevine cdmが必要となります。
 
 もし用意できるのであればできる限りこのオプションを利用してください
 
@@ -38,7 +38,9 @@
 
 [こちら](https://github.com/NyaShinn1204/Yoimi/releases/latest) から最新版のYoimiをダウンロードしてください。
 
-このzipにはl3.wvdなどが含まれています。用意がめんどくさいときはこちらを使ってください。
+~~このzipにはl3.wvdなどが含まれています。用意がめんどくさいときはこちらを使ってください。~~
+
+クソdmca対策でl3.wvdは提供されません。どっかのdrmlabからとってきてください。
 
 また、たまにですがYoimi-hot-fix-〇.zipという風に修正がされている場合があります。
 
@@ -63,13 +65,14 @@ Options:
                                  video
   -p, --proxy <ip:port/url>      Use http(s)/socks5 proxies (please add
                                  `socks5://` if you use socks5)
-  -r, --resolution TEXT          Resolution to be downloaded (Default: best)
-  -R, --resolutions              Show available resolutions
-  -m, --mux                      Mux .ts to .mkv (Need ffmpeg or mkvmerge)
-  -mf, --muxfile TEXT            Mux .ts to opticial file
-  -keep, --keep-fragments        Keep downloaded fragment and combined
-                                 fragment (If muxing) (Default: no)
-  -o, --output TEXT              Output filename
+   以下のオプションは現在利用できません
+     -r, --resolution TEXT          Resolution to be downloaded (Default: best)
+     -R, --resolutions              Show available resolutions
+     -m, --mux                      Mux .ts to .mkv (Need ffmpeg or mkvmerge)
+     -mf, --muxfile TEXT            Mux .ts to opticial file
+     -keep, --keep-fragments        Keep downloaded fragment and combined
+                                    fragment (If muxing) (Default: no)
+     -o, --output TEXT              Output filename
   -v, --verbose                  Enable verbosity
   -rd, --random-directory        Make temp a random directory
   -gnc, --get-niconico-comment   Get Niconico Commment for Title # Unsupported

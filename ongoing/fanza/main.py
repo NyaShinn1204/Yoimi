@@ -37,15 +37,16 @@ class Fanza_TV_utils:
 class Dmm_TV_downloader:
     def __init__(self, session):
         self.session = session
+        
+        self.FANZA_SECRET_KEY = "hp2Y944L"
 
     def authorize(self, email, password):
-        global auth_success, user_id, token, _AUTHKEY_SECRET
+        global auth_success, user_id, token
         _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
         _ENDPOINT_RES = "https://accounts.dmm.com/app/service/login/password"
         _ENDPOINT_TOKEN = "https://gw.dmmapis.com/connect/v1/token"
         _CLIENT_ID = "Ozqufo77TdOALdbSv1OLW3E8I"
         _CLIENT_SECRET = "1WKJioWwERuNG6ThCcMDkNsG8YPiNs6p"
-        _AUTHKEY_SECRET = "hp2Y944L"
         try:
             login_recaptcha_token = Fanza_TV_utils.recaptcha_v3_bypass(
                 "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=6LfZLQEVAAAAAC-8pKwFNuzVoJW4tfUCghBX_7ZE&co=aHR0cHM6Ly9hY2NvdW50cy5kbW0uY29tOjQ0Mw..&hl=ja&v=pPK749sccDmVW_9DSeTMVvh2&size=invisible&cb=nswb324ozwnh"
@@ -217,7 +218,7 @@ class Dmm_TV_downloader:
             return False, e
 
     def check_token(self, token):
-        global user_id, _AUTHKEY_SECRET
+        global user_id
         _ENDPOINT_CC = "https://api.tv.dmm.com/graphql"
         res = self.session.post(
             _ENDPOINT_CC,
@@ -243,7 +244,6 @@ class Dmm_TV_downloader:
                     "x-exploit-id": "uid:"+user_id,
                     "host": "video.digapi.dmm.com"
                 })
-                _AUTHKEY_SECRET = "hp2Y944L"
                 return True, res.json()["data"]["user"]
             else:
                 return False, "Invalid Token"
@@ -282,21 +282,21 @@ class Dmm_TV_downloader:
                 description = None
 
         url = "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp"
-
-        payload_json = (
-            '{"exploit_id":"uid:'
-            + str(user_id)
-            + '","mylibrary_id":'
-            + str(mylibrary_id)
-            + ',"product_id":"'
-            + str(product_id)
-            + '","shop_name":"videoa","device":"android","HTTP_SMARTPHONE_APP":"DMM-APP","message":"Digital_Api_Mylibrary.getDetail"}'
-        )
-        print(payload_json)
+        
+        payload_json = {
+            "exploit_id": "uid:"+ str(user_id),
+            "mylibrary_id": str(mylibrary_id),
+            "product_id": str(product_id),
+            "shop_name": "videoa",
+            "device": "android",
+            "HTTP_SMARTPHONE_APP": "DMM-APP",
+            "message": "Digital_Api_Mylibrary.getDetail",
+        }
+        
         payload = {
             "appid": "android_movieplayer_app",
             "authkey": hmac.new(
-                _AUTHKEY_SECRET.encode("utf-8"),
+                self.FANZA_SECRET_KEY.encode("utf-8"),
                 payload_json.encode("utf-8"),
                 hashlib.sha256,
             ).hexdigest(),
@@ -321,10 +321,10 @@ class Dmm_TV_downloader:
 
 test = Dmm_TV_downloader(requests.Session())
 
-#status, message = test.authorize("1036909847@qq.com", "19980512abc")
+status, message = test.authorize("114514@gmail.com", "onani-@pass")
 #print(status, message)
 
-status, message = test.check_token("")
+status, message = test.check_token("HEHE TOKEN HERE")
 
 status, message = test.get_all_buyed_item()
 print(status, message["content_total"])
