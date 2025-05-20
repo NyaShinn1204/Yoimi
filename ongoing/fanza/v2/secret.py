@@ -25,7 +25,7 @@ params = {
     "exploit_id": "uid:lVzxoGplD9zA35Ac",
     "chrome_cast": False,
     "isTablet": False,
-    "licenseUID": "ddbe7ed1-8d49-486a-a7c9-5527a2f44566",
+    "licenseUID": "fe2f51ae-1ac7-4829-806b-77e33dd43063",
     "parent_product_id": "h_1558csdx00006dl7",
     "product_id": "h_1558csdx00006",
     "secure_url_flag": False,
@@ -34,7 +34,7 @@ params = {
     "smartphone_access": True,
     "transfer_type": "stream",
     "HTTP_USER_AGENT": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
-    "device": "chromecast_4k",
+    "device": "android",
     "HTTP_SMARTPHONE_APP": "DMM-APP",
     "message": "Digital_Api_Proxy.getURL"
 }
