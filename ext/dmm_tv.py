@@ -90,7 +90,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         status, season_id, content_id = dmm_tv.Dmm_TV_utils.parse_url(url)
                 
-        status_check = dmm_tv_downloader.check_free(season_id, content_id)
+        status_check = dmm_tv_downloader.check_free(season_id, contentid=content_id)
         if content_id == None:
             if any(item['status'] == 'false' for item in status_check) and plan_status != "STANDARD":
                 logger.warning("This content require subscribe plan", extra={"service_name": __service_name__})
@@ -465,6 +465,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             status, message = dmm_tv_downloader.get_title_parse_single(season_id, content_id)
             if status == False:
                 logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
+                logger.error(message, extra={"service_name": __service_name__})
                 exit(1)
             if id_type[0] == "ノーマルアニメ":
                 format_string = config["format"]["anime"]
