@@ -429,10 +429,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 downloaded_files_audio = dmm_tv_downloader.download_segment(segment_list_audio["all"], config, unixtime)
                 #print(downloaded_files)
                 
-                logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
-                
-                dmm_tv_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
-                dmm_tv_downloader.merge_m4s_files(downloaded_files_audio, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"))
+                #logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+                #
+                #dmm_tv_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
+                #dmm_tv_downloader.merge_m4s_files(downloaded_files_audio, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"))
                 
                 logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
     

@@ -3,11 +3,13 @@ import os
 import time
 import base64
 import requests
+import threading
 import subprocess
 from tqdm import tqdm
 from lxml import etree
 from datetime import datetime
 from urllib.parse import urljoin
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import ext.global_func.decrypt_subtitle as sub_decrypt
 
@@ -867,25 +869,61 @@ class Dmm_TV_downloader:
     def download_segment(self, segment_links, config, unixtime, name, service_name="Dmm-TV"):
         base_temp_dir = os.path.join(config["directorys"]["Temp"], "content", unixtime)
         os.makedirs(base_temp_dir, exist_ok=True)
-        with open(os.path.join(config["directorys"]["Temp"], "content", unixtime, name), 'wb') as out_file:
-            with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as progress_bar:
-                for url in segment_links:
-                    retry = 0
-                    while retry < 3:
+    
+        stop_flag = threading.Event()  # ← フラグの作成
+    
+        def fetch_and_save(index_url):
+            index, url = index_url
+            retry = 0
+            while retry < 3 and not stop_flag.is_set():
+                try:
+                    response = self.session.get(url.strip(), timeout=10)
+                    response.raise_for_status()
+                    temp_path = os.path.join(base_temp_dir, f"{index:05d}.ts")
+                    with open(temp_path, 'wb') as f:
+                        f.write(response.content)
+                    return index
+                except requests.exceptions.RequestException:
+                    retry += 1
+                    time.sleep(2)
+            if not stop_flag.is_set():
+                raise Exception(f"Failed to download segment {index}: {url}")
+    
+        futures = []
+        try:
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                futures = [executor.submit(fetch_and_save, (i, url)) for i, url in enumerate(segment_links)]
+                with tqdm(total=len(segment_links), desc=f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="file") as pbar:
+                    for future in as_completed(futures):
                         try:
-                            response = requests.get(url.strip(), timeout=10)
-                            response.raise_for_status()
-                            out_file.write(response.content)
-                            progress_bar.update(1)
-                            break
-                        except requests.exceptions.RequestException as e:
-                            retry += 1
-                            time.sleep(2)
-                            
-        
-        # 結合完了メッセージ
-        #print(f"結合が完了しました: {output_file}")
-        return True
+                            future.result()
+                        except Exception as e:
+                            print(f"Error: {e}")
+                        pbar.update(1)
+    
+            # 結合処理
+            output_path = os.path.join(base_temp_dir, name)
+            with open(output_path, 'wb') as out_file:
+                for i in range(len(segment_links)):
+                    temp_path = os.path.join(base_temp_dir, f"{i:05d}.ts")
+                    with open(temp_path, 'rb') as f:
+                        out_file.write(f.read())
+                    os.remove(temp_path)
+    
+        except KeyboardInterrupt:
+            #print("\nダウンロード中断されました。停止信号を送信します...")
+            stop_flag.set()  # ← ここで全スレッドに停止を通知
+            for future in futures:
+                future.cancel()
+            # 未完了ファイルの削除
+            for i in range(len(segment_links)):
+                temp_path = os.path.join(base_temp_dir, f"{i:05d}.ts")
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except:
+                        pass
+            raise  # 終了ステータスを再送出
 
     def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="Dmm-TV"):
         # 出力ディレクトリを作成
