@@ -636,6 +636,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 content_status_lol = ""
             logger.info(f" + {content_type} | {title_name_logger} {content_status_lol}", extra={"service_name": __service_name__})
             
+            if plan_status == "No Logined" and content_type == "PREMIUM":
+                logger.error("This episode require premium. please login", extra={"service_name": __service_name__})
+                exit(1)
+            
             status, links = dmm_tv_downloader.get_mpd_link(content_id)
             logger.debug(f"{status},{links}", extra={"service_name": __service_name__})
             
