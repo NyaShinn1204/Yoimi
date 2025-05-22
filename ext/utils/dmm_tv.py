@@ -8,7 +8,8 @@ import subprocess
 from tqdm import tqdm
 from lxml import etree
 from datetime import datetime
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse, parse_qs
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import ext.global_func.decrypt_subtitle as sub_decrypt
@@ -84,17 +85,13 @@ class Dmm_TV_utils:
         
         return answer
     def parse_url(url):
-        # 正規表現で 'season' と 'content' を抽出
-        season_match = re.search(r"season=([^&/]+)", url)
-        content_match = re.search(r"content=([^&/]+)", url)
+        parsed = urlparse(url)
+        query = parse_qs(parsed.query)
     
-        # 値を取得、存在しない場合は None
-        season = season_match.group(1) if season_match else None
-        content = content_match.group(1) if content_match else None
-    
-        # 'season' の存在でステータスを決定
+        season = query.get('season', [None])[0]
+        content = query.get('content', [None])[0]
         status = bool(season)
-    
+            
         return status, season, content
     def parse_mpd_logic(content):
         try:

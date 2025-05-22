@@ -396,9 +396,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 track_data = Tracks.print_tracks(transformed_data)
                 
                 print(track_data)
-                
+                                
                 if (additional_info[8] or additional_info[7]) and not transformed_data["text_track"] == []: # if get, or embed = true
                     dmm_tv_downloader.download_subtitles(title_name, title_name_logger, hd_link.replace("manifest.mpd", ""), transformed_data["text_track"], config, logger)
+                
                 logger.debug("Get Segment URL", extra={"service_name": __service_name__})
                 segemnt_content = dmm_tv.Dmm_TV_utils.parse_mpd_content(mpd_content)
                 #print(segemnt_content)
@@ -425,8 +426,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
                 
-                downloaded_files_video = dmm_tv_downloader.download_segment(segment_list_video["all"], config, unixtime)
-                downloaded_files_audio = dmm_tv_downloader.download_segment(segment_list_audio["all"], config, unixtime)
+                downloaded_files_video = dmm_tv_downloader.download_segment(segment_list_video["all"], config, unixtime, "download_encrypt_video.mp4")
+                downloaded_files_audio = dmm_tv_downloader.download_segment(segment_list_audio["all"], config, unixtime, "download_encrypt_audio.mp4")
                 #print(downloaded_files)
                 
                 #logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
