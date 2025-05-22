@@ -510,3 +510,111 @@ class global_parser:
             "frame_rate": float(attributes.get("FRAME-RATE", 0)) if attributes.get("FRAME-RATE") else None,
         }
         return video_track
+    def get_segment_link_list(self, mpd_content, representation_id, url):
+        if isinstance(mpd_content, str):
+            content = mpd_content.encode('utf-8')
+        else:
+            content = mpd_content
+        
+        """
+        MPDコンテンツから指定されたRepresentation IDに対応するSegmentTemplateのリストを取得する。
+    
+        Args:
+            mpd_content (str): MPDファイルのXMLコンテンツ。
+            representation_id (str): 抽出したいRepresentation ID。
+            url (str) : mpdファイルのURL
+    
+        Returns:
+            dict: セグメントリストのリスト。セグメントリストが見つからない場合は空の辞書を返す。
+        """
+        try:
+            tree = ET.fromstring(content)
+            ns = {'dash': 'urn:mpeg:dash:schema:mpd:2011'}
+    
+            # 指定されたRepresentation IDとそれを含むAdaptationSetを探す
+            representation = None
+            adaptation_set = None
+    
+            # Period要素を検索 (MPD直下のPeriodまたはMPD自身がPeriodとして振る舞う場合も考慮)
+            periods = tree.findall('dash:Period', ns)
+            if not periods and tree.tag == '{' + ns['dash'] + '}MPD': # ルートがMPDでPeriodがない場合
+                periods = [tree] # MPD自身をPeriodとして扱う
+    
+            for period in periods:
+                for adapt_set in period.findall('dash:AdaptationSet', ns):
+                    current_representation = adapt_set.find(f'dash:Representation[@id="{representation_id}"]', ns)
+                    if current_representation is not None:
+                        representation = current_representation
+                        adaptation_set = adapt_set
+                        break # 見つかったのでAdaptationSetループを抜ける
+                if representation is not None:
+                    break # 見つかったのでPeriodループを抜ける
+            
+            if representation is None or adaptation_set is None:
+                # print(f"Debug: Representation with ID '{representation_id}' not found.") # デバッグ用
+                return {}
+    
+            # SegmentTemplateの探索 (AdaptationSetレベル、次いでRepresentationレベル)
+            segment_template = adaptation_set.find('dash:SegmentTemplate', ns)
+            if segment_template is None:
+                segment_template = representation.find('dash:SegmentTemplate', ns)
+                if segment_template is None:
+                    # print(f"Debug: SegmentTemplate not found for Representation ID '{representation_id}'.") # デバッグ用
+                    return {}
+    
+            segment_timeline = segment_template.find('dash:SegmentTimeline', ns)
+            if segment_timeline is None:
+                # print(f"Debug: SegmentTimeline not found in SegmentTemplate for Representation ID '{representation_id}'.") # デバッグ用
+                return {}
+    
+            media_template = segment_template.get('media')
+            init_template = segment_template.get('initialization')
+            
+            if not media_template or not init_template:
+                # print(f"Debug: Missing 'media' or 'initialization' attribute in SegmentTemplate for Representation ID '{representation_id}'.") # デバッグ用
+                return {}
+    
+            # テンプレート文字列の $RepresentationID$ を実際のIDに置換
+            media_template = media_template.replace('$RepresentationID$', representation_id)
+            init_template = init_template.replace('$RepresentationID$', representation_id)
+            
+            # セグメントリストの構築
+            segment_list = []
+            segment_all = []
+            
+            # 初期化セグメントのURLを追加
+            init_url = urljoin(url, init_template)
+            segment_all.append(init_url)
+            
+            current_time = 0 # タイムスケール単位での現在時刻
+            for segment_s in segment_timeline.findall('dash:S', ns):
+                d_attr = segment_s.get('d')
+                t_attr = segment_s.get('t')
+                r_attr = segment_s.get('r')
+    
+                if t_attr is not None:
+                    current_time = int(t_attr)
+                
+                if not d_attr:
+                    continue
+    
+                duration = int(d_attr)
+                
+                repeat_count = 1
+                if r_attr is not None:
+                    repeat_count = int(r_attr) + 1
+    
+                for _ in range(repeat_count):
+                    segment_file = media_template.replace('$Time$', str(current_time))
+                    segment_list.append(urljoin(url, segment_file))
+                    segment_all.append(urljoin(url, segment_file))
+                    current_time += duration
+    
+            return {"init": init_url, "segments": segment_list, "all": segment_all}
+    
+        except ET.ParseError as e:
+            print(f"XML解析エラー: {e}")
+            return {}
+        except Exception as e:
+            print(f"予期せぬエラーが発生しました: {e}")
+            return {}

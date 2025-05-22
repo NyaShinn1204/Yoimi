@@ -351,12 +351,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     if additional_info[3]:
                         continue
                 #print(status_check[i])
-                if plan_status == "OTHER":
-                    status_real = status_check[i]
-                    #print(status_check[i])
-                    if status_real["status"] == "false":
-                        logger.warning("This episode is require PREMIUM. Skipping...", extra={"service_name": __service_name__})
-                        continue
                 video_duration = message["node"]["playInfo"]["duration"]
                 
                 #content_type = status_check["status"]
@@ -370,6 +364,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 status, links = dmm_tv_downloader.get_mpd_link(content_id)
                 logger.debug(f"{status},{links}", extra={"service_name": __service_name__})
+                if status == False and plan_status == "No Logined":
+                    status_real = status_check[i]
+                    #print(status_check[i])
+                    if status_real["status"] == "false":
+                        logger.warning("This episode is require PREMIUM. Skipping...", extra={"service_name": __service_name__})
+                        continue
                 
                 logger.debug(f"Parse links", extra={"service_name": __service_name__})
                 
@@ -409,47 +409,41 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if (additional_info[8] or additional_info[7]) and not transformed_data["text_track"] == []: # if get, or embed = true
                     dmm_tv_downloader.download_subtitles(title_name, title_name_logger, hd_link.replace("manifest.mpd", ""), transformed_data["text_track"], config, logger)
                 
-                logger.debug("Get Segment URL", extra={"service_name": __service_name__})
-                segemnt_content = dmm_tv.Dmm_TV_utils.parse_mpd_content(mpd_content)
-                #print(segemnt_content)
-                #print(segemnt_content)
+                get_best_track = Tracks.select_best_tracks(transformed_data)
                 
-                #print(hd_link_base)
+                logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+                logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                 
-                mpd_base = hd_link_base.replace("manifest.mpd", "")
-                
-                segment_list_video = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["video_list"][1]["name"], mpd_base)
-                #print(segment_list_video)
-                for i in segment_list_video["segments"]:
-                    logger.debug(" + Video Segment URL "+i, extra={"service_name": __service_name__})
-                
-                segment_list_audio = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["audio_list"][1]["name"], mpd_base)
-                #print(segment_list_audio)
-                for i in segment_list_audio["segments"]:
-                    logger.debug(" + Audio Segment URL "+i, extra={"service_name": __service_name__})
+                logger.debug(f"Calculate about Manifest...", extra={"service_name": __service_name__})
+                duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+                logger.debug(f" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
                 
                 logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
-                logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": __service_name__})
-                logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": __service_name__})
-    
+                video_segment_links_temp = Tracks.get_segment_link_list(mpd_content, get_best_track["video"]["id"], hd_link.replace("manifest.mpd", "").replace("str.dmm.com", "stc005.dmm.com"))
+                audio_segment_links_temp = Tracks.get_segment_link_list(mpd_content, get_best_track["audio"]["id"], hd_link.replace("manifest.mpd", "").replace("str.dmm.com", "stc005.dmm.com"))
+
+                video_segment_links = []
+                audio_segment_links = []
+                
+                video_segment_links.append(video_segment_links_temp["init"])
+                audio_segment_links.append(audio_segment_links_temp["init"])
+                for i in video_segment_links_temp["segments"]:
+                    video_segment_links.append(i)
+                for i in audio_segment_links_temp["segments"]:
+                    audio_segment_links.append(i)
+                logger.info(f" + Video Segments: "+str(int(len(video_segment_links))), extra={"service_name": __service_name__})                 
+                logger.info(f" + Audio Segments: "+str(int(len(audio_segment_links))), extra={"service_name": __service_name__})
                 
                 logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
                 
-                downloaded_files_video = dmm_tv_downloader.download_segment(segment_list_video["all"], config, unixtime, "download_encrypt_video.mp4")
-                downloaded_files_audio = dmm_tv_downloader.download_segment(segment_list_audio["all"], config, unixtime, "download_encrypt_audio.mp4")
-                #print(downloaded_files)
-                
-                #logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
-                #
-                #dmm_tv_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
-                #dmm_tv_downloader.merge_m4s_files(downloaded_files_audio, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"))
+                downloaded_files_video = dmm_tv_downloader.download_segment(video_segment_links, config, unixtime, "download_encrypt_video.mp4")
+                downloaded_files_audio = dmm_tv_downloader.download_segment(audio_segment_links, config, unixtime, "download_encrypt_audio.mp4")
                 
                 logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
-    
-                dmm_tv.DMM_TV_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
-                dmm_tv.DMM_TV_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
-                
-                dmm_tv.DMM_TV_decrypt.decrypt_all_content(license_key["video_key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), license_key["audio_key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
+                    
+                dmm_tv.DMM_TV_decrypt.decrypt_all_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
                 
                 logger.info("Muxing Episode...", extra={"service_name": __service_name__})
                 
@@ -713,45 +707,41 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             if (additional_info[8] or additional_info[7]) and not transformed_data["text_track"] == []: # if get, or embed = true
                 dmm_tv_downloader.download_subtitles(title_name, title_name_logger, hd_link.replace("manifest.mpd", ""), transformed_data["text_track"], config, logger)
                 
-            logger.debug("Get Segment URL", extra={"service_name": __service_name__})
-            segemnt_content = dmm_tv.Dmm_TV_utils.parse_mpd_content(mpd_content)
-            #print(segemnt_content)
-            #print(segemnt_content)
+            get_best_track = Tracks.select_best_tracks(transformed_data)
             
-            #print(hd_link_base)
+            logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+            logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+            logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+            logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
             
-            mpd_base = hd_link_base.replace("manifest.mpd", "")
-            
-            segment_list_video = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["video_list"][1]["name"], mpd_base)
-            #print(segment_list_video)
-            for i in segment_list_video["segments"]:
-                logger.debug(" + Video Segment URL "+i, extra={"service_name": __service_name__})
-            
-            segment_list_audio = dmm_tv.Dmm_TV_utils.get_segment_link_list(mpd_content, segemnt_content["audio_list"][1]["name"], mpd_base)
-            #print(segment_list_audio)
-            for i in segment_list_audio["segments"]:
-                logger.debug(" + Audio Segment URL "+i, extra={"service_name": __service_name__})
+            logger.debug(f"Calculate about Manifest...", extra={"service_name": __service_name__})
+            duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+            logger.debug(f" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
             
             logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
-            logger.info(" + Video_Segment: "+str(len(segment_list_video["segments"])), extra={"service_name": __service_name__})
-            logger.info(" + Audio_Segment: "+str(len(segment_list_audio["segments"])), extra={"service_name": __service_name__})
-
+            video_segment_links_temp = Tracks.get_segment_link_list(mpd_content, get_best_track["video"]["id"], hd_link.replace("manifest.mpd", "").replace("str.dmm.com", "stc005.dmm.com"))
+            audio_segment_links_temp = Tracks.get_segment_link_list(mpd_content, get_best_track["audio"]["id"], hd_link.replace("manifest.mpd", "").replace("str.dmm.com", "stc005.dmm.com"))
             
-            logger.info("Downloading Encrypted Video, Audio Segments & Merging Segments", extra={"service_name": __service_name__})
+            video_segment_links = []
+            audio_segment_links = []
             
-            downloaded_files_video = dmm_tv_downloader.download_segment(segment_list_video["all"], config, unixtime, "download_encrypt_video.mp4")
-            downloaded_files_audio = dmm_tv_downloader.download_segment(segment_list_audio["all"], config, unixtime, "download_encrypt_audio.mp4")
-            #print(downloaded_files)
+            video_segment_links.append(video_segment_links_temp["init"])
+            audio_segment_links.append(audio_segment_links_temp["init"])
+            for i in video_segment_links_temp["segments"]:
+                video_segment_links.append(i)
+            for i in audio_segment_links_temp["segments"]:
+                audio_segment_links.append(i)
+            logger.info(f" + Video Segments: "+str(int(len(video_segment_links))), extra={"service_name": __service_name__})                 
+            logger.info(f" + Audio Segments: "+str(int(len(audio_segment_links))), extra={"service_name": __service_name__})
             
-            #logger.info("Merging encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+            logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
             
-            #dmm_tv_downloader.merge_m4s_files(downloaded_files_video, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"))
-            #dmm_tv_downloader.merge_m4s_files(downloaded_files_audio, os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"))
+            downloaded_files_video = dmm_tv_downloader.download_segment(video_segment_links, config, unixtime, "download_encrypt_video.mp4")
+            downloaded_files_audio = dmm_tv_downloader.download_segment(audio_segment_links, config, unixtime, "download_encrypt_audio.mp4")
             
             logger.info("Decrypting encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
 
-            dmm_tv.DMM_TV_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), config)
-            dmm_tv.DMM_TV_decrypt.decrypt_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
+            dmm_tv.DMM_TV_decrypt.decrypt_all_content(license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4"), license_key["key"], os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4"), os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4"), config)
             
             logger.info("Muxing Episode...", extra={"service_name": __service_name__})
             

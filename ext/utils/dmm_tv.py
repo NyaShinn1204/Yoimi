@@ -35,7 +35,7 @@ class DMM_TV_decrypt:
                     ]
                 )
         return mp4decrypt_command
-    def decrypt_all_content(video_keys, video_input_file, video_output_file, audio_keys, audio_input_file, audio_output_file, config, service_name="U-Next"):
+    def decrypt_all_content(video_keys, video_input_file, video_output_file, audio_keys, audio_input_file, audio_output_file, config, service_name="Dmm-TV"):
         with tqdm(total=2, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ") as outer_pbar:
             DMM_TV_decrypt.decrypt_content(video_keys, video_input_file, video_output_file, config, service_name=service_name)
             outer_pbar.update(1)  # 1つ目の進捗を更新
@@ -43,7 +43,7 @@ class DMM_TV_decrypt:
             DMM_TV_decrypt.decrypt_content(audio_keys, audio_input_file, audio_output_file, config, service_name=service_name)
             outer_pbar.update(1)  # 2つ目の進捗を更新
     
-    def decrypt_content(keys, input_file, output_file, config, service_name="U-Next"):
+    def decrypt_content(keys, input_file, output_file, config, service_name="Dmm-TV"):
         mp4decrypt_command = DMM_TV_decrypt.mp4decrypt(keys, config)
         mp4decrypt_command.extend([input_file, output_file])
         
@@ -93,183 +93,6 @@ class Dmm_TV_utils:
         status = bool(season)
             
         return status, season, content
-    def parse_mpd_logic(content):
-        try:
-            # Ensure the content is in bytes
-            if isinstance(content, str):
-                content = content.encode('utf-8')
-    
-            # Parse XML
-            root = etree.fromstring(content)
-            namespaces = {
-                'mpd': 'urn:mpeg:dash:schema:mpd:2011',
-                'cenc': 'urn:mpeg:cenc:2013'
-            }
-    
-            # Extract video information
-            videos = []
-            for adaptation_set in root.findall('.//mpd:AdaptationSet[@contentType="video"]', namespaces):
-                for representation in adaptation_set.findall('mpd:Representation', namespaces):
-                    videos.append({
-                        'resolution': f"{representation.get('width')}x{representation.get('height')}",
-                        'codec': representation.get('codecs'),
-                        'mimetype': representation.get('mimeType')
-                    })
-    
-            # Extract audio information
-            audios = []
-            for adaptation_set in root.findall('.//mpd:AdaptationSet[@contentType="audio"]', namespaces):
-                for representation in adaptation_set.findall('mpd:Representation', namespaces):
-                    audios.append({
-                        'audioSamplingRate': representation.get('audioSamplingRate'),
-                        'codec': representation.get('codecs'),
-                        'mimetype': representation.get('mimeType')
-                    })
-    
-            # Extract PSSH values
-            pssh_list = []
-            for content_protection in root.findall('.//mpd:ContentProtection', namespaces):
-                pssh_element = content_protection.find('cenc:pssh', namespaces)
-                if pssh_element is not None:
-                    pssh_list.append(pssh_element.text)
-    
-            # Build the result
-            result = {
-                "main_content": content.decode('utf-8'),
-                "pssh": pssh_list
-            }
-    
-            return result
-    
-        except etree.XMLSyntaxError as e:
-            raise ValueError(f"Invalid MPD content: {e}")
-        except Exception as e:
-            raise RuntimeError(f"An unexpected error occurred: {e}")
-    def parse_mpd_content(mpd_content):
-        if isinstance(mpd_content, str):
-            content = mpd_content.encode('utf-8')
-        else:
-            content = mpd_content
-    
-        root = etree.fromstring(content)
-    
-        # Define the namespace (extracted from the MPD file's root element)
-        namespace = {'ns': 'urn:mpeg:dash:schema:mpd:2011'}
-    
-        # Extract all <Representation> elements
-        representations = root.findall(".//ns:Representation", namespace)
-    
-        # Initialize lists for video and audio information
-        video_list = []
-        audio_list = []
-    
-        # Extract relevant attributes for each representation
-        for elem in representations:
-            rep_id = elem.attrib.get('id', '')
-            bandwidth = int(elem.attrib.get('bandwidth', 0))
-            codecs = elem.attrib.get('codecs', '')
-            width = int(elem.attrib.get('width', 0)) if 'width' in elem.attrib else None
-            height = int(elem.attrib.get('height', 0)) if 'height' in elem.attrib else None
-    
-            if rep_id.startswith("p0va0br"):
-                video_list.append({
-                    "name": rep_id,
-                    "bandwidth": bandwidth,
-                    "width": width,
-                    "height": height,
-                    "codecs": codecs
-                })
-            elif rep_id.startswith("p0aa0br"):
-                audio_list.append({
-                    "name": rep_id,
-                    "bandwidth": bandwidth,
-                    "codecs": codecs
-                })
-    
-        # Return the classified lists with details
-        return {
-            "video_list": video_list,
-            "audio_list": audio_list
-        }
-    def get_segment_link_list(mpd_content, representation_id, url):
-        if isinstance(mpd_content, str):
-            content = mpd_content.encode('utf-8')
-        else:
-            content = mpd_content
-        """
-        MPDコンテンツから指定されたRepresentation IDに対応するSegmentTemplateのリストを取得する。
-    
-        Args:
-            mpd_content (str): MPDファイルのXMLコンテンツ。
-            representation_id (str): 抽出したいRepresentation ID。
-            url (str) : mpdファイルのURL
-    
-        Returns:
-            dict: セグメントリストのリスト。セグメントリストが見つからない場合は空の辞書を返す。
-        """
-        try:
-            tree = etree.fromstring(content)
-            # 名前空間を設定
-            ns = {'dash': 'urn:mpeg:dash:schema:mpd:2011'}
-    
-            # 指定されたRepresentation IDを持つRepresentation要素を探す
-            representation = tree.find(f'.//dash:Representation[@id="{representation_id}"]', ns)
-            if representation is None:
-              return {}
-    
-            # 親のAdaptationSet要素を見つける
-            adaptation_set = representation.find('..')
-    
-            # そのAdaptationSetの子要素であるSegmentTemplateを探す
-            segment_template = adaptation_set.find('dash:SegmentTemplate', ns)
-            if segment_template is None:
-              return {}
-    
-            segment_timeline = segment_template.find('dash:SegmentTimeline', ns)
-            if segment_timeline is None:
-              return {}
-    
-            media_template = segment_template.get('media')
-            init_template = segment_template.get('initialization')
-            
-            # テンプレート文字列の $RepresentationID$ を実際のIDに置換
-            media_template = media_template.replace('$RepresentationID$', representation_id)
-            init_template = init_template.replace('$RepresentationID$', representation_id)
-            
-            # セグメントリストの構築
-            segment_list = []
-            segment_all = []
-            segment_all.append(urljoin(url, init_template))
-            current_time = 0
-            for segment in segment_timeline.findall('dash:S', ns):
-                d_attr = segment.get('d')
-                r_attr = segment.get('r')
-                if not d_attr:
-                    continue
-                duration = int(d_attr)
-                
-                repeat_count = 1
-                if r_attr is not None:
-                    repeat_count = int(r_attr) + 1
-    
-                for _ in range(repeat_count):
-                    segment_file = media_template.replace('$Time$', str(current_time))
-                    segment_list.append(urljoin(url, segment_file))
-                    segment_all.append(urljoin(url, segment_file))
-                    current_time += duration
-    
-    
-            init_url = urljoin(url, init_template)
-    
-    
-            return {"init": init_url, "segments": segment_list, "all": segment_all}
-    
-        except etree.ParseError:
-            print("XML解析エラー")
-            return {}
-        except Exception as e:
-            print(f"予期せぬエラーが発生しました: {e}")
-            return {}
 
 class Dmm_TV__license:
     def license_vd_ad(pssh, session, config):        
@@ -831,12 +654,12 @@ class Dmm_TV_downloader:
             else:
                 return False, None
         except Exception as e:
-            print(e)
-            import traceback
-            import sys
-            t, v, tb = sys.exc_info()
-            print(traceback.format_exception(t,v,tb))
-            print(traceback.format_tb(e.__traceback__))
+            #print(e)
+            #import traceback
+            #import sys
+            #t, v, tb = sys.exc_info()
+            #print(traceback.format_exception(t,v,tb))
+            #print(traceback.format_tb(e.__traceback__))
             return False, None
         
     def get_mpd_content(self, url):
