@@ -89,6 +89,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             plan_status = "No Logined"
         
         status, season_id, content_id = dmm_tv.Dmm_TV_utils.parse_url(url)
+        
+        legacy_type = False
                 
         status_check = dmm_tv_downloader.check_free(season_id, contentid=content_id)
         if content_id == None:
@@ -119,10 +121,17 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.error("Failed to Get Series Json", extra={"service_name": __service_name__})
             exit(1)
         else:
-            title_name = meta_response["titleName"]
+            if meta_response["seasonType"] == "LEGACY":
+                logger.info("This Content is legacy. Changing API to leagcy....", extra={"service_name": __service_name__})
+                
+                status, meta_response = dmm_tv_downloader.get_title_metadata(season_id, legacy=legacy_type)
+                
+                legacy_type = True
+            else:
+                title_name = meta_response["titleName"]
             
         logger.info("Get Video Type for URL", extra={"service_name": __service_name__})
-        status_id, id_type = dmm_tv_downloader.get_id_type(season_id)
+        status_id, id_type = dmm_tv_downloader.get_id_type(season_id, legacy=legacy_type)
         if status_id == False:
             logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
             exit(1)
@@ -463,7 +472,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             # forかなんかで取り出して、実行
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
-            status, message = dmm_tv_downloader.get_title_parse_single(season_id, content_id)
+            status, message = dmm_tv_downloader.get_title_parse_single(season_id, content_id, legacy=legacy_type)
             if status == False:
                 logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
                 logger.error(message, extra={"service_name": __service_name__})
@@ -483,23 +492,42 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     title_name_logger = format_string.format(**values)
             if id_type[0] == "劇場":
                 format_string = config["format"]["movie"]
-                if message["node"]["episodeNumberName"] == "":
-                    format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
-                    values = {
-                        "seriesname": title_name,
-                    }
+                if legacy_type:
+                    if message["content"]["episodeNumberName"] == None:
+                        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                        values = {
+                            "seriesname": message["content"]["episodeTitle"],
+                        }
+                    else:
+                        values = {
+                            "seriesname": title_name,
+                            "titlename": message["content"]["episodeNumberName"],
+                            "episodename": message["content"]["episodeTitle"]
+                        }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
                 else:
-                    values = {
-                        "seriesname": title_name,
-                        "titlename": message["node"]["episodeNumberName"],
-                        "episodename": message["node"]["episodeTitle"]
-                    }
-                try:
-                    title_name_logger = format_string.format(**values)
-                except KeyError as e:
-                    missing_key = e.args[0]
-                    values[missing_key] = ""
-                    title_name_logger = format_string.format(**values)
+                    if message["node"]["episodeNumberName"] == None:
+                        format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
+                        values = {
+                            "seriesname": title_name,
+                        }
+                    else:
+                        values = {
+                            "seriesname": title_name,
+                            "titlename": message["node"]["episodeNumberName"],
+                            "episodename": message["node"]["episodeTitle"]
+                        }
+                    try:
+                        title_name_logger = format_string.format(**values)
+                    except KeyError as e:
+                        missing_key = e.args[0]
+                        values[missing_key] = ""
+                        title_name_logger = format_string.format(**values)
             
             if additional_info[2]:        
                 sate = {}
@@ -626,7 +654,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if additional_info[3]:
                     return
             
-            video_duration = message["node"]["playInfo"]["duration"]
+            if legacy_type:
+                video_duration = message["content"]["playInfo"]["duration"]
+            else:
+                video_duration = message["node"]["playInfo"]["duration"]
             
             content_type = status_check["status"]
             if content_type == "true":
