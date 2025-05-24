@@ -158,6 +158,26 @@ class Fanza:
                         logger.info("Get Streaming m3u8", extra={"service_name": Fanza.__service_name__})
                         logger.info(" + "+license["data"]["redirect"][:20], extra={"service_name": Fanza.__service_name__})
                         
+                        m3u8_1 = session.get(license["data"]["redirect"], allow_redirects=False)
+                        m3u8_2 = session.get(m3u8_1.headers["Location"])
+                        
+                        global_parser = parser.global_parser()
+                        tracks = global_parser.hls_parser(m3u8_2.text)
+                        track_data = global_parser.print_tracks(tracks)
+                        print(track_data)
+                        
+                        get_best_track = global_parser.select_best_tracks(tracks)
+                        
+                        logger.info("Selected Best Track:", extra={"service_name": Fanza.__service_name__})
+                        logger.info(f" + Video: [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": Fanza.__service_name__})
+                        
+                        content_link = m3u8_1.headers["Location"].replace(
+                            "playlist.m3u8", "chunklist_b" + str(get_best_track["video"]["bandwidth"]) + ".m3u8"
+                        )
+                        base_link = content_link.rsplit("/", 1)[0] + "/"
+                        
+                        logger.debug(content_link, extra={"service_name": Fanza.__service_name__})
+                        logger.debug(base_link, extra={"service_name": Fanza.__service_name__})
                     else:
                         continue
             else:
