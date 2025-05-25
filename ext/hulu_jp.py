@@ -542,7 +542,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")
-        console.print_exception(show_locals=True)
+        console.print_exception()
         print("Service: "+__service_name__)
         print("Version: "+additional_info[0])
         print("----END ERROR LOG----")

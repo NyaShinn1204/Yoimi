@@ -96,13 +96,17 @@ def check_session(service_name):
     else:
         return False
 def load_session(json_path):
-    with open(json_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    with open(json_path, 'r', encoding='utf-8-sig') as f:
+        data = f.read()
+        if data.strip() == "":
+            return False
+        return json.loads(data)
 
 class Fanza:
     __service_name__ = "Fanza"
     def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         try:
+            set_variable(session, LOG_LEVEL)
             fanza_downloader = fanza.Fanza_downloader(session, config)
             
             status = check_session(Fanza.__service_name__)
@@ -110,12 +114,12 @@ class Fanza:
             session_status = False
             if not status == False:
                 session_data = load_session(status)
-                
-                token_status = fanza_downloader.check_token(session_data["access_token"])
-                if token_status == False:
-                    logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
-                else:
-                    session_status = True
+                if session_data != False:
+                    token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
+                    if token_status == False:
+                        logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                    else:
+                        session_status = True
                 
             if session_status == False and (email and password != None):
                 status, message, session_data = fanza_downloader.authorize(email, password)
@@ -126,8 +130,10 @@ class Fanza:
                     with open(os.path.join("cache", "session", Fanza.__service_name__, "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
                         json.dump(session_data, f, ensure_ascii=False, indent=4)      
             
-            
-            fanza_userid = message
+            if session_status == False and (email and password != None):
+                fanza_userid = message
+            elif session_data != False:
+                fanza_userid = special_text
             
             status, bought_list = fanza_downloader.get_title()
             
@@ -137,6 +143,8 @@ class Fanza:
                 
                 for single in bought_list:
                     if single["product_id"] == match.group(1):
+                        
+                        
                         logger.info("Download 1 Content", extra={"service_name": Fanza.__service_name__})
                         logger.info(" + " + single["title"], extra={"service_name": Fanza.__service_name__})
                         logger.info(" + " + single["quality_name"], extra={"service_name": Fanza.__service_name__})
@@ -178,6 +186,31 @@ class Fanza:
                         
                         logger.debug(content_link, extra={"service_name": Fanza.__service_name__})
                         logger.debug(base_link, extra={"service_name": Fanza.__service_name__})
+                        
+                        files, iv, key = fanza_downloader.parse_m3u8(content_link, base_link)
+                        
+                        dl_list = fanza_downloader.download_chunk(files, iv, key, unixtime)
+                        
+                        unixtime_temp = str(int(time.time()))
+                        output_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, unixtime_temp+"_nomux_"+".mp4")
+                        fanza_downloader.merge_video(dl_list, output_path)
+                        
+                        real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+".mp4")
+                        fanza_downloader.mux_video(output_path, real_output)
+                        dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                        if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                           for filename in os.listdir(dir_path):
+                               file_path = os.path.join(dir_path, filename)
+                               try:
+                                   if os.path.isfile(file_path):
+                                       os.remove(file_path)
+                                   elif os.path.isdir(file_path):
+                                       shutil.rmtree(file_path)
+                               except Exception as e:
+                                   print(f"削除エラー: {e}")
+                        else:
+                            print(f"指定されたディレクトリは存在しません: {dir_path}")
+                        logger.info('Finished download: {}'.format(single["title"]), extra={"service_name": Fanza.__service_name__})
                     else:
                         continue
             else:

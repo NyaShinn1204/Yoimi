@@ -1,9 +1,26 @@
 import re
+import os
+import cv2
 import json
+import time
 import hmac
+import m3u8
 import base64
 import hashlib
 import requests
+import threading
+import subprocess
+
+from tqdm import tqdm
+from mutagen.mp4 import MP4
+from Crypto.Cipher import AES
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+COLOR_GREEN = "\033[92m"
+COLOR_GRAY = "\033[90m"
+COLOR_RESET = "\033[0m"
+COLOR_BLUE = "\033[94m"
 
 class Fanza_utils:
     def recaptcha_v3_bypass(anchor_url):
@@ -37,8 +54,10 @@ class Fanza_utils:
         return re.search(r'"rresp","(.*?)"', response.text).group(1)
 
 class Fanza_downloader:
-    def __init__(self, session):
+    def __init__(self, session, config):
         self.session = session
+        self.config = config
+        self.service_name = "Fanza"
     def authorize(self, email, password):
         global auth_success, user_id, token
         _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
@@ -144,9 +163,9 @@ class Fanza_downloader:
             _auth = {
                 "grant_type": "authorization_code",
                 "code": redirect_auth_url.replace(
-                    "dmmvrplayer://androidstore/auth/?code=", ""
+                    "dmmmovieplayer://android/auth?code=", ""
                 ),
-                "redirect_uri": "dmmvrplayer://androidstore/auth/?",
+                "redirect_uri": "dmmmovieplayer://androidstore/auth/?",
             }
 
             token_response = self.session.post(
@@ -245,13 +264,12 @@ class Fanza_downloader:
                     "x-app-name": "android_2d",
                     "x-app-ver": "v4.0.0",
                     "x-exploit-id": "uid:"+user_id,
-                    "host": "video.digapi.dmm.com"
                 })
-                return True
+                return True, user_id
             else:
-                return False
+                return False, None
         else:
-            return False
+            return False, None
         
     def get_title(self):
         res = self.session.get("https://video.digapi.dmm.com/purchased/list/text?limit=100&page=1&order=new&hidden_filter=")
@@ -294,7 +312,7 @@ class Fanza_downloader:
             "mylibrary_id": str(single["mylibrary_id"]),
             "product_id": single["product_id"],
             "shop_name": "videoa",
-            "device": "android",
+            "device": "iphone",
             "HTTP_SMARTPHONE_APP": "DMM-APP",
             "message": "Digital_Api_Mylibrary.getDetail",
         }
@@ -327,7 +345,7 @@ class Fanza_downloader:
             "smartphone_access": True,
             "transfer_type": "stream",
             "HTTP_USER_AGENT": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
-            "device": "android",
+            "device": "iphone",
             "HTTP_SMARTPHONE_APP": "DMM-APP",
             "message": "Digital_Api_Proxy.getURL",
         }
@@ -343,3 +361,126 @@ class Fanza_downloader:
             "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
         ).json()
         return True, license_response, payload
+    
+    def parse_m3u8(self, m3u8_url, base_link):
+        r = self.session.get(m3u8_url)
+        x = m3u8.loads(r.text)
+        files = x.files[1:]
+
+        key_url = x.keys[0].uri
+        headers = {
+            "user-agent": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
+            "host": "www.dmm.com",
+            "connection": "Keep-Alive",
+            "accept-encoding": "gzip",
+        }
+        key = self.session.get(key_url, headers=headers).content
+        iv = bytes.fromhex("00000000000000000000000000000000")  # バカシステムなのでこれで通ります。:checked:
+        parsed_files = []
+        for f in files:
+            f = base_link + f
+            parsed_files.append(f)
+        return parsed_files, iv, key
+    
+    
+    # Download logic
+    def setup_decryptor(self, iv, key):
+        global _aes, return_iv
+        return_iv = iv
+        _aes = AES.new(key, AES.MODE_CBC, IV=return_iv)
+    def download_chunk(self, files, iv, key, unixtime):
+        base_temp_dir = os.path.join(self.config["directorys"]["Temp"], "content", str(unixtime))
+        os.makedirs(base_temp_dir, exist_ok=True)
+    
+        self.setup_decryptor(iv, key)
+        stop_flag = threading.Event()
+        downloaded_files = []
+    
+        def fetch_and_decrypt(ts_url):
+            retry = 0
+            while retry < 3 and not stop_flag.is_set():
+                try:
+                    response = self.session.get(ts_url.strip(), timeout=10)
+                    response.raise_for_status()
+                    decrypted_data = _aes.decrypt(response.content)
+                    output_path = os.path.join(base_temp_dir, os.path.basename(ts_url))
+                    with open(output_path, "wb") as f:
+                        f.write(decrypted_data)
+                    return output_path
+                except Exception as e:
+                    retry += 1
+                    time.sleep(2)
+            if not stop_flag.is_set():
+                raise Exception(f"Failed to download: {ts_url}")
+    
+        futures = []
+        try:
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                futures = [executor.submit(fetch_and_decrypt, url) for url in files]
+                with tqdm(total=len(files), desc=f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{self.service_name}{COLOR_RESET} : Downloading", unit="file", ascii=True) as pbar:
+                    for future in as_completed(futures):
+                        try:
+                            result = future.result()
+                            downloaded_files.append(result)
+                        except Exception as err:
+                            print(f"Problem occurred\nReason: {err}")
+                            stop_flag.set()
+                            for f in futures:
+                                f.cancel()
+                            return None
+                        pbar.update(1)
+        except KeyboardInterrupt:
+            print("User pressed CTRL+C, cleaning up...")
+            stop_flag.set()
+            for f in futures:
+                f.cancel()
+            return None
+    
+        return downloaded_files
+    
+    def merge_video(self, path, output):
+        with open(output, "wb") as out:
+            with tqdm(total=len(path), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{self.service_name}{COLOR_RESET} : Merging", ascii=True, unit="file") as pbar:
+                for i in path:
+                    out.write(open(i, "rb").read())
+                    os.remove(i)
+                    pbar.update()
+    def mux_video(self, temp_video_path, output):
+        compile_command = [
+            "ffmpeg",
+            "-i",
+            temp_video_path,
+            "-c:v",
+            "copy",             
+            "-strict",
+            "experimental",
+            "-y",
+            "-progress", "pipe:1", 
+            "-nostats",         
+            output,
+        ]
+        
+        cap = cv2.VideoCapture(temp_video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        duration = frame_count / fps
+        cap.release()
+
+        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{self.service_name}{COLOR_RESET} : Encoding", unit="%") as pbar:
+            with subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8") as process:
+                for line in process.stdout:    
+                    match = re.search(r"time=(\d+):(\d+):(\d+\.\d+)", line)
+                    if match:
+                        hours = int(match.group(1))
+                        minutes = int(match.group(2))
+                        seconds = float(match.group(3))
+                        current_time = hours * 3600 + minutes * 60 + seconds
+                        progress = (current_time / duration) * 100
+                        pbar.n = int(progress)
+                        pbar.refresh()
+    
+            process.wait()
+            if process.returncode == 0:
+                pbar.n = 100
+                pbar.refresh()
+            pbar.close()
