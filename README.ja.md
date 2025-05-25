@@ -120,9 +120,10 @@ Options:
 | Anime3rb             | N/A     | ✅   | N/A                       |
 | Crunchyroll          | 🔄️      | ✅   | 🔄️                       |
 | JFF Theater          | N/A     | ✅   | N/A                       |
-| WOWOW                | 🔄️(調整中)      | N/A  | N/A                       |
+| WOWOW                | 🔄️(調整中)      | N/A  | N/A                |
 | バンダイチャンネル   | ✅      | ✅   | N/A                      |
-| Fanza VR             | 🔄️      | N/A    | N/A                     |
+| Fanza              | ✅      | N/A    | N/A                        |
+| Fanza VR           | ✅      | N/A    | N/A                        |
 
 Abemaで問題が発生したら、urlの最後に"-v1"をつけてみてください。v1のモードでダウンローダーが動きます。
 

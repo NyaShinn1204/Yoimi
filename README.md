@@ -120,9 +120,10 @@ Completed: ✅ | In Progress: 🔄️ | Cancelled: ❌ | Not Available: N/A
 | Anime3rb           | N/A     | ✅    | N/A                         |
 | Crunchyroll        | 🔄️      | ✅    | 🔄️                        |
 | JFF Theater        | N/A     | ✅    | N/A                         |
-| WOWOW              | 🔄️(under adjustment)      | N/A   | N/A                         |
+| WOWOW              | 🔄️(under adjustment)      | N/A   | N/A       |
 | Bandai Channel     | ✅      | ✅    | N/A                        |
-| Fanza VR           | 🔄️      | N/A    | N/A                        |
+| Fanza              | ✅      | N/A    | N/A                        |
+| Fanza VR           | ✅      | N/A    | N/A                        |
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 
