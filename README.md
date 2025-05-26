@@ -122,8 +122,9 @@ Completed: ✅ | In Progress: 🔄️ | Cancelled: ❌ | Not Available: N/A
 | JFF Theater        | N/A     | ✅    | N/A                         |
 | WOWOW              | 🔄️(under adjustment)      | N/A   | N/A       |
 | Bandai Channel     | ✅      | ✅    | N/A                        |
-| Fanza              | ✅      | N/A    | N/A                        |
-| Fanza VR           | ✅      | N/A    | N/A                        |
+| Hulu JP            | ✅(4K)  | N/A   | N/A                   |
+| Fanza              | ✅      | N/A    | N/A                       |
+| Fanza VR           | ✅(4K)  | N/A    | N/A                   |
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 
