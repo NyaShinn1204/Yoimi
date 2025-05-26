@@ -55,7 +55,7 @@ class Fanza_utils:
 
 class Fanza_util:
     # Parse logic
-    def parse_m3u8(m3u8_url, base_link):
+    def parse_m3u8(m3u8_url, base_link, license_uid):
         r = requests.get(m3u8_url)
         x = m3u8.loads(r.text)
         files = x.files[1:]
@@ -67,6 +67,8 @@ class Fanza_util:
             "connection": "Keep-Alive",
             "accept-encoding": "gzip",
         }
+        if "licenseUID" not in key_url:
+            key_url = key_url+"&licenseUID="+license_uid+"&smartphone_access=1"
         key = requests.get(key_url, headers=headers).content
         iv = bytes.fromhex("00000000000000000000000000000000")  # バカシステムなのでこれで通ります。:checked:
         parsed_files = []

@@ -187,16 +187,16 @@ class Fanza:
                         logger.debug(content_link, extra={"service_name": Fanza.__service_name__})
                         logger.debug(base_link, extra={"service_name": Fanza.__service_name__})
                         
-                        files, iv, key = fanza_downloader.parse_m3u8(content_link, base_link)
+                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid)
                         
-                        dl_list = fanza_downloader.download_chunk(files, iv, key, unixtime)
+                        dl_list = fanza.Fanza_util.download_chunk(files, iv, key, unixtime, config, Fanza.__service_name__)
                         
                         unixtime_temp = str(int(time.time()))
                         output_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, unixtime_temp+"_nomux_"+".mp4")
-                        fanza_downloader.merge_video(dl_list, output_path)
+                        fanza.Fanza_util.merge_video(dl_list, output_path, Fanza.__service_name__)
                         
                         real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+".mp4")
-                        fanza_downloader.mux_video(output_path, real_output)
+                        fanza.Fanza_util.mux_video(output_path, real_output, Fanza.__service_name__)
                         dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                         if os.path.exists(dir_path) and os.path.isdir(dir_path):
                            for filename in os.listdir(dir_path):
@@ -262,7 +262,7 @@ class Fanza:
                         logger.debug(content_link, extra={"service_name": Fanza.__service_name__})
                         logger.debug(base_link, extra={"service_name": Fanza.__service_name__})
                         
-                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link)
+                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid)
                         
                         dl_list = fanza.Fanza_util.download_chunk(files, iv, key, unixtime, config, Fanza.__service_name__)
                         
@@ -392,7 +392,7 @@ class Fanza_VR:
                         logger.debug(content_link, extra={"service_name": Fanza_VR.__service_name__})
                         logger.debug(base_link, extra={"service_name": Fanza_VR.__service_name__})
                         
-                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link)
+                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid)
                         
                         dl_list = fanza.Fanza_util.download_chunk(files, iv, key, unixtime, config, Fanza_VR.__service_name__)
                         
@@ -471,7 +471,7 @@ class Fanza_VR:
                         logger.debug(content_link, extra={"service_name": Fanza_VR.__service_name__})
                         logger.debug(base_link, extra={"service_name": Fanza_VR.__service_name__})
                         
-                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link)
+                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid)
                         
                         dl_list = fanza.Fanza_util.download_chunk(files, iv, key, unixtime, config, Fanza_VR.__service_name__)
                         
