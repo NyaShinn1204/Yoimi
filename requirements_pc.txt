@@ -1,6 +1,10 @@
 requirement:
 python (3.12~)
+ffmpeg
 nodejs
+
+linux requirement:
+aria2
 
 
 python requirement:
@@ -12,3 +16,7 @@ click
 lxml
 pywidevine
 ruamel.yaml
+rich
+opencv-python
+mutagen
+pythonmonkey
