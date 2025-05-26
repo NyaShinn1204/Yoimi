@@ -8,7 +8,7 @@ from urllib.parse import urlparse, parse_qs
 
 from tqdm import tqdm
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 def get_parser(url):
     """
