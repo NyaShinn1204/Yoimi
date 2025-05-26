@@ -330,16 +330,22 @@ class Fanza_VR:
                 fanza_userid = special_text
             
             status, bought_list = fanza_downloader.get_title()
-            
+                                    
             match = re.search(r"product_id=([^&]+)", url)
-            if match:
+            if match or "tv.dmm.com/vod/" in url:
+                if "tv.dmm.com/vod/" in url:
+                    parsed = urlparse(url)
+                    query_params = parse_qs(parsed.query)
+                    search_content_id = query_params.get("season", [None])[0]
+                else:
+                    search_content_id = match.group(1)
                 part_match = re.search(r"part=([^/]+)", url)
                 if part_match:
                     part = str(part_match.group(1))
                 else:
                     part = "1"
                 for single in bought_list:
-                    if single["content_id"] == match.group(1):
+                    if single["content_id"] == search_content_id:
                         
                         logger.warning("This tool is not support 8k. if you want to download 8k, You should buy FantaVR", extra={"service_name": Fanza_VR.__service_name__})
                         
@@ -414,7 +420,8 @@ class Fanza_VR:
                         continue
             else:
                 # download all title
-               for single in bought_list:
+                part = "1"
+                for single in bought_list:
                     if single["content_type"] == "general":
                         #logger.info("Regular Downloader is now ongoing. please wait")
                         continue

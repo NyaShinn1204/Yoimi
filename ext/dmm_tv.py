@@ -374,7 +374,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.debug(f"Parse links", extra={"service_name": __service_name__})
                 
                 hd_link = dmm_tv_downloader.parse_quality(links)
-                logger.debug(f" + HD MPD: {hd_link}", extra={"service_name": __service_name__})
+                logger.debug(f" + MPD: {hd_link}", extra={"service_name": __service_name__})
                 
                 logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
                 status, mpd_content, hd_link_base = dmm_tv_downloader.get_mpd_content(hd_link)
@@ -672,7 +672,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.debug(f"Parse links", extra={"service_name": __service_name__})
             
             hd_link = dmm_tv_downloader.parse_quality(links)
-            logger.debug(f" + HD MPD: {hd_link}", extra={"service_name": __service_name__})
+            logger.debug(f" + MPD: {hd_link}", extra={"service_name": __service_name__})
             
             logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
             status, mpd_content, hd_link_base = dmm_tv_downloader.get_mpd_content(hd_link)

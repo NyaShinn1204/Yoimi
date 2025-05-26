@@ -590,21 +590,23 @@ class Dmm_TV_downloader:
                 #print(return_json)
                 if return_json["data"] != None:
                     maybe_genre = None
-                    episode_count = return_json["data"]["tab"]["episodes"]["total"]
-                    
-                    if "劇場版" or "劇場" in return_json["data"]["tab"]["episodes"]["edges"]:
-                        maybe_genre = "劇場"    
-                    if return_json["data"]["tab"]["episodes"]["edges"][0]["node"]["episodeNumberName"].__contains__("第"):
-                        maybe_genre = "ノーマルアニメ"
-                    else:
-                        maybe_genre = "ノーマルアニメ"
-                    #if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"] == "再生":
-                    #    maybe_genre = "劇場"
-                    #if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("第") or return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("#"):
-                    #    maybe_genre = "ノーマルアニメ"
-                    #else:
-                    #    maybe_genre = "劇場"
-                    
+                    try:
+                        episode_count = return_json["data"]["tab"]["episodes"]["total"]
+                        
+                        if "劇場版" or "劇場" in return_json["data"]["tab"]["episodes"]["edges"]:
+                            maybe_genre = "劇場"    
+                        if return_json["data"]["tab"]["episodes"]["edges"][0]["node"]["episodeNumberName"].__contains__("第"):
+                            maybe_genre = "ノーマルアニメ"
+                        else:
+                            maybe_genre = "ノーマルアニメ"
+                        #if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"] == "再生":
+                        #    maybe_genre = "劇場"
+                        #if return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("第") or return_json["data"]["webfront_title_stage"]["currentEpisode"]["playButtonName"].__contains__("#"):
+                        #    maybe_genre = "ノーマルアニメ"
+                        #else:
+                        #    maybe_genre = "劇場"
+                    except:
+                        maybe_genre = "劇場"
                     return True, [maybe_genre]
                 else:
                     return False, None
@@ -674,9 +676,16 @@ class Dmm_TV_downloader:
             return False, None, None
         
     def parse_quality(self, links):
+        found_status = False
         for link in links:
             if link["quality_name"] == "hd":
+                found_status = True
                 return link["link_mpd"]
+            
+        if found_status == False:
+            for link in links:
+                if link["quality_name"] == "auto":
+                    return link["link_mpd"]
 
     # def download_segment(self, segment_links, config, unixtime, service_name="Dmm-TV"):
     #    downloaded_files = []

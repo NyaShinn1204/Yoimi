@@ -2,8 +2,9 @@ import os
 import re
 import json
 import subprocess
-from ruamel.yaml import YAML
 from pathlib import Path
+from ruamel.yaml import YAML
+from urllib.parse import urlparse, parse_qs
 
 from tqdm import tqdm
 
@@ -29,7 +30,8 @@ def get_parser(url):
     valid_videomarket = r'^["\']?https?://(?:www\.)?videomarket\.jp/(?:title|player)/[0-9A-Z]+(?:/[0-9A-Z]+)?["\']?$'
     valid_hulu_jp = r'^["\']?https?://(?:www\.)?hulu\.jp/(?:watch/)?[^"\']+["\']?$'
     valid_fanza = r'^["\']?https?://www\.dmm\.co\.jp/digital/-/player/=/.*["\']?$'
-
+    valid_dmm_gravure = r'^["\']?https?://tv\.dmm\.com/vod/restrict/list/\?([^&]*&)*season=[^&]+(&|$)'
+    
     if re.match(valid_abema, url) and "-v1" in url:
         from ext import abematv as AbemaTV
         return AbemaTV, "abemav1"
@@ -46,6 +48,21 @@ def get_parser(url):
         from ext import unext_v2 as Unext_v2
         return Unext_v2, "unext"
     elif re.match(valid_dmm_tv, url):
+        # CHECK VR OR REGULAR TYPE
+        import requests
+        parsed = urlparse(url)
+        query_params = parse_qs(parsed.query)
+        check_status = requests.post("https://api.tv.dmm.com/graphql", json = {
+            "operationName":"FetchVideoContent",
+            "variables":{"id":query_params.get("season", [None])[0],"playDevice":"BROWSER","isLoggedIn":False},
+            "query":"query FetchVideoContent($id: ID!, $playDevice: PlayDevice!, $isLoggedIn: Boolean!) {\n  videoContent(id: $id) {\n    ...VideoEpisode\n    __typename\n  }\n}\n\nfragment VideoEpisode on VideoContent {\n  id\n  seasonId\n  sampleMovie\n  episodeType\n  episodeImage\n  episodeTitle\n  episodeDetail\n  episodeNumber\n  episodeNumberName\n  contentType\n  priority\n  isWakuwari\n  isAllowComment\n  drmLevel {\n    hasStrictProtection\n    __typename\n  }\n  priceSummary {\n    lowestPrice\n    highestPrice\n    discountedLowestPrice\n    isLimitedPremium\n    __typename\n  }\n  playInfo {\n    contentId\n    duration\n    highestQuality\n    isSupportHDR\n    highestAudioChannelLayout\n    audioRenditions\n    textRenditions\n    parts {\n      contentId\n      duration\n      number\n      resume @include(if: $isLoggedIn) {\n        point\n        isCompleted\n        __typename\n      }\n      __typename\n    }\n    resumePartNumber @include(if: $isLoggedIn)\n    tags\n    __typename\n  }\n  viewingRights(device: $playDevice) {\n    isDownloadable\n    isStreamable\n    downloadableFiles @include(if: $isLoggedIn) {\n      totalFileSize\n      quality {\n        name\n        displayName\n        displayPriority\n        __typename\n      }\n      parts {\n        partNumber\n        fileSize\n        __typename\n      }\n      __typename\n    }\n    windowsURLSchemes: appURLSchemes(app: WINDOWS_VR) @include(if: $isLoggedIn) {\n      partNumber\n      url\n      __typename\n    }\n    iosURLSchemes: appURLSchemes(app: IOS_VR) @include(if: $isLoggedIn) {\n      partNumber\n      url\n      __typename\n    }\n    androidURLSchemes: appURLSchemes(app: ANDROID_VR) @include(if: $isLoggedIn) {\n      partNumber\n      url\n      __typename\n    }\n    __typename\n  }\n  ppvExpiration @include(if: $isLoggedIn) {\n    expirationType\n    viewingExpiration\n    viewingStartExpiration\n    startDeliveryAt\n    __typename\n  }\n  freeProduct {\n    isBeingDelivered\n    contentId\n    __typename\n  }\n  ppvProducts {\n    id\n    contentId\n    seasonId\n    episodeTitle\n    episodeNumber\n    episodeNumberName\n    contentPriority\n    saleUnitPriority\n    contentType\n    saleUnitName\n    saleType\n    isPreOrder\n    isStreamable\n    isDownloadable\n    isBundleParent\n    isOnSale\n    isBeingDelivered\n    isPurchased @include(if: $isLoggedIn)\n    startDeliveryAt\n    endDeliveryAt\n    campaign {\n      id\n      name\n      endAt\n      isLimitedPremium\n      __typename\n    }\n    price {\n      productId\n      price\n      salePrice\n      isLimitedPremium\n      __typename\n    }\n    viewingExpiration {\n      ...ViewingExpirationForPurchaseModal\n      __typename\n    }\n    bundleProducts {\n      id\n      contentId\n      seasonId\n      episodeTitle\n      episodeNumber\n      episodeNumberName\n      contentPriority\n      saleUnitPriority\n      contentType\n      saleUnitName\n      saleType\n      isPreOrder\n      isStreamable\n      isDownloadable\n      isBundleParent\n      isOnSale\n      isPurchased @include(if: $isLoggedIn)\n      isBeingDelivered\n      startDeliveryAt\n      endDeliveryAt\n      campaign {\n        id\n        name\n        endAt\n        isLimitedPremium\n        __typename\n      }\n      price {\n        productId\n        price\n        salePrice\n        isLimitedPremium\n        __typename\n      }\n      viewingExpiration {\n        ...ViewingExpirationForPurchaseModal\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  svodProduct {\n    startDeliveryAt\n    isBeingDelivered\n    contentId\n    __typename\n  }\n  hasBookmark @include(if: $isLoggedIn)\n  nextEpisode {\n    id\n    seasonId\n    episodeNumberName\n    episodeTitle\n    episodeDetail\n    episodeImage\n    freeProduct {\n      isBeingDelivered\n      contentId\n      __typename\n    }\n    svodProduct {\n      contentId\n      __typename\n    }\n    ppvProducts {\n      id\n      isOnSale\n      isBundleParent\n      price {\n        price\n        salePrice\n        __typename\n      }\n      __typename\n    }\n    ppvExpiration @include(if: $isLoggedIn) {\n      startDeliveryAt\n      __typename\n    }\n    priceSummary {\n      discountedLowestPrice\n      lowestPrice\n      highestPrice\n      isLimitedPremium\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nfragment ViewingExpirationForPurchaseModal on VideoViewingExpiration {\n  __typename\n  ... on VideoLegacyViewingExpiration {\n    expireDay\n    __typename\n  }\n  ... on VideoRentalViewingExpiration {\n    startLimitDay\n    expireDay\n    expireHour\n    __typename\n  }\n  ... on VideoFixedViewingExpiration {\n    expiresAt\n    __typename\n  }\n}\n"
+            }
+        )
+        if check_status.status_code == 200:
+            content_type = check_status.json()["data"]["videoContent"]["contentType"]
+            if content_type == "VOD_VR":
+                from ext import fanza as Fanza
+                return Fanza.Fanza_VR, "Fanza-VR"
         from ext import dmm_tv as Dmm_tv
         return Dmm_tv, "dmm_tv"
     elif re.match(valid_brainshark, url):
@@ -87,6 +104,23 @@ def get_parser(url):
     elif "dmmvrplayerstreaming" in url:
         from ext import fanza as Fanza
         return Fanza.Fanza_VR, "Fanza-VR"
+    elif (m := re.match(valid_dmm_gravure, url)):
+        # CHECK VR OR REGULAR TYPE
+        import requests
+        check_status = requests.post("https://api.tv.dmm.com/graphql", json = {
+            "operationName":"FetchVideoContent",
+            "variables":{"id":m.group("season"),"playDevice":"BROWSER","isLoggedIn":False},
+            "query":"query FetchVideoContent($id: ID!, $playDevice: PlayDevice!, $isLoggedIn: Boolean!) {\n  videoContent(id: $id) {\n    ...VideoEpisode\n    __typename\n  }\n}\n\nfragment VideoEpisode on VideoContent {\n  id\n  seasonId\n  sampleMovie\n  episodeType\n  episodeImage\n  episodeTitle\n  episodeDetail\n  episodeNumber\n  episodeNumberName\n  contentType\n  priority\n  isWakuwari\n  isAllowComment\n  drmLevel {\n    hasStrictProtection\n    __typename\n  }\n  priceSummary {\n    lowestPrice\n    highestPrice\n    discountedLowestPrice\n    isLimitedPremium\n    __typename\n  }\n  playInfo {\n    contentId\n    duration\n    highestQuality\n    isSupportHDR\n    highestAudioChannelLayout\n    audioRenditions\n    textRenditions\n    parts {\n      contentId\n      duration\n      number\n      resume @include(if: $isLoggedIn) {\n        point\n        isCompleted\n        __typename\n      }\n      __typename\n    }\n    resumePartNumber @include(if: $isLoggedIn)\n    tags\n    __typename\n  }\n  viewingRights(device: $playDevice) {\n    isDownloadable\n    isStreamable\n    downloadableFiles @include(if: $isLoggedIn) {\n      totalFileSize\n      quality {\n        name\n        displayName\n        displayPriority\n        __typename\n      }\n      parts {\n        partNumber\n        fileSize\n        __typename\n      }\n      __typename\n    }\n    windowsURLSchemes: appURLSchemes(app: WINDOWS_VR) @include(if: $isLoggedIn) {\n      partNumber\n      url\n      __typename\n    }\n    iosURLSchemes: appURLSchemes(app: IOS_VR) @include(if: $isLoggedIn) {\n      partNumber\n      url\n      __typename\n    }\n    androidURLSchemes: appURLSchemes(app: ANDROID_VR) @include(if: $isLoggedIn) {\n      partNumber\n      url\n      __typename\n    }\n    __typename\n  }\n  ppvExpiration @include(if: $isLoggedIn) {\n    expirationType\n    viewingExpiration\n    viewingStartExpiration\n    startDeliveryAt\n    __typename\n  }\n  freeProduct {\n    isBeingDelivered\n    contentId\n    __typename\n  }\n  ppvProducts {\n    id\n    contentId\n    seasonId\n    episodeTitle\n    episodeNumber\n    episodeNumberName\n    contentPriority\n    saleUnitPriority\n    contentType\n    saleUnitName\n    saleType\n    isPreOrder\n    isStreamable\n    isDownloadable\n    isBundleParent\n    isOnSale\n    isBeingDelivered\n    isPurchased @include(if: $isLoggedIn)\n    startDeliveryAt\n    endDeliveryAt\n    campaign {\n      id\n      name\n      endAt\n      isLimitedPremium\n      __typename\n    }\n    price {\n      productId\n      price\n      salePrice\n      isLimitedPremium\n      __typename\n    }\n    viewingExpiration {\n      ...ViewingExpirationForPurchaseModal\n      __typename\n    }\n    bundleProducts {\n      id\n      contentId\n      seasonId\n      episodeTitle\n      episodeNumber\n      episodeNumberName\n      contentPriority\n      saleUnitPriority\n      contentType\n      saleUnitName\n      saleType\n      isPreOrder\n      isStreamable\n      isDownloadable\n      isBundleParent\n      isOnSale\n      isPurchased @include(if: $isLoggedIn)\n      isBeingDelivered\n      startDeliveryAt\n      endDeliveryAt\n      campaign {\n        id\n        name\n        endAt\n        isLimitedPremium\n        __typename\n      }\n      price {\n        productId\n        price\n        salePrice\n        isLimitedPremium\n        __typename\n      }\n      viewingExpiration {\n        ...ViewingExpirationForPurchaseModal\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  svodProduct {\n    startDeliveryAt\n    isBeingDelivered\n    contentId\n    __typename\n  }\n  hasBookmark @include(if: $isLoggedIn)\n  nextEpisode {\n    id\n    seasonId\n    episodeNumberName\n    episodeTitle\n    episodeDetail\n    episodeImage\n    freeProduct {\n      isBeingDelivered\n      contentId\n      __typename\n    }\n    svodProduct {\n      contentId\n      __typename\n    }\n    ppvProducts {\n      id\n      isOnSale\n      isBundleParent\n      price {\n        price\n        salePrice\n        __typename\n      }\n      __typename\n    }\n    ppvExpiration @include(if: $isLoggedIn) {\n      startDeliveryAt\n      __typename\n    }\n    priceSummary {\n      discountedLowestPrice\n      lowestPrice\n      highestPrice\n      isLimitedPremium\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nfragment ViewingExpirationForPurchaseModal on VideoViewingExpiration {\n  __typename\n  ... on VideoLegacyViewingExpiration {\n    expireDay\n    __typename\n  }\n  ... on VideoRentalViewingExpiration {\n    startLimitDay\n    expireDay\n    expireHour\n    __typename\n  }\n  ... on VideoFixedViewingExpiration {\n    expiresAt\n    __typename\n  }\n}\n"
+            }
+        )
+        if check_status.status_code == 200:
+            content_type = check_status.json()["data"]["videoContent"]["contentType"]
+            if content_type == "VOD_VR":
+                from ext import fanza as Fanza
+                return Fanza.Fanza_VR, "Fanza-VR"
+            elif content_type == "VOD_2D":
+                from ext import fanza as Fanza
+                return Fanza.Fanza, "Fanza"
     return None, None
 
 
