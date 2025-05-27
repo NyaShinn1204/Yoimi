@@ -1,11 +1,11 @@
 import os
 import re
-import sys
 import time
 import json
 import yaml
 import shutil
 import logging
+import hashlib
 import ext.global_func.parser as parser
 
 from urllib.parse import urlparse, parse_qs
@@ -116,12 +116,27 @@ class Fanza:
                 session_data = load_session(status)
                 if session_data != False:
                     print("a")
-                    token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
-                    if token_status == False:
-                        logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                    if email and password != None:
+                        if (session_data["email"] == hashlib.sha256(email.encode()).hexdigest()) or (session_data["email"] == hashlib.sha256(password.encode()).hexdigest()):
+                            token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
+                            if token_status == False:
+                                logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                            else:
+                                session_status = True
+                        else:
+                            status, message, session_data = fanza_downloader.authorize(email, password)
+                            if status == False:
+                                logger.error(message, extra={"service_name": Fanza.__service_name__})
+                                exit(1)
+                            else:
+                                with open(os.path.join("cache", "session", Fanza.__service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
+                                    json.dump(session_data, f, ensure_ascii=False, indent=4)      
                     else:
-                        session_status = True
-                
+                        token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
+                        if token_status == False:
+                            logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                        else:
+                            session_status = True
             if session_status == False and (email and password != None):
                 status, message, session_data = fanza_downloader.authorize(email, password)
                 if status == False:
@@ -130,7 +145,8 @@ class Fanza:
                 else:
                     with open(os.path.join("cache", "session", Fanza.__service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
                         json.dump(session_data, f, ensure_ascii=False, indent=4)      
-            else:
+            elif session_status == False and (email and password == None):
+                special_text = None
                 logger.info("This content is require account login", extra={"service_name": Fanza.__service_name__})
             
             if session_status == False and (email and password != None):
@@ -316,11 +332,27 @@ class Fanza_VR:
             if not status == False:
                 session_data = load_session(status)
                 if session_data != False:
-                    token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
-                    if token_status == False:
-                        logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza_VR.__service_name__})
+                    if email and password != None:
+                        if (session_data["email"] == hashlib.sha256(email.encode()).hexdigest()) or (session_data["email"] == hashlib.sha256(password.encode()).hexdigest()):
+                            token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
+                            if token_status == False:
+                                logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                            else:
+                                session_status = True
+                        else:
+                            status, message, session_data = fanza_downloader.authorize(email, password)
+                            if status == False:
+                                logger.error(message, extra={"service_name": Fanza.__service_name__})
+                                exit(1)
+                            else:
+                                with open(os.path.join("cache", "session", Fanza.__service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
+                                    json.dump(session_data, f, ensure_ascii=False, indent=4)      
                     else:
-                        session_status = True
+                        token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
+                        if token_status == False:
+                            logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                        else:
+                            session_status = True
                 
             if session_status == False and (email and password != None):
                 status, message, session_data = fanza_downloader.authorize(email, password)
@@ -333,7 +365,7 @@ class Fanza_VR:
             
             if session_status == False and (email and password != None):
                 fanza_userid = message["id"]
-            elif session_data != False:
+            elif session_status == False and (email and password == None):
                 fanza_userid = special_text
             
             status, bought_list = fanza_downloader.get_title()

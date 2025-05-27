@@ -370,6 +370,8 @@ class Fanza_downloader:
             )
             
             session_json = {
+                "email": hashlib.sha256(password.encode()).hexdigest(),
+                "password": hashlib.sha256(password.encode()).hexdigest(),
                 "access_token": token,
                 "refresh_token": refresh_token
             }
@@ -677,6 +679,8 @@ class Fanza_VR_downloader:
             )
             
             session_json = {
+                "email": hashlib.sha256(password.encode()).hexdigest(),
+                "password": hashlib.sha256(password.encode()).hexdigest(),
                 "access_token": token,
                 "refresh_token": refresh_token
             }
