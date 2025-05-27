@@ -30,7 +30,7 @@ def get_parser(url):
     valid_videomarket = r'^["\']?https?://(?:www\.)?videomarket\.jp/(?:title|player)/[0-9A-Z]+(?:/[0-9A-Z]+)?["\']?$'
     valid_hulu_jp = r'^["\']?https?://(?:www\.)?hulu\.jp/(?:watch/)?[^"\']+["\']?$'
     valid_fanza = r'^["\']?https?://www\.dmm\.co\.jp/digital/-/player/=/.*["\']?$'
-    valid_dmm_gravure = r'^["\']?https?://tv\.dmm\.com/vod/restrict/list/\?([^&]*&)*season=(?P<season>[^&]+)(&|$)'
+    valid_dmm_gravure = r'^["\']?https?://tv\.dmm\.com/vod/restrict(?:/(?:list|detail))?/\?(?:[^&]*&)*season=(?P<season>[^&]+)(?:&|$)'
     
     if re.match(valid_abema, url) and "-v1" in url:
         from ext import abematv as AbemaTV

@@ -115,6 +115,7 @@ class Fanza:
             if not status == False:
                 session_data = load_session(status)
                 if session_data != False:
+                    print("a")
                     token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
                     if token_status == False:
                         logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
@@ -129,20 +130,26 @@ class Fanza:
                 else:
                     with open(os.path.join("cache", "session", Fanza.__service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
                         json.dump(session_data, f, ensure_ascii=False, indent=4)      
+            else:
+                logger.info("This content is require account login", extra={"service_name": Fanza.__service_name__})
             
             if session_status == False and (email and password != None):
-                fanza_userid = message
+                fanza_userid = message["id"]
             elif session_data != False:
                 fanza_userid = special_text
             
             status, bought_list = fanza_downloader.get_title()
             
             match = re.search(r"parent_product_id=([^/]+)", url)
-            if match:
-                # download single title
-                
+            if match or "tv.dmm.com/vod/" in url:
+                if "tv.dmm.com/vod/" in url:
+                    parsed = urlparse(url)
+                    query_params = parse_qs(parsed.query)
+                    search_content_id = query_params.get("season", [None])[0]
+                else:
+                    search_content_id = match.group(1)
                 for single in bought_list:
-                    if single["product_id"] == match.group(1):
+                    if single["product_id"] == search_content_id:
                         
                         
                         logger.info("Download 1 Content", extra={"service_name": Fanza.__service_name__})
@@ -325,7 +332,7 @@ class Fanza_VR:
                         json.dump(session_data, f, ensure_ascii=False, indent=4)      
             
             if session_status == False and (email and password != None):
-                fanza_userid = message
+                fanza_userid = message["id"]
             elif session_data != False:
                 fanza_userid = special_text
             

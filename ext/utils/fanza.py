@@ -101,10 +101,9 @@ class Fanza_util:
                         }
                     else:
                         headers = {
-                            "user-agent": "python-requests/2.32.3",
-                            "accept-encoding": "gzip, deflate, br",
-                            "accept": "*/*",
-                            "connection": "keep-alive"
+                            "user-agent": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
+                            "accept-encoding": "identity",
+                            "connection": "Keep-Alive"
                         }
                     response = requests.get(ts_url.strip(), timeout=10, headers=headers)
                     response.raise_for_status()
@@ -447,7 +446,7 @@ class Fanza_downloader:
             "exploit_id": "uid:"+ user_id,
             "mylibrary_id": str(single["mylibrary_id"]),
             "product_id": single["product_id"],
-            "shop_name": "videoa",
+            "shop_name": single["shop_name"],
             "device": "iphone",
             "HTTP_SMARTPHONE_APP": "DMM-APP",
             "message": "Digital_Api_Mylibrary.getDetail",
@@ -477,7 +476,7 @@ class Fanza_downloader:
             "product_id": get_select_product_info["content_id"],
             "secure_url_flag": False,
             "service": "digital",
-            "shop": "videoa",
+            "shop": single["shop_name"],
             "smartphone_access": True,
             "transfer_type": "stream",
             "HTTP_USER_AGENT": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
