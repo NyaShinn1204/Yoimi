@@ -513,6 +513,8 @@ class Hulu_jp_downloader:
             if meta_response.status_code == 200:
                 meta_res = meta_response.json()
                 total_season = []
+                if meta_res["seasons"] == []:
+                    return meta_res, [{"id": meta_res["id"], "episode_list": self.get_total_episode(meta_res["id"], episode_type), "name": ""}]
                 for single_season in meta_res["seasons"]:
                     ## Sample response:
                     #    {

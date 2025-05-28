@@ -319,7 +319,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info("Found "+str(len(nice_season_metadata))+" Season", extra={"service_name": __service_name__})
             
             for idx, single in enumerate(nice_season_metadata, 1):
-                season_message = metadata_series_info["name"]+"_"+single["name"]
+                if single["name"] == "":
+                    season_message = metadata_series_info["name"]
+                else:
+                    season_message = metadata_series_info["name"]+"_"+single["name"]
                 logger.info(" + "+str(idx)+": "+season_message, extra={"service_name": __service_name__})
                         
             # hierarchy_types から key を盗む！！！
@@ -350,11 +353,19 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info("Total episode: "+str(single_season_metadata["episode_list"]["total_count"]), extra={"service_name": __service_name__})
                 for single in single_season_metadata["episode_list"]["metas"]:
                     format_string = config["format"]["anime"]
-                    values = {
-                        "seriesname": single["series_name"]+"_"+single["season_number_title"],
-                        "titlename": single["episode_number_title"],
-                        "episodename": single["header"]
-                    }
+                    season_number_title = single["season_number_title"]
+                    if season_number_title == None:
+                        values = {
+                            "seriesname": single["series_name"],
+                            "titlename": single["episode_number_title"],
+                            "episodename": single["header"]
+                        }
+                    else:
+                        values = {
+                            "seriesname": single["series_name"]+"_"+single["season_number_title"],
+                            "titlename": single["episode_number_title"],
+                            "episodename": single["header"]
+                        }
                     try:
                         title_name_logger = format_string.format(**values)
                     except KeyError as e:
@@ -365,11 +376,19 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
                 for single in single_season_metadata["episode_list"]["metas"]:
                     format_string = config["format"]["anime"]
-                    values = {
-                        "seriesname": single["series_name"]+"_"+single["season_number_title"],
-                        "titlename": single["episode_number_title"],
-                        "episodename": single["header"]
-                    }
+                    season_number_title = single["season_number_title"]
+                    if season_number_title == None:
+                        values = {
+                            "seriesname": single["series_name"],
+                            "titlename": single["episode_number_title"],
+                            "episodename": single["header"]
+                        }
+                    else:
+                        values = {
+                            "seriesname": single["series_name"]+"_"+single["season_number_title"],
+                            "titlename": single["episode_number_title"],
+                            "episodename": single["header"]
+                        }
                     try:
                         title_name_logger = format_string.format(**values)
                     except KeyError as e:
@@ -499,9 +518,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     logger.info("Muxing Episode...", extra={"service_name": __service_name__})
                     
-                    os.makedirs(os.path.join(config["directorys"]["Downloads"], season_title, series_title), exist_ok=True)
-                    output_path = os.path.join(config["directorys"]["Downloads"], season_title, series_title, title_name_logger+".mp4")
-                    
+                    if series_title != None:
+                        os.makedirs(os.path.join(config["directorys"]["Downloads"], season_title, series_title), exist_ok=True)
+                        output_path = os.path.join(config["directorys"]["Downloads"], season_title, series_title, title_name_logger+".mp4")
+                    else:
+                        os.makedirs(os.path.join(config["directorys"]["Downloads"], season_title), exist_ok=True)
+                        output_path = os.path.join(config["directorys"]["Downloads"], season_title, title_name_logger+".mp4")
                     result = hulu_jp_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", output_path, config, unixtime, season_title, int(duration))
                     dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                     if os.path.exists(dir_path) and os.path.isdir(dir_path):
@@ -523,17 +545,26 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 season_num = int(season_num)-1
                 
                 single_season_metadata = nice_season_metadata[season_num]
-                season_message = metadata_series_info["name"]+"_"+single_season_metadata["name"]
+                if single_season_metadata["name"] != None:
+                    season_message = metadata_series_info["name"]+"_"+single_season_metadata["name"]
+                else:
+                    season_message = metadata_series_info["name"]+"_"+single_season_metadata["name"]
                 downloader_for_season(season_message, single_season_metadata)
             elif season_num.lower() in ("all", "a"):
                 season_num = "all"
                 for single in nice_season_metadata:
-                    season_message = metadata_series_info["name"]+"_"+single["name"]
+                    if single["name"] != None:
+                        season_message = metadata_series_info["name"]+"_"+single["name"]
+                    else:
+                        season_message = metadata_series_info["name"]
                     downloader_for_season(season_message, single)                
             elif season_num == "user_select":
                 for single in nice_season_metadata:
                     if single["id"] == int(parse_ids):
-                        season_message = metadata_series_info["name"]+"_"+single["name"]
+                        if single["name"] != None:
+                            season_message = metadata_series_info["name"]+"_"+single["name"]
+                        else:
+                            season_message = metadata_series_info["name"]
                         downloader_for_season(season_message, single)     
                     else:
                         pass 
