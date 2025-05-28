@@ -55,18 +55,38 @@ class Fanza_utils:
 
 class Fanza_util:
     # Parse logic
-    def parse_m3u8(m3u8_url, base_link, license_uid):
-        r = requests.get(m3u8_url)
+    def parse_m3u8(m3u8_url, base_link, license_uid, service_name):
+        if service_name == "Fanza_VR":
+            headers = {
+                "user-agent": "AVProMobileVideo/2.0.5 (Linux;Android 15) ExoPlayerLib/2.8.4",
+                "connection": "Keep-Alive",
+                "accept-encoding": "gzip"
+            }
+        else:
+            headers = {
+                "user-agent": "okhttp/4.12.0",
+                "accept-encoding": "gzip",
+                "accept": "*/*",
+                "connection": "Keep-Alive",
+                "x-app-name": "android_2d",
+            }
+        r = requests.get(m3u8_url, headers=headers)
         x = m3u8.loads(r.text)
         files = x.files[1:]
 
         key_url = x.keys[0].uri
-        headers = {
-            "user-agent": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
-            "host": "www.dmm.com",
-            "connection": "Keep-Alive",
-            "accept-encoding": "gzip",
-        }
+        if service_name == "Fanza_VR":
+            headers = {
+                "user-agent": "AVProMobileVideo/2.0.5 (Linux;Android 15) ExoPlayerLib/2.8.4",
+                "connection": "Keep-Alive",
+                "accept-encoding": "gzip"
+            }
+        else:
+            headers = {
+                "user-agent": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
+                "connection": "Keep-Alive",
+                "accept-encoding": "gzip",
+            }
         if "licenseUID" not in key_url:
             key_url = key_url+"&licenseUID="+license_uid+"&smartphone_access=1"
         key = requests.get(key_url, headers=headers).content
@@ -144,13 +164,22 @@ class Fanza_util:
         return downloaded_files
     
     def merge_video(path, output, service_name):
+        # sort video_path
+        def extract_index(filename):
+            match = re.search(r'_(\d+)\.ts$', filename)
+            return int(match.group(1)) if match else -1
+        
+        def sort_dl_list(dl_list):
+            return sorted(dl_list, key=lambda path: extract_index(os.path.basename(path)))
+        list_video_path = sort_dl_list(path)
         with open(output, "wb") as out:
-            with tqdm(total=len(path), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : Merging", ascii=True, unit="file") as pbar:
-                for i in path:
+            with tqdm(total=len(list_video_path), desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : Merging", ascii=True, unit="file") as pbar:
+                for i in list_video_path:
                     out.write(open(i, "rb").read())
                     os.remove(i)
                     pbar.update()
-    def mux_video(temp_video_path, output, service_name):
+    def mux_video(temp_video_path, output, service_name, config):    
+        os.makedirs(os.path.join(config["directorys"]["Downloads"]), exist_ok=True)
         compile_command = [
             "ffmpeg",
             "-i",
@@ -370,7 +399,7 @@ class Fanza_downloader:
             )
             
             session_json = {
-                "email": hashlib.sha256(password.encode()).hexdigest(),
+                "email": hashlib.sha256(email.encode()).hexdigest(),
                 "password": hashlib.sha256(password.encode()).hexdigest(),
                 "access_token": token,
                 "refresh_token": refresh_token
@@ -428,7 +457,7 @@ class Fanza_downloader:
         else:
             return False, None
         
-    def get_license(self, user_id, single, license_uid, secret_key):
+    def get_license(self, user_id, single, license_uid, secret_key, part_num):
         def get_json(params: dict) -> str:
             return json.dumps(params, separators=(",", ":"), ensure_ascii=False)
         def get_hash(data: str, key: str) -> str:
@@ -475,7 +504,8 @@ class Fanza_downloader:
             "isTablet": False,
             "licenseUID": license_uid,
             "parent_product_id": get_select_product_info["product_id"],
-            "product_id": get_select_product_info["content_id"],
+            "part": part_num,
+            "product_id": get_select_product_info["product_id"],
             "secure_url_flag": False,
             "service": "digital",
             "shop": single["shop_name"],
@@ -679,7 +709,7 @@ class Fanza_VR_downloader:
             )
             
             session_json = {
-                "email": hashlib.sha256(password.encode()).hexdigest(),
+                "email": hashlib.sha256(email.encode()).hexdigest(),
                 "password": hashlib.sha256(password.encode()).hexdigest(),
                 "access_token": token,
                 "refresh_token": refresh_token
