@@ -353,19 +353,25 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info("Total episode: "+str(single_season_metadata["episode_list"]["total_count"]), extra={"service_name": __service_name__})
                 for single in single_season_metadata["episode_list"]["metas"]:
                     format_string = config["format"]["anime"]
-                    season_number_title = single["season_number_title"]
-                    if season_number_title == None:
+                    season_number_title = single.get("season_number_title")
+                    episode_number_title = single.get("episode_number_title")
+                    series_name = single["series_name"]
+                    header = single["header"]
+                    seriesname = f"{series_name}_{season_number_title}" if season_number_title else series_name
+                    
+                    if not episode_number_title:
                         values = {
-                            "seriesname": single["series_name"],
-                            "titlename": single["episode_number_title"],
-                            "episodename": single["header"]
+                            "seriesname": seriesname,
+                            "episodename": header
                         }
+                        format_string = format_string.replace("{titlename}_", "").replace("_{titlename}", "").replace("{titlename}", "")
                     else:
                         values = {
-                            "seriesname": single["series_name"]+"_"+single["season_number_title"],
-                            "titlename": single["episode_number_title"],
-                            "episodename": single["header"]
+                            "seriesname": seriesname,
+                            "titlename": episode_number_title,
+                            "episodename": header
                         }
+                    
                     try:
                         title_name_logger = format_string.format(**values)
                     except KeyError as e:
@@ -376,19 +382,25 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
                 for single in single_season_metadata["episode_list"]["metas"]:
                     format_string = config["format"]["anime"]
-                    season_number_title = single["season_number_title"]
-                    if season_number_title == None:
+                    season_number_title = single.get("season_number_title")
+                    episode_number_title = single.get("episode_number_title")
+                    series_name = single["series_name"]
+                    header = single["header"]
+                    seriesname = f"{series_name}_{season_number_title}" if season_number_title else series_name
+                    
+                    if not episode_number_title:
                         values = {
-                            "seriesname": single["series_name"],
-                            "titlename": single["episode_number_title"],
-                            "episodename": single["header"]
+                            "seriesname": seriesname,
+                            "episodename": header
                         }
+                        format_string = format_string.replace("{titlename}_", "").replace("_{titlename}", "").replace("{titlename}", "")
                     else:
                         values = {
-                            "seriesname": single["series_name"]+"_"+single["season_number_title"],
-                            "titlename": single["episode_number_title"],
-                            "episodename": single["header"]
+                            "seriesname": seriesname,
+                            "titlename": episode_number_title,
+                            "episodename": header
                         }
+                    
                     try:
                         title_name_logger = format_string.format(**values)
                     except KeyError as e:
@@ -548,7 +560,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if single_season_metadata["name"] != None:
                     season_message = metadata_series_info["name"]+"_"+single_season_metadata["name"]
                 else:
-                    season_message = metadata_series_info["name"]+"_"+single_season_metadata["name"]
+                    season_message = metadata_series_info["name"]
                 downloader_for_season(season_message, single_season_metadata)
             elif season_num.lower() in ("all", "a"):
                 season_num = "all"
