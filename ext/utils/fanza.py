@@ -529,6 +529,41 @@ class Fanza_downloader:
         ).json()
         return True, license_response, payload
     
+    def get_resolution(self, shop_name, product_id, secret_key):
+        def get_json(params: dict) -> str:
+            return json.dumps(params, separators=(",", ":"), ensure_ascii=False)
+        def get_hash(data: str, key: str) -> str:
+            return hmac.new(
+                key.encode("utf-8"), data.encode("utf-8"), hashlib.sha256
+            ).hexdigest()
+        def set_post_params(message: str, params: dict, appid: str, secret_key: str) -> dict:
+            post_data = {}
+            post_data["message"] = message
+            post_data["appid"] = appid
+            json_data = get_json(params)
+            post_data["params"] = json_data
+            post_data["authkey"] = get_hash(json_data, secret_key)
+            return post_data
+        
+        params = {
+            "product_id":product_id,
+            "service":"digital",
+            "shop_name":shop_name,
+            "device":"iphone",
+            "HTTP_SMARTPHONE_APP":"DMM-APP",
+            "message":"Digital_Api_RatePattern.getContentRatePatternListForApp"
+        }
+        
+        payload = set_post_params(
+            message="Digital_Api_RatePattern.getContentRatePatternListForApp",
+            params=params,
+            appid="android_movieplayer_app",
+            secret_key=secret_key,
+        )
+        resolution_response = self.session.post(
+            "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
+        ).json()
+        return True, resolution_response, payload
 class Fanza_VR_downloader:
     def __init__(self, session, config):
         self.session = session
