@@ -7,6 +7,7 @@ import time
 import shutil
 import base64
 import logging
+from urllib.parse import urljoin
 from rich.console import Console
 
 from ext.utils import nhk_plus
@@ -140,6 +141,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             #print(json.dumps(transformed_data, indent=4))
             #print("[+] Select Highest birate manifest")
             highest_bitrate_manifest = Tracks.get_highest_bitrate_manifest(video_info["manifests"])
+            
+            if highest_bitrate_manifest == "cenc_not_found":
+                logger.error(f"Yoimi does not support this encryption format.", extra={"service_name": __service_name__})
+                exit(1)
             #print(json.dumps(highest_bitrate_manifest, indent=4))
             #print("[+] Get m3u8")
             
@@ -280,6 +285,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             #print(json.dumps(transformed_data, indent=4))
             #print("[+] Select Highest birate manifest")
             highest_bitrate_manifest = Tracks.get_highest_bitrate_manifest(video_info["manifests"])
+            
+            if highest_bitrate_manifest == "cenc_not_found":
+                logger.error(f"Yoimi does not support this encryption format.", extra={"service_name": __service_name__})
+                exit(1)
             #print(json.dumps(highest_bitrate_manifest, indent=4))
             #print("[+] Get m3u8")
             
@@ -305,7 +314,21 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             video_url = re.search(r'#EXT-X-MAP:URI="([^"]+)"', temp_video_meta).group(1)
             
             #if login_status == False:
-            video_url = get_best_track["video"]["url"].replace("playlist.m3u8", "")+video_url 
+            if "init.cmfv" in video_url:
+            #print(video_url)
+            #print(get_best_track["video"]["url"].replace("playlist.m3u8", ""))
+                #base_download_video = get_best_track["video"]["url"]
+            
+                pssh_temp_url = get_best_track["video"]["url"]
+                pssh_sub_url = pssh_temp_url.rsplit('/', 1)[0] + '/'
+                
+                base_download_video = pssh_sub_url
+                base_download_audio = get_best_track["audio"]["url"].rsplit('/', 1)[0] + '/'
+                video_url = pssh_sub_url+video_url
+            else:
+                base_download_video = get_best_track["video"]["url"].replace("playlist.m3u8", "")
+                base_download_audio = get_best_track["audio"]["url"].replace("playlist.m3u8", "")
+                video_url = get_best_track["audio"]["url"].replace("playlist.m3u8", "")+video_url 
             
             moov_box = Tracks.find_moov_box(session.get(video_url).content)
             
@@ -352,8 +375,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 title_name_logger_video = random_string+"_video_encrypted.mp4"
                 title_name_logger_audio = random_string+"_audio_encrypted.mp4"
                 
-                video_downloaded = nhkplus_downloader.m3u8_downlaoder(temp_video_meta, login_status, get_best_track["video"]["url"].replace("playlist.m3u8", ""), title_name_logger_video, config, unixtime)
-                audio_downloaded = nhkplus_downloader.m3u8_downlaoder(temp_audio_meta, login_status, get_best_track["audio"]["url"].replace("playlist.m3u8", ""), title_name_logger_audio, config, unixtime)
+                video_downloaded = nhkplus_downloader.m3u8_downlaoder(temp_video_meta, login_status, base_download_video, title_name_logger_video, config, unixtime)
+                audio_downloaded = nhkplus_downloader.m3u8_downlaoder(temp_audio_meta, login_status, base_download_audio, title_name_logger_audio, config, unixtime)
                 
                 logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": __service_name__})
                 
