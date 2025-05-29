@@ -382,7 +382,7 @@ class Fanza_downloader:
                 "variables": {},
                 "query": "query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }",
             }
-            user_info_res = self.session.post(_ENDPOINT_CC, json=user_info_query)
+            user_info_res = requests.post(_ENDPOINT_CC, json=user_info_query, headers={"authorization": "Bearer "+token})
 
             auth_success = True
             user_id = user_info_res.json()["data"]["user"]["id"]
@@ -527,6 +527,39 @@ class Fanza_downloader:
         license_response = self.session.post(
             "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
         ).json()
+        if license_response["data"]["data"] == None:
+            params = {
+                "android_drm": False,
+                "bitrate": 0,
+                "drm": False,
+                "exploit_id": "uid:" + user_id,
+                "chrome_cast": False,
+                "isTablet": False,
+                "licenseUID": license_uid,
+                "parent_product_id": get_select_product_info["product_id"],
+                "part": part_num,
+                "product_id": get_select_product_info["content_id"],
+                "secure_url_flag": False,
+                "service": "digital",
+                "shop": single["shop_name"],
+                "smartphone_access": True,
+                "transfer_type": "stream",
+                "HTTP_USER_AGENT": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
+                "device": "iphone",
+                "HTTP_SMARTPHONE_APP": "DMM-APP",
+                "message": "Digital_Api_Proxy.getURL",
+            }
+            payload = set_post_params(
+                message="Digital_Api_Proxy.getURL",
+                params=params,
+                appid="android_movieplayer_app",
+                secret_key=secret_key,
+            )
+            
+            
+            license_response = self.session.post(
+                "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
+            ).json()
         return True, license_response, payload
     
     def get_resolution(self, shop_name, product_id, secret_key):
@@ -563,7 +596,7 @@ class Fanza_downloader:
         resolution_response = self.session.post(
             "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
         ).json()
-        return True, resolution_response, payload
+        return True, resolution_response
 class Fanza_VR_downloader:
     def __init__(self, session, config):
         self.session = session
@@ -727,7 +760,7 @@ class Fanza_VR_downloader:
                 "variables": {},
                 "query": "query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }",
             }
-            user_info_res = self.session.post(_ENDPOINT_CC, json=user_info_query, headers={"authorization": token})
+            user_info_res = requests.post(_ENDPOINT_CC, json=user_info_query, headers={"authorization": "Bearer "+token})
 
             auth_success = True
             user_id = user_info_res.json()["data"]["user"]["id"]
@@ -736,7 +769,7 @@ class Fanza_VR_downloader:
                     "x-app-name": "android_vr_store",
                     "x-app-ver": "v2.0.5",
                     "x-exploit-id": "uid:"+user_id,
-                    "host": "video.digapi.dmm.com",
+                    "host": "vr.digapi.dmm.com",
                     "connection": "Keep-Alive",
                     "accept-encoding": "gzip",
                     "user-agent": "okhttp/4.12.0",

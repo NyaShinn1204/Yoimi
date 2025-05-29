@@ -195,14 +195,38 @@ class Fanza:
                         logger.info("Get Streaming m3u8", extra={"service_name": Fanza.__service_name__})
                         logger.info(" + "+license["data"]["redirect"][:20], extra={"service_name": Fanza.__service_name__})
                         
+                        status, resolution_list = fanza_downloader.get_resolution(single["shop_name"], single["product_id"], fanza_secret_key)
+                        
                         m3u8_1 = session.get(license["data"]["redirect"], allow_redirects=False)
                         m3u8_2 = session.get(m3u8_1.headers["Location"])
                         
                         global_parser = parser.global_parser()
                         tracks = global_parser.hls_parser(m3u8_2.text)
+                        p_to_resolution = {
+                            "240p": "426x240",
+                            "360p": "640x360",
+                            "480p": "854x480",
+                            "720p": "1280x720",
+                            "1080p": "1920x1080"
+                        }
+                        bitrate_to_resolution = {}
+                        
+                        for item in resolution_list["data"]["result2"]:
+                            bitrate = int(item["bitrate"])
+                            match = re.search(r"\((\d+p)\)", item["quality_display_name"])
+                            if match:
+                                p_quality = match.group(1)
+                                resolution = p_to_resolution.get(p_quality)
+                                if resolution:
+                                    bitrate_to_resolution[bitrate] = resolution
+                        
+                        for track in tracks["video_track"]:
+                            bitrate = track["bitrate"]
+                            if bitrate in bitrate_to_resolution:
+                                track["resolution"] = bitrate_to_resolution[bitrate]
                         track_data = global_parser.print_tracks(tracks)
                         print(track_data)
-                        
+                                                
                         get_best_track = global_parser.select_best_tracks(tracks)
                         
                         logger.info("Selected Best Track:", extra={"service_name": Fanza.__service_name__})
@@ -271,11 +295,32 @@ class Fanza:
                         logger.info("Get Streaming m3u8", extra={"service_name": Fanza.__service_name__})
                         logger.info(" + "+license["data"]["redirect"][:20], extra={"service_name": Fanza.__service_name__})
                         
-                        m3u8_1 = session.get(license["data"]["redirect"], allow_redirects=False)
-                        m3u8_2 = session.get(m3u8_1.headers["Location"])
+                        status, resolution_list = fanza_downloader.get_resolution(single["shop_name"], single["product_id"], fanza_secret_key)
                         
                         global_parser = parser.global_parser()
                         tracks = global_parser.hls_parser(m3u8_2.text)
+                        p_to_resolution = {
+                            "240p": "426x240",
+                            "360p": "640x360",
+                            "480p": "854x480",
+                            "720p": "1280x720",
+                            "1080p": "1920x1080"
+                        }
+                        bitrate_to_resolution = {}
+                        
+                        for item in resolution_list["data"]["result2"]:
+                            bitrate = int(item["bitrate"])
+                            match = re.search(r"\((\d+p)\)", item["quality_display_name"])
+                            if match:
+                                p_quality = match.group(1)
+                                resolution = p_to_resolution.get(p_quality)
+                                if resolution:
+                                    bitrate_to_resolution[bitrate] = resolution
+                        
+                        for track in tracks["video_track"]:
+                            bitrate = track["bitrate"]
+                            if bitrate in bitrate_to_resolution:
+                                track["resolution"] = bitrate_to_resolution[bitrate]
                         track_data = global_parser.print_tracks(tracks)
                         print(track_data)
                         
