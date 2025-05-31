@@ -1,11 +1,11 @@
 import os
 import re
-import sys
 import time
 import json
 import yaml
 import shutil
 import logging
+import hashlib
 import ext.global_func.parser as parser
 
 from urllib.parse import urlparse, parse_qs
@@ -116,12 +116,28 @@ class Fanza:
                 session_data = load_session(status)
                 if session_data != False:
                     print("a")
-                    token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
-                    if token_status == False:
-                        logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                    if email and password != None:
+                        if (session_data["email"] == hashlib.sha256(email.encode()).hexdigest()) and (session_data["password"] == hashlib.sha256(password.encode()).hexdigest()):
+                            token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
+                            if token_status == False:
+                                logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                            else:
+                                session_status = True
+                        else:
+                            logger.info("Email and password is no match. re-login", extra={"service_name": Fanza.__service_name__})
+                            status, message, session_data = fanza_downloader.authorize(email, password)
+                            if status == False:
+                                logger.error(message, extra={"service_name": Fanza.__service_name__})
+                                exit(1)
+                            else:
+                                with open(os.path.join("cache", "session", Fanza.__service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
+                                    json.dump(session_data, f, ensure_ascii=False, indent=4)      
                     else:
-                        session_status = True
-                
+                        token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
+                        if token_status == False:
+                            logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                        else:
+                            session_status = True
             if session_status == False and (email and password != None):
                 status, message, session_data = fanza_downloader.authorize(email, password)
                 if status == False:
@@ -130,7 +146,8 @@ class Fanza:
                 else:
                     with open(os.path.join("cache", "session", Fanza.__service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
                         json.dump(session_data, f, ensure_ascii=False, indent=4)      
-            else:
+            elif session_status == False and (email and password == None):
+                special_text = None
                 logger.info("This content is require account login", extra={"service_name": Fanza.__service_name__})
             
             if session_status == False and (email and password != None):
@@ -148,6 +165,11 @@ class Fanza:
                     search_content_id = query_params.get("season", [None])[0]
                 else:
                     search_content_id = match.group(1)
+                part_match = re.search(r"part=([^/]+)", url)
+                if part_match:
+                    part = str(part_match.group(1))
+                else:
+                    part = "1"
                 for single in bought_list:
                     if single["product_id"] == search_content_id:
                         
@@ -166,21 +188,45 @@ class Fanza:
                         logger.info(" + "+license_uid, extra={"service_name": Fanza.__service_name__})
                         
                         logger.info("Send License Request", extra={"service_name": Fanza.__service_name__})
-                        status, license, license_payload = fanza_downloader.get_license(fanza_userid, single, license_uid, fanza_secret_key)
+                        status, license, license_payload = fanza_downloader.get_license(fanza_userid, single, license_uid, fanza_secret_key, part)
                         logger.info(" + KEY: "+license["data"]["cookie"][0]["value"], extra={"service_name": Fanza.__service_name__})
                         logger.info(" + UID: "+license_payload["authkey"], extra={"service_name": Fanza.__service_name__})
                         
                         logger.info("Get Streaming m3u8", extra={"service_name": Fanza.__service_name__})
                         logger.info(" + "+license["data"]["redirect"][:20], extra={"service_name": Fanza.__service_name__})
                         
+                        status, resolution_list = fanza_downloader.get_resolution(single["shop_name"], single["product_id"], fanza_secret_key)
+                        
                         m3u8_1 = session.get(license["data"]["redirect"], allow_redirects=False)
                         m3u8_2 = session.get(m3u8_1.headers["Location"])
                         
                         global_parser = parser.global_parser()
                         tracks = global_parser.hls_parser(m3u8_2.text)
+                        p_to_resolution = {
+                            "240p": "426x240",
+                            "360p": "640x360",
+                            "480p": "854x480",
+                            "720p": "1280x720",
+                            "1080p": "1920x1080"
+                        }
+                        bitrate_to_resolution = {}
+                        
+                        for item in resolution_list["data"]["result2"]:
+                            bitrate = int(item["bitrate"])
+                            match = re.search(r"\((\d+p)\)", item["quality_display_name"])
+                            if match:
+                                p_quality = match.group(1)
+                                resolution = p_to_resolution.get(p_quality)
+                                if resolution:
+                                    bitrate_to_resolution[bitrate] = resolution
+                        
+                        for track in tracks["video_track"]:
+                            bitrate = track["bitrate"]
+                            if bitrate in bitrate_to_resolution:
+                                track["resolution"] = bitrate_to_resolution[bitrate]
                         track_data = global_parser.print_tracks(tracks)
                         print(track_data)
-                        
+                                                
                         get_best_track = global_parser.select_best_tracks(tracks)
                         
                         logger.info("Selected Best Track:", extra={"service_name": Fanza.__service_name__})
@@ -194,7 +240,7 @@ class Fanza:
                         logger.debug(content_link, extra={"service_name": Fanza.__service_name__})
                         logger.debug(base_link, extra={"service_name": Fanza.__service_name__})
                         
-                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid)
+                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid, Fanza.__service_name__)
                         
                         dl_list = fanza.Fanza_util.download_chunk(files, iv, key, unixtime, config, Fanza.__service_name__)
                         
@@ -202,8 +248,8 @@ class Fanza:
                         output_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, unixtime_temp+"_nomux_"+".mp4")
                         fanza.Fanza_util.merge_video(dl_list, output_path, Fanza.__service_name__)
                         
-                        real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+".mp4")
-                        fanza.Fanza_util.mux_video(output_path, real_output, Fanza.__service_name__)
+                        real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+"_part"+str(part)+".mp4")
+                        fanza.Fanza_util.mux_video(output_path, real_output, Fanza.__service_name__, config)
                         dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                         if os.path.exists(dir_path) and os.path.isdir(dir_path):
                            for filename in os.listdir(dir_path):
@@ -222,7 +268,8 @@ class Fanza:
                         continue
             else:
                 # download all title
-               for single in bought_list:
+                part = "1"
+                for single in bought_list:
                     if single["content_type"] == "vr":
                         #logger.info("VR Downloader is now ongoing. please wait")
                         continue
@@ -241,18 +288,39 @@ class Fanza:
                         logger.info(" + "+license_uid, extra={"service_name": Fanza.__service_name__})
                         
                         logger.info("Send License Request", extra={"service_name": Fanza.__service_name__})
-                        status, license, license_payload = fanza_downloader.get_license(fanza_userid, single, license_uid, fanza_secret_key)
+                        status, license, license_payload = fanza_downloader.get_license(fanza_userid, single, license_uid, fanza_secret_key, part)
                         logger.info(" + KEY: "+license["data"]["cookie"][0]["value"], extra={"service_name": Fanza.__service_name__})
                         logger.info(" + UID: "+license_payload["authkey"], extra={"service_name": Fanza.__service_name__})
                         
                         logger.info("Get Streaming m3u8", extra={"service_name": Fanza.__service_name__})
                         logger.info(" + "+license["data"]["redirect"][:20], extra={"service_name": Fanza.__service_name__})
                         
-                        m3u8_1 = session.get(license["data"]["redirect"], allow_redirects=False)
-                        m3u8_2 = session.get(m3u8_1.headers["Location"])
+                        status, resolution_list = fanza_downloader.get_resolution(single["shop_name"], single["product_id"], fanza_secret_key)
                         
                         global_parser = parser.global_parser()
                         tracks = global_parser.hls_parser(m3u8_2.text)
+                        p_to_resolution = {
+                            "240p": "426x240",
+                            "360p": "640x360",
+                            "480p": "854x480",
+                            "720p": "1280x720",
+                            "1080p": "1920x1080"
+                        }
+                        bitrate_to_resolution = {}
+                        
+                        for item in resolution_list["data"]["result2"]:
+                            bitrate = int(item["bitrate"])
+                            match = re.search(r"\((\d+p)\)", item["quality_display_name"])
+                            if match:
+                                p_quality = match.group(1)
+                                resolution = p_to_resolution.get(p_quality)
+                                if resolution:
+                                    bitrate_to_resolution[bitrate] = resolution
+                        
+                        for track in tracks["video_track"]:
+                            bitrate = track["bitrate"]
+                            if bitrate in bitrate_to_resolution:
+                                track["resolution"] = bitrate_to_resolution[bitrate]
                         track_data = global_parser.print_tracks(tracks)
                         print(track_data)
                         
@@ -269,7 +337,7 @@ class Fanza:
                         logger.debug(content_link, extra={"service_name": Fanza.__service_name__})
                         logger.debug(base_link, extra={"service_name": Fanza.__service_name__})
                         
-                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid)
+                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid, Fanza.__service_name__)
                         
                         dl_list = fanza.Fanza_util.download_chunk(files, iv, key, unixtime, config, Fanza.__service_name__)
                         
@@ -277,8 +345,8 @@ class Fanza:
                         output_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, unixtime_temp+"_nomux_"+".mp4")
                         fanza.Fanza_util.merge_video(dl_list, output_path, Fanza.__service_name__)
                         
-                        real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+".mp4")
-                        fanza.Fanza_util.mux_video(output_path, real_output, Fanza.__service_name__)
+                        real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+"_part"+str(part)+".mp4")
+                        fanza.Fanza_util.mux_video(output_path, real_output, Fanza.__service_name__, config)
                         dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                         if os.path.exists(dir_path) and os.path.isdir(dir_path):
                            for filename in os.listdir(dir_path):
@@ -316,11 +384,28 @@ class Fanza_VR:
             if not status == False:
                 session_data = load_session(status)
                 if session_data != False:
-                    token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
-                    if token_status == False:
-                        logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza_VR.__service_name__})
+                    if email and password != None:
+                        if (session_data["email"] == hashlib.sha256(email.encode()).hexdigest()) and (session_data["password"] == hashlib.sha256(password.encode()).hexdigest()):
+                            token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
+                            if token_status == False:
+                                logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                            else:
+                                session_status = True
+                        else:
+                            logger.info("Email and password is no match. re-login", extra={"service_name": Fanza.__service_name__})
+                            status, message, session_data = fanza_downloader.authorize(email, password)
+                            if status == False:
+                                logger.error(message, extra={"service_name": Fanza.__service_name__})
+                                exit(1)
+                            else:
+                                with open(os.path.join("cache", "session", Fanza.__service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
+                                    json.dump(session_data, f, ensure_ascii=False, indent=4)      
                     else:
-                        session_status = True
+                        token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
+                        if token_status == False:
+                            logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                        else:
+                            session_status = True
                 
             if session_status == False and (email and password != None):
                 status, message, session_data = fanza_downloader.authorize(email, password)
@@ -333,7 +418,7 @@ class Fanza_VR:
             
             if session_status == False and (email and password != None):
                 fanza_userid = message["id"]
-            elif session_data != False:
+            elif session_status == False and (email and password == None):
                 fanza_userid = special_text
             
             status, bought_list = fanza_downloader.get_title()
@@ -399,7 +484,7 @@ class Fanza_VR:
                         logger.debug(content_link, extra={"service_name": Fanza_VR.__service_name__})
                         logger.debug(base_link, extra={"service_name": Fanza_VR.__service_name__})
                         
-                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid)
+                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid, Fanza_VR.__service_name__)
                         
                         dl_list = fanza.Fanza_util.download_chunk(files, iv, key, unixtime, config, Fanza_VR.__service_name__)
                         
@@ -407,8 +492,8 @@ class Fanza_VR:
                         output_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, unixtime_temp+"_nomux_"+".mp4")
                         fanza.Fanza_util.merge_video(dl_list, output_path, Fanza_VR.__service_name__)
                         
-                        real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+".mp4")
-                        fanza.Fanza_util.mux_video(output_path, real_output, Fanza_VR.__service_name__)
+                        real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+"_part"+str(part)+".mp4")
+                        fanza.Fanza_util.mux_video(output_path, real_output, Fanza_VR.__service_name__, config)
                         dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                         if os.path.exists(dir_path) and os.path.isdir(dir_path):
                            for filename in os.listdir(dir_path):
@@ -478,7 +563,7 @@ class Fanza_VR:
                         logger.debug(content_link, extra={"service_name": Fanza_VR.__service_name__})
                         logger.debug(base_link, extra={"service_name": Fanza_VR.__service_name__})
                         
-                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid)
+                        files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid, Fanza_VR.__service_name__)
                         
                         dl_list = fanza.Fanza_util.download_chunk(files, iv, key, unixtime, config, Fanza_VR.__service_name__)
                         
@@ -486,8 +571,8 @@ class Fanza_VR:
                         output_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, unixtime_temp+"_nomux_"+".mp4")
                         fanza.Fanza_util.merge_video(dl_list, output_path, Fanza_VR.__service_name__)
                         
-                        real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+".mp4")
-                        fanza.Fanza_util.mux_video(output_path, real_output, Fanza_VR.__service_name__)
+                        real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+"_part"+str(part)+".mp4")
+                        fanza.Fanza_util.mux_video(output_path, real_output, Fanza_VR.__service_name__, config)
                         dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
                         if os.path.exists(dir_path) and os.path.isdir(dir_path):
                            for filename in os.listdir(dir_path):
