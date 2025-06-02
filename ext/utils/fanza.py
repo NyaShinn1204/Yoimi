@@ -769,7 +769,6 @@ class Fanza_VR_downloader:
                     "x-app-name": "android_vr_store",
                     "x-app-ver": "v2.0.5",
                     "x-exploit-id": "uid:"+user_id,
-                    "host": "vr.digapi.dmm.com",
                     "connection": "Keep-Alive",
                     "accept-encoding": "gzip",
                     "user-agent": "okhttp/4.12.0",

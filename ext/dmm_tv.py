@@ -82,6 +82,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             else:
                 logger.debug("Get Token: "+session.headers["Authorization"], extra={"service_name": __service_name__})
                 plan_status = message["planStatus"]["planType"]
+                if plan_status == None:
+                    plan_status = "Nothing"
                 logger.info("Loggined Account", extra={"service_name": __service_name__})
                 logger.info(" + ID: "+message["id"], extra={"service_name": __service_name__})
                 logger.info(" + PlanType: "+plan_status, extra={"service_name": __service_name__})
