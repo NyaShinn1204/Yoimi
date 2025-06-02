@@ -180,10 +180,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 base_download_video = pssh_sub_url
                 base_download_audio = get_best_track["audio"]["url"].rsplit('/', 1)[0] + '/'
                 video_url = pssh_sub_url+video_url
+            elif "init" and "mp4" in video_url:
+                base_download_video = get_best_track["video"]["url"].replace("playlist.m3u8", "")
+                base_download_audio = get_best_track["audio"]["url"].replace("playlist.m3u8", "")
+                video_url = video_url
             else:
                 base_download_video = get_best_track["video"]["url"].replace("playlist.m3u8", "")
                 base_download_audio = get_best_track["audio"]["url"].replace("playlist.m3u8", "")
-                video_url = get_best_track["audio"]["url"].replace("playlist.m3u8", "")+video_url 
+                video_url = get_best_track["video"]["url"].replace("playlist.m3u8", "")+video_url 
             moov_box = Tracks.find_moov_box(session.get(video_url).content)
             
             pssh_box = ""
@@ -330,10 +334,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 base_download_video = pssh_sub_url
                 base_download_audio = get_best_track["audio"]["url"].rsplit('/', 1)[0] + '/'
                 video_url = pssh_sub_url+video_url
+            elif "init" and "mp4" in video_url:
+                base_download_video = get_best_track["video"]["url"].replace("playlist.m3u8", "")
+                base_download_audio = get_best_track["audio"]["url"].replace("playlist.m3u8", "")
+                video_url = video_url
             else:
                 base_download_video = get_best_track["video"]["url"].replace("playlist.m3u8", "")
                 base_download_audio = get_best_track["audio"]["url"].replace("playlist.m3u8", "")
-                video_url = get_best_track["audio"]["url"].replace("playlist.m3u8", "")+video_url 
+                video_url = get_best_track["video"]["url"].replace("playlist.m3u8", "")+video_url 
             
             moov_box = Tracks.find_moov_box(session.get(video_url).content)
             

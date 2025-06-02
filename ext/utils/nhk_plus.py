@@ -627,10 +627,10 @@ class NHKplus_downloader:
         
         if login_status == False:
             video_url = video_url
-        #else:
+        else:
         #    print()
-        #    base_url = ""
-        
+            base_url = ""
+                
         segment_urls = [seg.uri for seg in m3u8_obj.segments]
         segment_urls.insert(0, video_url)
         
