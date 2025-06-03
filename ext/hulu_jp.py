@@ -100,7 +100,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info("Success change profile", extra={"service_name": __service_name__})
             logger.info(" + Nickname: "+message["profile"]["nickname"], extra={"service_name": __service_name__})
             
-        
+        def resolution_to_pixels(resolution_str):
+            match = re.match(r"(\d+)x(\d+)", resolution_str)
+            if match:
+                width, height = map(int, match.groups())
+                return width * height
+            return 0
         
         #print("getting episode info")
         match = re.search(r'/watch/(\d+)', url)
@@ -201,18 +206,31 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 hd_link = urls[0]
                 logger.info(f" + 4K_link: {hd_link[:15]+"*****"}", extra={"service_name": __service_name__})
             else:
-                logger.info("Got HD Link", extra={"service_name": __service_name__})
+                logger.info("Got MPD Link", extra={"service_name": __service_name__})
+                
                 urls = []
                 widevine_url = None
                 playready_url = None
-                for source in playdata["sources"]:
-                    if source["resolution"] == "1920x1080" and "manifest.mpd" in source["src"]:
+                
+                sorted_sources = sorted(
+                    playdata["sources"],
+                    key=lambda s: resolution_to_pixels(s.get("resolution", "0x0")),
+                    reverse=True
+                )
+                
+                for source in sorted_sources:
+                    if "manifest.mpd" in source.get("src", ""):
                         urls.append(source["src"])
-                        if source["key_systems"]:
-                            widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url", None)
-                            playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url", None)
-                hd_link = urls[0]
-                logger.info(f" + HD_link: {hd_link[:15]+"*****"}", extra={"service_name": __service_name__})
+                        if source.get("key_systems"):
+                            widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url")
+                            playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url")
+                        break
+                
+                if urls:
+                    hd_link = urls[0]
+                    logger.info(f" + MPD_link: {hd_link[:15] + '*****'}", extra={"service_name": __service_name__})
+                else:
+                    logger.warning("No suitable MPD link found", extra={"service_name": __service_name__})
             
             logger.info("Checking Subtitle...", extra={"service_name": __service_name__})
             
@@ -453,18 +471,31 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         hd_link = urls[0]
                         logger.info(f" + 4K_link: {hd_link[:15]+"*****"}", extra={"service_name": __service_name__})
                     else:
-                        logger.info("Got HD Link", extra={"service_name": __service_name__})
+                        logger.info("Got MPD Link", extra={"service_name": __service_name__})
+                        
                         urls = []
                         widevine_url = None
                         playready_url = None
-                        for source in playdata["sources"]:
-                            if source["resolution"] == "1920x1080" and "manifest.mpd" in source["src"]:
+                        
+                        sorted_sources = sorted(
+                            playdata["sources"],
+                            key=lambda s: resolution_to_pixels(s.get("resolution", "0x0")),
+                            reverse=True
+                        )
+                        
+                        for source in sorted_sources:
+                            if "manifest.mpd" in source.get("src", ""):
                                 urls.append(source["src"])
-                                if source["key_systems"]:
-                                    widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url", None)
-                                    playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url", None)
-                        hd_link = urls[0]
-                        logger.info(f" + HD_link: {hd_link[:15]+"*****"}", extra={"service_name": __service_name__})
+                                if source.get("key_systems"):
+                                    widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url")
+                                    playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url")
+                                break
+                        
+                        if urls:
+                            hd_link = urls[0]
+                            logger.info(f" + MPD_link: {hd_link[:15] + '*****'}", extra={"service_name": __service_name__})
+                        else:
+                            logger.warning("No suitable MPD link found", extra={"service_name": __service_name__})
                     
                     logger.info("Checking Subtitle...", extra={"service_name": __service_name__})
                     
