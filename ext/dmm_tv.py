@@ -94,7 +94,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         legacy_type = False
                 
-        status_check = dmm_tv_downloader.check_free(season_id, contentid=content_id)
+        status_check = dmm_tv_downloader.check_free(url, season_id, contentid=content_id)
         if content_id == None:
             if any(item['status'] == 'false' for item in status_check) and plan_status != "STANDARD":
                 logger.warning("This content require subscribe plan", extra={"service_name": __service_name__})
@@ -118,7 +118,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             else:
                 logger.warning("This content is free!", extra={"service_name": __service_name__})
                 
-        status, meta_response = dmm_tv_downloader.get_title_metadata(season_id)
+        status, meta_response = dmm_tv_downloader.get_title_metadata(url,season_id)
         if status == False:
             logger.error("Failed to Get Series Json", extra={"service_name": __service_name__})
             exit(1)
@@ -126,7 +126,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             if meta_response["seasonType"] == "LEGACY":
                 logger.info("This Content is legacy. Changing API to leagcy....", extra={"service_name": __service_name__})
                 
-                status, meta_response = dmm_tv_downloader.get_title_metadata(season_id, legacy=legacy_type)
+                status, meta_response = dmm_tv_downloader.get_title_metadata(url,season_id, legacy=legacy_type)
                 
                 legacy_type = True
             else:
@@ -141,13 +141,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
 
         if type(status_check) == list:
             logger.info("Get Title for Season", extra={"service_name": __service_name__})
-            status, messages = dmm_tv_downloader.get_title_parse_all(season_id)
+            status, messages = dmm_tv_downloader.get_title_parse_all(url, season_id)
             if status == False:
                 logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
                 exit(1)
             i = 0
             for message in messages:
-                if id_type[0] == "ノーマルアニメ":
+                if id_type[0] == "ノーマルアニメ" or id_type[0] == "ショート":
                     format_string = config["format"]["anime"]
                     values = {
                         "seriesname": title_name,
@@ -191,11 +191,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 i=i+1
             for i, message in enumerate(messages):
                 content_id = message["node"]["id"]
-                status, message = dmm_tv_downloader.get_title_parse_single(season_id, content_id)
+                status, message = dmm_tv_downloader.get_title_parse_single(url, season_id, content_id)
                 if status == False:
                     logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
                     exit(1)
-                if id_type[0] == "ノーマルアニメ":
+                if id_type[0] == "ノーマルアニメ" or id_type[0] == "ショート":
                     format_string = config["format"]["anime"]
                     values = {
                         "seriesname": title_name,
@@ -210,7 +210,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         title_name_logger = format_string.format(**values)
                 if id_type[0] == "劇場":
                     format_string = config["format"]["movie"]
-                    if message["node"]["episodeNumberName"] == "":
+                    if message["node"]["episodeNumberName"] == None:
                         format_string = format_string.replace("_{episodename}", "").replace("_{titlename}", "")
                         values = {
                             "seriesname": title_name,
