@@ -469,7 +469,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             # forかなんかで取り出して、実行
         else:
             logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
-            status, message = dmm_tv_downloader.get_title_parse_single(season_id, content_id, legacy=legacy_type)
+            status, message = dmm_tv_downloader.get_title_parse_single(url, season_id, content_id, legacy=legacy_type)
             if status == False:
                 logger.error("Failed to Get Episode Json", extra={"service_name": __service_name__})
                 logger.error(message, extra={"service_name": __service_name__})

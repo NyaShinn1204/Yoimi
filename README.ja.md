@@ -12,6 +12,7 @@
 
 # 目次
 
+- [インストール要件](#requirement)
 - [インストール](#インストール方法)
     - [Git Cloneでのダウンロード](#git-cloneでのダウンロード)
     - [リリースからのダウンロード](#リリースからのダウンロード)
@@ -21,6 +22,24 @@
     - [サポートされているサイト](#サポートされているサイト)
 - [既存の問題](#既存の問題)
 - [クレジット](#クレジット)
+
+## 要件
+
+### Linux
+
+要件: python3, aria2   (Abemaを使う場合node jsがいるかもしれません)
+
+### Windows
+
+要件: python3          (Abemaを使う場合node jsがいるかもしれません)
+
+### Python
+
+パッケージをインストールするコマンド
+
+```
+   python install -r python_requirements.txt
+```
 
 
 ## インストール方法
@@ -76,9 +95,9 @@ Options:
   -v, --verbose                  Enable verbosity
   -rd, --random-directory        Make temp a random directory
   -gnc, --get-niconico-comment   Get Niconico Commment for Title # Unsupported
-                                 Anime3rb
+                                 Anime3rb, Hulu, Fanza, FanzaVR
   -odc, --only-download-comment  Only Download Niconico Commment # Unsupported
-                                 Anime3rb
+                                 Anime3rb, Hulu, Fanza, FanzaVR
   -h, --help                     Show this message and exit.
 ```
 
@@ -107,24 +126,24 @@ Options:
 
 現在以下のサイトにサポート、または取り組んでいます。
 
-完了: ✅   |   作成中: 🔄️   |   キャンセル: ❌   |   未対応・存在しない: N/A
+完了: ✅   |   作成中: 🔄️   |   サポートしていません: ❌   |   未対応・存在しない: N/A
 
-| サービス名           | Premium | Free | 字幕                      |
-|----------------------|---------|------|-------------------------- |
-| Abema                | ✅      | ✅   | ✅（10~20タイトルほど） |
-| U-Next               | ✅      | N/A  | N/A                      |
-| DMM TV               | ✅      | ✅   | ✅                      |
-| Dアニメストア        | 🔄️      | 🔄️   | N/A                      |
-| FOD                  | ✅      | ✅   | N/A                      |
-| NHK+                 | ✅      | ✅    | ✅                       |
-| Anime3rb             | N/A     | ✅   | N/A                       |
-| Crunchyroll          | 🔄️      | ✅   | 🔄️                       |
-| JFF Theater          | N/A     | ✅   | N/A                       |
-| WOWOW                | 🔄️(調整中)      | N/A  | N/A                |
-| バンダイチャンネル   | ✅      | ✅   | N/A                      |
-| Hulu JP                 | ✅(4K)  | N/A   | N/A                   |
-| Fanza                | ✅      | N/A    | N/A                       |
-| Fanza VR             | ✅(4K)  | N/A    | N/A                   |
+| サービス名           | Premium | Free | 字幕                      | セッション保持 |
+|----------------------|---------|------|---------------------------|----------------|
+| Abema                | ✅      | ✅   | ✅（10~20タイトルほど） | ❌            |
+| U-Next               | ✅      | N/A  | N/A                      | ❌            |
+| DMM TV               | ✅      | ✅   | ✅                      | ❌            |
+| Dアニメストア        | 🔄️      | 🔄️   | N/A                      | ❌            |
+| FOD                  | ✅      | ✅   | N/A                      | ❌            |
+| NHK+                 | ✅      | ✅    | ✅                     | ❌            |
+| Anime3rb             | N/A     | ✅   | N/A                       | ❌            |
+| Crunchyroll          | 🔄️      | ✅   | 🔄️                       | ❌            |
+| JFF Theater          | N/A     | ✅   | N/A                       | ❌            |
+| WOWOW                | 🔄️(調整中)      | N/A  | N/A                | ❌            |
+| バンダイチャンネル   | ✅      | ✅   | N/A                      | ❌            |
+| Hulu JP                 | ✅(4K)  | N/A   | N/A                   | ❌            |
+| Fanza                | ✅      | N/A    | N/A                     | ✅            |
+| Fanza VR             | ✅(4K)  | N/A    | N/A                     | ✅            |
 
 Abemaで問題が発生したら、urlの最後に"-v1"をつけてみてください。v1のモードでダウンローダーが動きます。
 
