@@ -17,11 +17,6 @@ COLOR_RESET = "\033[0m"
 COLOR_BLUE = "\033[94m"
 
 class Crunchyroll_utils:
-    def random_select_ua() -> str:
-        android_version = str(random.randint(13, 15))
-        okhttp_version = f"4.{random.randint(10, 12)}.{random.randint(0, 9)}"
-        user_agent = f"Crunchyroll/3.74.2 Android/{android_version} okhttp/{okhttp_version}"
-        return user_agent
     def find_guid_by_locale(data, locale):
         en_us_guid = None
         
@@ -300,12 +295,11 @@ class Crunchyroll_downloader:
         while retries < 3:
             try:
                 self.session.headers = {
-                    "Authorization": "Basic ZG1yeWZlc2NkYm90dWJldW56NXo6NU45aThPV2cyVmtNcm1oekNfNUNXekRLOG55SXo0QU0=",
                     "Connection": "Keep-Alive",
                     "Content-Type": "application/x-www-form-urlencoded",
                     "ETP-Anonymous-ID": str(uuid.uuid4()),
                     "Host": "www.crunchyroll.com",
-                    "User-Agent": Crunchyroll_utils.random_select_ua(),
+                    "User-Agent": "Crunchyroll/deviceType: ANDROIDTV; appVersion: defaultUserAgent; osVersion: 16; model: AOSP TV on x86; manufacturer: Google; brand: google",
                     "X-Datadog-Sampling-Priority": "0",
                 }
                 payload = {
@@ -314,8 +308,10 @@ class Crunchyroll_downloader:
                     "grant_type": "password",
                     "scope": "offline_access",
                     "device_id": str(uuid.uuid4()),
-                    "device_name": "sdk_gphone64_x86_64",
-                    "device_type": "Google sdk_gphone64_x86_64"
+                    "device_name": "emulator_x86_arm",
+                    "device_type": "ANDROIDTV",
+                    "client_id": "ty7y4elumwpo9a3fjzx9",
+                    "client_secret": "iwI2U1qBCg3cC96e5ZmXDDd0-ioFk26m"
                 }
                 response = self.session.post('https://www.crunchyroll.com/auth/v1/token', data=payload)
                 if response.status_code == 200:
@@ -453,17 +449,24 @@ class Crunchyroll_downloader:
             pbar.close()
             
     def generate_random_token(self):
-        import cloudscraper
-        self.session = cloudscraper.create_scraper()
-        etp_anonymous_id = str(uuid.uuid4())
-        response1 = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"device_id={str(uuid.uuid4())}&device_type=Chrome%20on%20Windows&grant_type=etp_rt_cookie", headers={"Authorization": "Basic bm9haWhkZXZtXzZpeWcwYThsMHE6", "Content-Type": "application/x-www-form-urlencoded", "ETP-Anonymous-Id": etp_anonymous_id})
-        response2 = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"grant_type=client_id", headers={"Authorization": "Basic Y3Jfd2ViOg==", "Content-Type": "application/x-www-form-urlencoded", "ETP-Anonymous-Id": etp_anonymous_id})
+        payload = "grant_type=client_id&scope=offline_access&client_id=ty7y4elumwpo9a3fjzx9&client_secret=iwI2U1qBCg3cC96e5ZmXDDd0-ioFk26m"
+        headers = {
+            "etp-anonymous-id": str(uuid.uuid4()),
+            "user-agent": "Crunchyroll/deviceType: ANDROIDTV; appVersion: defaultUserAgent; osVersion: 16; model: AOSP TV on x86; manufacturer: Google; brand: google",
+            "accept": "application/json",
+            "accept-charset": "UTF-8",
+            "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "host": "www.crunchyroll.com",
+            "connection": "Keep-Alive",
+            "accept-encoding": "gzip"
+        }
+        response2 = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=payload, headers=headers)
         update_token = response2.json()["access_token"]
         self.session.headers.update({"Authorization": "Bearer "+update_token})
         return True, response2.json()
-    def update_token(self):
-        response1 = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"device_id={str(uuid.uuid4())}&device_type=Chrome%20on%20Windows&grant_type=etp_rt_cookie", headers={"Authorization": "Basic bm9haWhkZXZtXzZpeWcwYThsMHE6"})
-        response2 = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"grant_type=client_id", headers={"Authorization": "Basic Y3Jfd2ViOg=="})
-        update_token = response2.json()["access_token"]
-        self.session.headers.update({"Authorization": "Bearer "+update_token})
-        return True
+    #def update_token(self):
+    #    response1 = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"device_id={str(uuid.uuid4())}&device_type=Chrome%20on%20Windows&grant_type=etp_rt_cookie", headers={"Authorization": "Basic bm9haWhkZXZtXzZpeWcwYThsMHE6"})
+    #    response2 = self.session.post("https://www.crunchyroll.com/auth/v1/token", data=f"grant_type=client_id", headers={"Authorization": "Basic Y3Jfd2ViOg=="})
+    #    update_token = response2.json()["access_token"]
+    #    self.session.headers.update({"Authorization": "Bearer "+update_token})
+    #    return True

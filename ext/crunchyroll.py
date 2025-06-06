@@ -108,7 +108,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(single_info["episode_metadata"]["season_title"] + " " + "S" + str(single_info["episode_metadata"]["season_number"]).zfill(2) + "E" + str(single_info["episode_metadata"]["episode_number"]).zfill(2) + " - " + single_info["title"] + " " + f"[{language}_ID: {single_info["id"]}]", extra={"service_name": __service_name__})
             try:
                 logger.info("Downloading 1 episode", extra={"service_name": __service_name__})
-                player_info = session.get(f"https://www.crunchyroll.com/playback/v2/{single_info["id"]}/web/chrome/play").json()
+                player_info = session.get(f"https://www.crunchyroll.com/playback/v2/{single_info["id"]}/tv/android_tv/play").json()
+                try:
+                    if player_info["errro"] == "the current subscription does not have access to this content":
+                        logger.error("Require subscription account", extra={"service_name": __service_name__})
+                        exit(1)
+                except:
+                    pass
                 mpd_content = session.get(player_info["url"]).text
                 headers = {
                     "Content-Type": "application/json"
@@ -196,7 +202,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             for meta_i in season_id_info["data"]:
                 try:
                     logger.info("Downloading 1 episode", extra={"service_name": __service_name__})
-                    player_info = session.get(f"https://www.crunchyroll.com/playback/v2/{meta_i["id"]}/web/chrome/play").json()
+                    player_info = session.get(f"https://www.crunchyroll.com/playback/v2/{meta_i["id"]}/tv/android_tv/play").json()
+                    try:
+                        if player_info["errro"] == "the current subscription does not have access to this content":
+                            logger.error("Require subscription account", extra={"service_name": __service_name__})
+                            exit(1)
+                    except:
+                        pass
                     mpd_content = session.get(player_info["url"]).text
 
                     headers = {
@@ -265,8 +277,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         print(f"指定されたディレクトリは存在しません: {dir_path}")
                     
                     # Token expire bypass. lol crunchyroll
-                    update_token = crunchyroll_downloader.update_token()
-                    session.headers.update({"Authorization": "Bearer "+update_token})
+                    #update_token = crunchyroll_downloader.update_token()
+                    #session.headers.update({"Authorization": "Bearer "+update_token})
                     
                     logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
                 except Exception as e:
