@@ -27,18 +27,18 @@
 
 ### Linux
 
-要件: python3, aria2   (Abemaを使う場合node jsがいるかもしれません)
+要件: python3, aria2, ffmpeg(path)   (Abemaを使う場合node jsがいるかもしれません)
 
 ### Windows
 
-要件: python3          (Abemaを使う場合node jsがいるかもしれません)
+要件: python3, ffmpeg(path)          (Abemaを使う場合node jsがいるかもしれません)
 
 ### Python
 
 パッケージをインストールするコマンド
 
 ```
-   python install -r python_requirements.txt
+python install -r python_requirements.txt
 ```
 
 

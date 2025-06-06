@@ -27,18 +27,18 @@ Currently, we have confirmed operation with the following devices
 
 ### Linux
 
-Require: python3, aria2   (If you use abema, Require node js)
+Require: python3, aria2, ffmpeg(path)   (If you use abema, Require node js)
 
 ### Windows
 
-Require: python3          (If you use abema, Require node js)
+Require: python3, ffmpeg(path)          (If you use abema, Require node js)
 
 ### Python
 
 Install Requirement
 
 ```
-   python install -r python_requirements.txt
+python install -r python_requirements.txt
 ```
 
 
