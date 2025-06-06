@@ -62,7 +62,8 @@ def set_variable(session, LOG_LEVEL):
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     
-    logger.addHandler(console_handler)
+    if not logger.handlers:
+        logger.addHandler(console_handler)
     
     with open('config.yml', 'r') as yml:
         config = yaml.safe_load(yml)
