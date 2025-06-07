@@ -122,7 +122,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
             season_title = title_detail["lu_title"]
             
-            print("Season logic")
+            
+            logger.info(f" + Video Type: {id_type}", extra={"service_name": __service_name__})
+            logger.info("Get Title for Season", extra={"service_name": __service_name__})
             
             for single_episode in episode_list:
                 ep_id = single_episode["ep_id"]
@@ -135,12 +137,18 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     free_download = True
                     
                 if single_episode["purchase_end"] == "":
-                    status_purchase = True
+                    status_purchase = [True, None]
                 else:
-                    status_purchase = single_episode["purchase_end"]
+                    status_purchase = [False, single_episode["purchase_end"]]
+                    #status_purchase = single_episode["purchase_end"]
                     
                 title_name_logger = fod_downloader.create_titlename_logger(id_type, len(episode_list), season_title, ep_title_num, ep_title_name)
-                title_name_logger = f"END STREAMING: {status_purchase[:19]} | "+title_name_logger
+                if free_download:
+                    title_name_logger = "FREE    | "+title_name_logger
+                else:
+                    title_name_logger = "PREMIUM | "+title_name_logger
+                if status_purchase[0] == False:
+                    title_name_logger = f"END STREAMING: {status_purchase[1][:19]} | "+title_name_logger
                 logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
         else:
             print("Single logic")
