@@ -1,7 +1,7 @@
 import re
 import os
 import yaml
-import json
+import uuid
 import time
 import logging
 import shutil
@@ -127,7 +127,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info("Get Title for Season", extra={"service_name": __service_name__})
             
             for single_episode in episode_list:
-                ep_id = single_episode["ep_id"]
                 ep_title_name = single_episode["ep_title"].replace(single_episode["disp_ep_no"]+" ", "")
                 ep_title_num = single_episode["disp_ep_no"]
                 
@@ -150,6 +149,62 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if status_purchase[0] == False:
                     title_name_logger = f"END STREAMING: {status_purchase[1][:19]} | "+title_name_logger
                 logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+            for single_episode in episode_list:
+                if plan_status == False:
+                    if single_episode["sales_type"][0] == "free":
+                        pass
+                    else:
+                        logger.info("This episode reuqire PREMIUM", extra={"service_name": __service_name__})
+                        continue
+                
+                ep_id = single_episode["ep_id"]
+                ep_uuid = str(uuid.uuid4())
+                
+                episode_metadata = fod_downloader.get_episode_metadata(ep_id, ep_uuid)
+                if episode_metadata == None:
+                    logger.error("Failed to get Episode Content", extra={"service_name": __service_name__})
+                    exit(1)
+                    
+                if ".mpd" in episode_metadata["url"]:
+                    logger.info("Getting information from MPD", extra={"service_name": __service_name__})
+                    Tracks = parser.global_parser()
+                    transformed_data = Tracks.mpd_parser(session.get(episode_metadata["url"]).text)
+                            
+                    logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
+                    license_key = fod_v2.FOD_license.license_vd_ad(transformed_data["pssh_list"]["widevine"],  episode_metadata["ticket"], session, config)
+                    
+                    logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                    logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})        
+                    
+                    logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+                    logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+                    track_data = Tracks.print_tracks(transformed_data)
+                    
+                    print(track_data) 
+                    
+                    get_best_track = Tracks.select_best_tracks(transformed_data)
+                    
+                    logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                    logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                    logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+                    logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+                if "meta.m3u8" in episode_metadata["url"]:
+                    logger.info("Getting information from HLS", extra={"service_name": __service_name__})
+                    Tracks = parser.global_parser()
+                    transformed_data = Tracks.hls_parser(session.get(episode_metadata["url"]).text)
+                    logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+                    logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+                    track_data = Tracks.print_tracks(transformed_data)
+                    
+                    print(track_data)
+                    
+                    get_best_track = Tracks.select_best_tracks(transformed_data)
+                    
+                    logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                    logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                    logger.info(f" + Video: [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+                    
+
         else:
             print("Single logic")
         

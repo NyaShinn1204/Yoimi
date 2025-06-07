@@ -5,6 +5,36 @@ import dateutil.parser
 from datetime import datetime
 from collections import defaultdict
 
+class FOD_license:
+    def license_vd_ad(all_pssh, custom_data, session, config):
+        _WVPROXY = f"https://cenc.webstream.ne.jp/drmapi/wv/fujitv?custom_data={custom_data}"
+        from pywidevine.cdm import Cdm
+        from pywidevine.device import Device
+        from pywidevine.pssh import PSSH
+        device = Device.load(
+            config["cdms"]["widevine"]
+        )
+        cdm = Cdm.from_device(device)
+        session_id = cdm.open()
+    
+        challenge = cdm.get_license_challenge(session_id, PSSH(all_pssh))
+        response = session.post(f"{_WVPROXY}", data=bytes(challenge))
+        response.raise_for_status()
+    
+        cdm.parse_license(session_id, response.content)
+        keys = [
+            {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
+            for key in cdm.get_keys(session_id)
+        ]
+    
+        cdm.close(session_id)
+        
+        keys = {
+            "key": keys,
+        }
+        
+        return keys
+
 class FOD_downloader:
     def __init__(self, session, config):
         self.session = session
@@ -229,6 +259,23 @@ class FOD_downloader:
         except Exception as e:
             return False, None, None
         
+    def get_episode_metadata(self, ep_id, ep_uuid):
+        url = "https://fod-sp.fujitv.co.jp/apps/api/auth/contents/tv_common/"
+        
+        querystring = {
+            "site_id": "fodapp",
+            "ep_id": ep_id,
+            "qa": "auto",
+            "uuid": ep_uuid,
+            "starttime": "0",
+            "wvsl": "3",
+            "dv_type": "tv"
+        }
+        try:
+            metadata_response = self.session.get(url, params=querystring).json()
+            return metadata_response
+        except Exception as e:
+            return None
         
     def create_titlename_logger(self, id_type, episode_count, title_name, episode_num, episode_name):
         def safe_format(format_string, raw_values):
