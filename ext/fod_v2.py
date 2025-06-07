@@ -108,6 +108,42 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 account_point = 0
                 plan_status = True
                 logger.info("Using Temp Account", extra={"service_name": __service_name__})
+                
+        check_single = fod_downloader.check_single_episode(url)
+        if not check_single:
+            status, episode_list, title_detail = fod_downloader.get_title_parse_all(url)
+            
+            if "アニメ" in title_detail["attribute"]:
+                id_type = "ノーマルアニメ"
+            if "ドラマ" in title_detail["attribute"]:
+                id_type = "ノーマルドラマ"
+            if "映画" in title_detail["attribute"]:
+                id_type = "映画"
+                
+            season_title = title_detail["lu_title"]
+            
+            print("Season logic")
+            
+            for single_episode in episode_list:
+                ep_id = single_episode["ep_id"]
+                ep_title_name = single_episode["ep_title"].replace(single_episode["disp_ep_no"]+" ", "")
+                ep_title_num = single_episode["disp_ep_no"]
+                
+                free_download = False
+                
+                if single_episode["sales_type"][0] == "free":
+                    free_download = True
+                    
+                if single_episode["purchase_end"] == "":
+                    status_purchase = True
+                else:
+                    status_purchase = single_episode["purchase_end"]
+                    
+                title_name_logger = fod_downloader.check_single_episode(id_type, season_title, ep_title_num, ep_title_name)
+                title_name_logger = f"END FREE: {status_purchase[19:]} | "+title_name_logger
+                logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+        else:
+            print("Single logic")
         
     except Exception as error:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
@@ -117,3 +153,6 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         print("Service: "+__service_name__)
         print("Version: "+additional_info[0])
         print("----END ERROR LOG----")
+        
+def main_download():
+    print("haha")

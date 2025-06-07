@@ -3,6 +3,7 @@ import jwt
 import time
 import dateutil.parser
 from datetime import datetime
+from collections import defaultdict
 
 class FOD_downloader:
     def __init__(self, session):
@@ -174,7 +175,7 @@ class FOD_downloader:
         self.login_status = [True, True]
         return True, None, self.login_status
 
-    def has_active_courses(user_status):
+    def has_active_courses(self, user_status):
         """
         Check user plan.
         ex):
@@ -201,3 +202,64 @@ class FOD_downloader:
                 return True
     
         return False
+    
+    
+    def check_single_episode(self, url):
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+
+        def contains_repeated_identifier(url, identifier):
+            pattern = f"({re.escape(identifier)}).*\\1"
+            return bool(re.search(pattern, url))
+                
+        if contains_repeated_identifier(url, matches_url.group("title_id")):
+            return True
+        else:
+            return False
+    def get_title_parse_all(self, url):
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+        '''エピソードのタイトルについて取得するコード'''
+        try:
+            metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=false&is_kids=false&dv_type=tv", headers=self.web_headers)
+
+            return_json = metadata_response.json()
+            if return_json["episodes"] != None:
+                return True, return_json["episodes"], return_json["detail"]
+            else:
+                return False, None, None
+        except Exception as e:
+            return False, None, None
+        
+        
+    def create_titlename_logger(self, id_type, title_name, episode_num, episode_name):
+        def safe_format(format_string, raw_values):
+            # フォーマット文字列に使われているキーを抽出
+            keys_in_format = set(re.findall(r"{(\w+)}", format_string))
+            
+            # 存在するキーだけで辞書を作成（不足は除外）
+            values = {k: raw_values.get(k, "") for k in keys_in_format if raw_values.get(k)}
+            
+            # 空文字になるキーがあれば、その "{key}" または "_{key}" を文字列から除去
+            for k in keys_in_format:
+                if not raw_values.get(k):
+                    format_string = re.sub(rf"_?{{{k}}}", "", format_string)
+    
+            return format_string.format_map(defaultdict(str, values))
+    
+        # 共通の値（node は引数から取得）
+        raw_values = {
+            "seriesname": title_name,
+            "titlename": episode_num,
+            "episodename": episode_name
+        }
+    
+        # ノーマルアニメ・ドラマ
+        if id_type in ("ノーマルアニメ", "ノーマルドラマ"):
+            format_string = self.config["format"]["anime"]
+            title_name_logger = safe_format(format_string, raw_values)
+    
+        # 映画（劇場）
+        elif id_type == "映画":
+            format_string = self.config["format"]["movie"]
+            title_name_logger = safe_format(format_string, raw_values)
+            
+        return title_name_logger
