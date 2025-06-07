@@ -13,3 +13,4 @@ Yoimi is created by the following people (repositories):
 | Kamosika179       | Fanza Data Scrape (repo: [link](https://github.com/kamosika179/fanza_doujin_manga_and_audio_add_metadata))                                                              |
 | Syut9             | Test Telasa(dev module)                                                                                                                                                 |
 | shellcmd          | Help with fod hd                                                                                                                                                        |
+| elinaldosoft      | Calculate duration ideas (code: [link](https://github.com/globocom/m3u8/issues/136#issuecomment-1045634906))                                                            |

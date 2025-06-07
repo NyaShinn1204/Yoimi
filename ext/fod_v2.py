@@ -87,6 +87,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.error(message, extra={"service_name": __service_name__})
                 exit(1)
             else:
+                account_logined = True
                 account_coin = str(message["user_coin"])
                 account_point = str(message["user_point"])
                 logger.info("Loggined Account", extra={"service_name": __service_name__})
@@ -107,6 +108,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             else:
                 account_point = 0
                 plan_status = True
+                account_logined = False
                 logger.info("Using Temp Account", extra={"service_name": __service_name__})
                 
         check_single = fod_downloader.check_single_episode(url)
@@ -159,6 +161,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 ep_id = single_episode["ep_id"]
                 ep_uuid = str(uuid.uuid4())
+                ep_title_name = single_episode["ep_title"].replace(single_episode["disp_ep_no"]+" ", "")
+                ep_title_num = single_episode["disp_ep_no"]
+                title_name_logger = fod_downloader.create_titlename_logger(id_type, len(episode_list), season_title, ep_title_num, ep_title_name)
                 
                 episode_metadata = fod_downloader.get_episode_metadata(ep_id, ep_uuid)
                 if episode_metadata == None:
@@ -169,6 +174,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info("Getting information from MPD", extra={"service_name": __service_name__})
                     Tracks = parser.global_parser()
                     transformed_data = Tracks.mpd_parser(session.get(episode_metadata["url"]).text)
+                    duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
                             
                     logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
                     license_key = fod_v2.FOD_license.license_vd_ad(transformed_data["pssh_list"]["widevine"],  episode_metadata["ticket"], session, config)
@@ -188,6 +194,50 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
                     logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
+                    
+                    def sanitize_filename(filename):
+                        filename = filename.replace(":", "：").replace("?", "？")
+                        return re.sub(r'[<>"/\\|*]', "_", filename)
+                    
+                    if additional_info[1]:
+                        random_string = str(int(time.time() * 1000))
+                        title_name_logger_video = random_string+"_video_encrypted.mp4"
+                        title_name_logger_audio = random_string+"_audio_encrypted.mp4"
+                    else:
+                        title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
+                        title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
+                    
+                    logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": __service_name__})
+                    
+                    video_downloaded = fod_downloader.aria2c(get_best_track["video"]["url"], title_name_logger_video, config, unixtime)
+                    audio_downloaded = fod_downloader.aria2c(get_best_track["audio"]["url"], title_name_logger_audio, config, unixtime)
+                    
+                    logger.info("Decrypting encrypted Video, Audio Files...", extra={"service_name": __service_name__})
+                    
+                    fod_v2.FOD_decrypt.decrypt_all_content(license_key["key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
+                    
+                    logger.info("Muxing Episode...", extra={"service_name": __service_name__})
+                                     
+                    result = fod_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], season_title, title_name_logger+".mp4"), config, unixtime, season_title, int(duration))
+                        
+                    dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                    
+                    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                        for filename in os.listdir(dir_path):
+                            file_path = os.path.join(dir_path, filename)
+                            try:
+                                if os.path.isfile(file_path):
+                                    os.remove(file_path)
+                                elif os.path.isdir(file_path):
+                                    shutil.rmtree(file_path)
+                            except Exception as e:
+                                print(f"削除エラー: {e}")
+                    else:
+                        print(f"指定されたディレクトリは存在しません: {dir_path}")
+                    
+                    logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
+                    if account_logined != False:
+                        fod_downloader.send_stop_signal(episode_metadata, ep_uuid, get_best_track["audio"]["bitrate"], duration)
                 if "meta.m3u8" in episode_metadata["url"]:
                     logger.info("Getting information from HLS", extra={"service_name": __service_name__})
                     Tracks = parser.global_parser()
@@ -204,6 +254,30 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
                     logger.info(f" + Video: [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     
+                    files, duration, iv, key = fod_v2.FOD_utils.parse_m3u8(get_best_track["video"]["url"])
+                    
+                    dl_list = fod_v2.FOD_utils.download_chunk(files, iv, key, unixtime, config, __service_name__)
+                    
+                    unixtime_temp = str(int(time.time()))
+                    output_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, unixtime_temp+"_nomux_"+".mp4")
+                    fod_v2.FOD_utils.merge_video(dl_list, output_path, __service_name__)
+                    
+                    real_output = os.path.join(config["directorys"]["Downloads"], season_title, title_name_logger+".mp4")
+                    fod_v2.FOD_utils.mux_video(output_path, season_title, real_output, duration, __service_name__, config)
+                    dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                       for filename in os.listdir(dir_path):
+                           file_path = os.path.join(dir_path, filename)
+                           try:
+                               if os.path.isfile(file_path):
+                                   os.remove(file_path)
+                               elif os.path.isdir(file_path):
+                                   shutil.rmtree(file_path)
+                           except Exception as e:
+                               print(f"削除エラー: {e}")
+                    else:
+                        print(f"指定されたディレクトリは存在しません: {dir_path}")
+                    logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
 
         else:
             print("Single logic")
