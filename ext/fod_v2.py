@@ -75,7 +75,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt Content for Everyone", extra={"service_name": "Yoimi"})
         
-        fod_downloader = fod_v2.FOD_downloader(session)
+        fod_downloader = fod_v2.FOD_downloader(session, config)
         
         if email and password != None:
             status, message, uuid_cookie, login_status = fod_downloader.authorize(email, password)
@@ -95,10 +95,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 if fod_downloader.has_active_courses(message):
                     plan_status = True
-                    logger.info(" + Plan Status: Yes premium")
+                    logger.info(" + Plan Status: Yes premium", extra={"service_name": __service_name__})
                 else:
                     plan_status = False
-                    logger.info(" + Plan Status: Not found")
+                    logger.info(" + Plan Status: Not found", extra={"service_name": __service_name__})
         else:
             status, message, login_status = fod_downloader.gen_temptoken()
             if status == False:
@@ -139,8 +139,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 else:
                     status_purchase = single_episode["purchase_end"]
                     
-                title_name_logger = fod_downloader.check_single_episode(id_type, season_title, ep_title_num, ep_title_name)
-                title_name_logger = f"END FREE: {status_purchase[19:]} | "+title_name_logger
+                title_name_logger = fod_downloader.create_titlename_logger(id_type, len(episode_list), season_title, ep_title_num, ep_title_name)
+                title_name_logger = f"END STREAMING: {status_purchase[:19]} | "+title_name_logger
                 logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
         else:
             print("Single logic")

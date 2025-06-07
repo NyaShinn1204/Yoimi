@@ -6,9 +6,9 @@ from datetime import datetime
 from collections import defaultdict
 
 class FOD_downloader:
-    def __init__(self, session):
+    def __init__(self, session, config):
         self.session = session
-        #self.web_headers = {}
+        self.config = config
         self.login_status = None
         self.logined_headers = {}
     def authorize(self, email, password):        
@@ -216,10 +216,10 @@ class FOD_downloader:
         else:
             return False
     def get_title_parse_all(self, url):
-        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)(?:/(?P<episode_id>[0-9a-z]+))?/?$', url)
         '''エピソードのタイトルについて取得するコード'''
         try:
-            metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=false&is_kids=false&dv_type=tv", headers=self.web_headers)
+            metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=false&is_kids=false&dv_type=tv")
 
             return_json = metadata_response.json()
             if return_json["episodes"] != None:
@@ -230,7 +230,7 @@ class FOD_downloader:
             return False, None, None
         
         
-    def create_titlename_logger(self, id_type, title_name, episode_num, episode_name):
+    def create_titlename_logger(self, id_type, episode_count, title_name, episode_num, episode_name):
         def safe_format(format_string, raw_values):
             # フォーマット文字列に使われているキーを抽出
             keys_in_format = set(re.findall(r"{(\w+)}", format_string))
@@ -259,7 +259,10 @@ class FOD_downloader:
     
         # 映画（劇場）
         elif id_type == "映画":
-            format_string = self.config["format"]["movie"]
-            title_name_logger = safe_format(format_string, raw_values)
+            if episode_count == 1:
+                title_name_logger = title_name
+            else:
+                format_string = self.config["format"]["movie"]
+                title_name_logger = safe_format(format_string, raw_values)
             
         return title_name_logger
