@@ -239,6 +239,7 @@ class FOD_downloader:
         self.login_status = None
         self.logined_headers = {}
     def authorize(self, email, password):        
+        global fod_user_id
         mail_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         temp_token = self.gen_crack_token()
         
@@ -279,6 +280,7 @@ class FOD_downloader:
                         self.session.headers.update({"x-authorization": "Bearer "+gen_token})
                         
                         status, message, login_uuid = self.get_userinfo()
+                        fod_user_id = message.get("member_id")
                         if message == "1012":
                             return False, "Authentication Failed: This account is not subscription", None
                         else:
@@ -325,11 +327,12 @@ class FOD_downloader:
         
         uid = check_token_status.json()["uid"]
         
-        login_token = self.re_generate_login_token(uid)
+        login_token = self.gen_login_uid_token(uid)
         
         self.session.headers.update({"x-authorization": "Bearer "+login_token})
         
         status, message, login_uuid = self.get_userinfo()
+        fod_user_id = message.get("member_id")
         if message == "1012":
             return False, "Authentication Failed: This account is not subscription", None, None
         else:
@@ -681,6 +684,11 @@ class FOD_downloader:
     def send_stop_signal(self, episode_metadata, ep_uuid, audio_bandwidth, duration):
         url = "https://tokyo.in.treasuredata.com/postback/v3/event/010_fod_dl_tdtracking_video_play/video_play_log/"
         
+        if self.login_status[1]:
+            foduser_id = fod_user_id
+        else:
+            foduser_id = ""
+        
         querystring = {
             "device_rotate": "landscape",
             "error_id": "",
@@ -702,7 +710,7 @@ class FOD_downloader:
             "device_memory_free": "516112",
             "session_id": ep_uuid,
             "season_id": episode_metadata["lu_id"],
-            "foduser_id": "",
+            "foduser_id": foduser_id,
             "device_os": "androidtv",
             "play_band": str(int(audio_bandwidth) * 1000),
             "refer": "fodapp",
@@ -714,5 +722,47 @@ class FOD_downloader:
         }
         
         response = self.session.get(url, params=querystring)
+        # nice
         
-        print(response.text)
+    def send_stop_signal_hls(self, episode_metadata, ep_uuid, video_bandwidth, duration):
+        url = "https://tokyo.in.treasuredata.com/postback/v3/event/010_fod_dl_tdtracking_video_play/video_play_log/"
+        
+        if self.login_status[1]:
+            foduser_id = fod_user_id
+        else:
+            foduser_id = ""
+        
+        querystring = {
+            "device_rotate": "landscape",
+            "error_id": "",
+            "buffering": "56181",
+            "device_category": "tv",
+            "enq_id": "",
+            "duration": duration,
+            "episode_id": episode_metadata["samba"],
+            "device_ua": "Dalvik/2.1.0 (Linux; U; Android 16; AOSP TV on x86 Build/BT2A.250323.001.A4)",
+            "device_memory_max": "4015252",
+            "stream_type": "AES-128",
+            "subpronum": "0",
+            "skip_label": "",
+            "fod_episode_id": episode_metadata["mediaid"],
+            "current_time": "1", ## CHANGE THIS VALUE
+            "device_os_sdk": "36",
+            "internet_speed": "10934",
+            "ifa": "optout",
+            "device_memory_free": "516112",
+            "session_id": ep_uuid,
+            "season_id": episode_metadata["lu_id"],
+            "foduser_id": foduser_id,
+            "device_os": "androidtv",
+            "play_band": str(int(video_bandwidth) * 1000),
+            "refer": "fodapp",
+            "play_speed": "1.0",
+            "player_status": "pause",
+            "td_write_key": "257/1dbef148fc11ca71d992972db31166af2b5dba41", ## THIS VALUE IS NOT CHANGEABLE
+            "device_os_version": "16",
+            "contents_type": "SVOD-TVOD"
+        }
+        
+        response = self.session.get(url, params=querystring)
+        # nice

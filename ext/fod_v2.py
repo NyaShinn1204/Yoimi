@@ -278,7 +278,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     else:
                         print(f"指定されたディレクトリは存在しません: {dir_path}")
                     logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
-
+                    if account_logined != False:
+                        fod_downloader.send_stop_signal_hls(episode_metadata, ep_uuid, get_best_track["video"]["bitrate"], duration)
         else:
             print("Single logic")
         

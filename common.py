@@ -83,8 +83,8 @@ def get_parser(url):
         from ext import brainshark as Brainshark
         return Brainshark, "brainshark"
     elif re.match(valid_fod, url):
-        from ext import fod as FOD
-        return FOD, "fod"
+        from ext import fod_v2 as FOD_v2
+        return FOD_v2, "fod"
     elif re.match(valid_anime3rb, url) or "anime3rb.com/search?q=" in url:
         from ext import anime3rb as Anime3rb
         return Anime3rb, "anime3rb"
