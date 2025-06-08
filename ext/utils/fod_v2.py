@@ -492,7 +492,19 @@ class FOD_downloader:
                 return False, None, None
         except Exception as e:
             return False, None, None
-        
+    def get_title_parse_single(self, url):
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
+        '''エピソードの1タイトルについて取得するコード'''
+        try:
+            metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/episode/detail/?ep_id={matches_url.group("episode_id")}&is_premium=false&is_kids=false&dv_type=tv")
+            return_json = metadata_response.json()
+            if return_json != None:
+                metadata_response_single = return_json
+                return True, metadata_response_single
+            else:
+                return False, None
+        except Exception as e:
+            return False, None
     def get_episode_metadata(self, ep_id, ep_uuid):
         url = "https://fod-sp.fujitv.co.jp/apps/api/auth/contents/tv_common/"
         
@@ -548,12 +560,15 @@ class FOD_downloader:
             
         return title_name_logger
     
-    def update_progress(self, process, service_name="FOD"):
+    def update_progress(self, process, service_name="FOD", stdout_lines=None):
         total_size = None
         downloaded_size = 0
-
+    
         for line in iter(process.stdout.readline, ''):
             line = line.strip()
+            if stdout_lines is not None:
+                stdout_lines.append(line + '\n')  # 呼び出し元に返す用に保存
+    
             if line.startswith("[#") and "ETA:" in line:
                 parts = line.split()
                 if len(parts) >= 5:
@@ -619,23 +634,23 @@ class FOD_downloader:
     
     def aria2c(self, url, output_file_name, config, unixtime):
         output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
-
+    
         if not os.path.exists(output_temp_directory):
             os.makedirs(output_temp_directory, exist_ok=True)
+    
         if os.name == 'nt':
             aria2c = os.path.join(config["directorys"]["Binaries"], "aria2c.exe")
         else:
             aria2c = "aria2c"
-        
+    
         if os.name == 'nt':
             if not os.path.isfile(aria2c) or not os.access(aria2c, os.X_OK):
-                print(f"aria2c binary not found or not executable: {aria2c}")
-            
+                return False, f"aria2c binary not found or not executable: {aria2c}"
+    
         aria2c_command = [
             aria2c,
             url,
-            "-d",
-            os.path.join(config["directorys"]["Temp"], "content", unixtime),
+            "-d", output_temp_directory,
             "-j16",
             "-o", output_file_name,
             "-s16",
@@ -648,9 +663,7 @@ class FOD_downloader:
             "--retry-wait=5",
             "--summary-interval=1",
         ]
-        
-        #print(aria2c_command)
-
+    
         process = subprocess.Popen(
             aria2c_command,
             stdout=subprocess.PIPE,
@@ -659,12 +672,18 @@ class FOD_downloader:
             text=True,
             encoding='utf-8'
         )
-
-        self.update_progress(process)
-
+    
+        stdout_lines = []
+        self.update_progress(process, stdout_lines=stdout_lines)
+    
         process.wait()
-
-        return os.path.join(config["directorys"]["Temp"], "content", unixtime, output_file_name)
+    
+        if process.returncode != 0:
+            #print("\naria2c failed with error:")
+            #print("".join(stdout_lines).strip())  # stdoutに出てるエラーを表示
+            return False, stdout_lines
+    
+        return True, os.path.join(output_temp_directory, output_file_name)
     
     def mux_episode(self, video_name, audio_name, output_name, config, unixtime, title_name, duration, service_name="FOD"):
         # 出力ディレクトリを作成
