@@ -133,8 +133,8 @@ Completed: ✅ | In Progress: 🔄️ | Cancelled: ❌ | Not Available: N/A
 | Abema              | ✅      | ✅    | ✅ (Around 10~20 titles)  | ❌           |
 | U-Next             | ✅      | N/A   | N/A                         | ❌           |
 | DMM TV             | ✅      | ✅    | ✅                        | ❌           |
-| Danime             | 🔄️      | 🔄️    | N/A                        | ❌            |
-| FOD                | ✅      | ✅    | N/A                        | ❌           |
+| Danime             | 🔄️      | 🔄️    | N/A                        | ❌           |
+| FOD                | ✅      | ✅    | N/A                        | ✅(v2 only)  |
 | NHK+               | ✅      | ✅    | ✅                        | ❌           |
 | Anime3rb           | N/A     | ✅    | N/A                         | ❌           |
 | Crunchyroll        | 🔄️      | ✅    | 🔄️                        | ❌           |

@@ -1,10 +1,12 @@
 import re
 import os
 import yaml
+import json
 import uuid
 import time
-import logging
 import shutil
+import hashlib
+import logging
 import ext.global_func.niconico as comment
 
 import ext.global_func.parser as parser
@@ -67,6 +69,40 @@ def set_variable(session, LOG_LEVEL):
         
     session.headers.update({"User-Agent": "Dalvik/2.1.0 (Linux; U; Android 16; AOSP TV on x86 Build/BT2A.250323.001.A4)"})
 
+def check_session(service_name):
+    service_name = service_name.lower()
+    session_path = os.path.join("cache", "session", service_name)
+    if not os.path.exists(session_path):
+        os.makedirs(session_path)
+        return False
+    current_time = int(time.time())
+    closest_file = None
+    closest_diff = float('inf')
+
+    for filename in os.listdir(session_path):
+        if filename.startswith("session_") and filename.endswith(".json"):
+            try:
+                # 'session_1234567890.json' -> '1234567890'
+                timestamp_str = filename[len("session_"):-len(".json")]
+                session_time = int(timestamp_str)
+                diff = abs(current_time - session_time)
+                if diff < closest_diff:
+                    closest_diff = diff
+                    closest_file = filename
+            except ValueError:
+                continue
+    if not closest_file == None:
+        return os.path.join(session_path, closest_file)
+    else:
+        return False
+def load_session(json_path):
+    with open(json_path, 'r', encoding='utf-8-sig') as f:
+        data = f.read()
+        if data.strip() == "":
+            return False
+        return json.loads(data)
+
+
 def main_command(session, url, email, password, LOG_LEVEL, additional_info):
     try:
         #url = "https://fod.fujitv.co.jp/title/8068/8068810008/"
@@ -77,39 +113,86 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         fod_downloader = fod_v2.FOD_downloader(session, config)
         
-        if email and password != None:
-            status, message, uuid_cookie, login_status = fod_downloader.authorize(email, password)
-            try:
-                logger.debug("Get Token: "+session.headers["x-authorization"], extra={"service_name": __service_name__})
-            except:
-                logger.info("Failed to login", extra={"service_name": __service_name__})
-            if status == False:
-                logger.error(message, extra={"service_name": __service_name__})
-                exit(1)
-            else:
-                account_logined = True
-                account_coin = str(message["user_coin"])
-                account_point = str(message["user_point"])
-                logger.info("Loggined Account", extra={"service_name": __service_name__})
-                logger.info(" + Coin: "+account_coin, extra={"service_name": __service_name__})
-                logger.info(" + Point: "+account_point, extra={"service_name": __service_name__})
-                
-                if fod_downloader.has_active_courses(message):
-                    plan_status = True
-                    logger.info(" + Plan Status: Yes premium", extra={"service_name": __service_name__})
+
+
+        status = check_session(__service_name__)
+        session_data = None
+        session_status = False
+        if not status == False:
+            session_data = load_session(status)
+            if session_data != False:
+                if email and password != None:
+                    if (session_data["email"] == hashlib.sha256(email.encode()).hexdigest()) and (session_data["password"] == hashlib.sha256(password.encode()).hexdigest() and session_data["method"] == "NORMAL"):
+                        token_status, message = fod_downloader.check_token(session_data["access_token"], session_data["method"])
+                        if token_status == False:
+                            logger.error("Session is Invalid. Please re-login", extra={"service_name": __service_name__})
+                        else:
+                            session_status = True
+                    elif (session_data["email"] == hashlib.sha256(email.encode()).hexdigest()) and (session_data["method"] == "QR_LOGIN"):
+                        token_status, message = fod_downloader.check_token(session_data["access_token"], session_data["method"])
+                        if token_status == False:
+                            logger.error("Session is Invalid. Please re-login", extra={"service_name": __service_name__})
+                        else:
+                            session_status = True
+                    else:
+                        logger.info("Email and password is no match. re-login", extra={"service_name": __service_name__})
+                        status, message, uuid_cookie, login_status, session_data = fod_downloader.authorize(email, password)
+                        if status == False:
+                            logger.error(message, extra={"service_name": __service_name__})
+                            exit(1)
+                        else:
+                            session_status = True
+                            with open(os.path.join("cache", "session", __service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
+                                json.dump(session_data, f, ensure_ascii=False, indent=4)      
                 else:
-                    plan_status = False
-                    logger.info(" + Plan Status: Not found", extra={"service_name": __service_name__})
-        else:
-            status, message, login_status = fod_downloader.gen_temptoken()
+                    token_status, message = fod_downloader.check_token(session_data["access_token"], session_data["method"])
+                    if token_status == False:
+                        logger.error("Session is Invalid. Please re-login", extra={"service_name": __service_name__})
+                    else:
+                        session_status = True
+            
+        if session_status == False and (email and password != None):
+            status, message, uuid_cookie, login_status, session_data = fod_downloader.authorize(email, password)
             if status == False:
                 logger.error(message, extra={"service_name": __service_name__})
                 exit(1)
             else:
-                account_point = 0
+                with open(os.path.join("cache", "session", __service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
+                    json.dump(session_data, f, ensure_ascii=False, indent=4)      
+        
+        if session_status == False and (email and password != None):
+            account_logined = True
+            account_coin = str(message["user_coin"])
+            account_point = str(message["user_point"])
+            logger.info("Loggined Account", extra={"service_name": __service_name__})
+            logger.info(" + Coin: "+account_coin, extra={"service_name": __service_name__})
+            logger.info(" + Point: "+account_point, extra={"service_name": __service_name__})
+            
+            if fod_downloader.has_active_courses(message):
                 plan_status = True
-                account_logined = False
-                logger.info("Using Temp Account", extra={"service_name": __service_name__})
+                logger.info(" + Plan Status: Yes premium", extra={"service_name": __service_name__})
+            else:
+                plan_status = False
+                logger.info(" + Plan Status: Not found", extra={"service_name": __service_name__})
+        elif session_status == False and (email and password == None):
+            account_point = 0
+            plan_status = True
+            account_logined = False
+            logger.info("Using Temp Account", extra={"service_name": __service_name__})
+        elif session_status == True:
+            account_logined = True
+            account_coin = str(message["user_coin"])
+            account_point = str(message["user_point"])
+            logger.info("Loggined Account", extra={"service_name": __service_name__})
+            logger.info(" + Coin: "+account_coin, extra={"service_name": __service_name__})
+            logger.info(" + Point: "+account_point, extra={"service_name": __service_name__})
+            
+            if fod_downloader.has_active_courses(message):
+                plan_status = True
+                logger.info(" + Plan Status: Yes premium", extra={"service_name": __service_name__})
+            else:
+                plan_status = False
+                logger.info(" + Plan Status: Not found", extra={"service_name": __service_name__})
                 
         check_single = fod_downloader.check_single_episode(url)
         if not check_single:

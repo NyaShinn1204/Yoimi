@@ -134,14 +134,14 @@ Options:
 | U-Next               | ✅      | N/A  | N/A                      | ❌            |
 | DMM TV               | ✅      | ✅   | ✅                      | ❌            |
 | Dアニメストア        | 🔄️      | 🔄️   | N/A                      | ❌            |
-| FOD                  | ✅      | ✅   | N/A                      | ❌            |
+| FOD                  | ✅      | ✅   | N/A                      | ✅(v2のみ)    |
 | NHK+                 | ✅      | ✅    | ✅                     | ❌            |
-| Anime3rb             | N/A     | ✅   | N/A                       | ❌            |
-| Crunchyroll          | 🔄️      | ✅   | 🔄️                       | ❌            |
-| JFF Theater          | N/A     | ✅   | N/A                       | ❌            |
-| WOWOW                | 🔄️(調整中)      | N/A  | N/A                | ❌            |
+| Anime3rb             | N/A      | ✅   | N/A                      | ❌            |
+| Crunchyroll          | 🔄️      | ✅   | 🔄️                      | ❌            |
+| JFF Theater          | N/A      | ✅   | N/A                      | ❌            |
+| WOWOW                | 🔄️(調整中) | N/A  | N/A                    | ❌            |
 | バンダイチャンネル   | ✅      | ✅   | N/A                      | ❌            |
-| Hulu JP                 | ✅(4K)  | N/A   | N/A                   | ❌            |
+| Hulu JP              | ✅(4K)  | N/A   | N/A                      | ❌            |
 | Fanza                | ✅      | N/A    | N/A                     | ✅            |
 | Fanza VR             | ✅(4K)  | N/A    | N/A                     | ✅            |
 

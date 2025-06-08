@@ -389,22 +389,22 @@ class Fanza_VR:
                         if (session_data["email"] == hashlib.sha256(email.encode()).hexdigest()) and (session_data["password"] == hashlib.sha256(password.encode()).hexdigest()):
                             token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
                             if token_status == False:
-                                logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                                logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza_VR.__service_name__})
                             else:
                                 session_status = True
                         else:
-                            logger.info("Email and password is no match. re-login", extra={"service_name": Fanza.__service_name__})
+                            logger.info("Email and password is no match. re-login", extra={"service_name": Fanza_VR.__service_name__})
                             status, message, session_data = fanza_downloader.authorize(email, password)
                             if status == False:
-                                logger.error(message, extra={"service_name": Fanza.__service_name__})
+                                logger.error(message, extra={"service_name": Fanza_VR.__service_name__})
                                 exit(1)
                             else:
-                                with open(os.path.join("cache", "session", Fanza.__service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
+                                with open(os.path.join("cache", "session", Fanza_VR.__service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
                                     json.dump(session_data, f, ensure_ascii=False, indent=4)      
                     else:
                         token_status, special_text = fanza_downloader.check_token(session_data["access_token"])
                         if token_status == False:
-                            logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza.__service_name__})
+                            logger.error("Session is Invalid. Please re-login", extra={"service_name": Fanza_VR.__service_name__})
                         else:
                             session_status = True
                 

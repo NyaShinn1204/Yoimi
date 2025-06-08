@@ -3,6 +3,7 @@ import os
 import jwt
 import time
 import m3u8
+import hashlib
 import requests
 import threading
 import subprocess
@@ -262,7 +263,7 @@ class FOD_downloader:
             self.session.headers.update(default_headers)
             get_loginurl = self.session.get("https://fod-sp.fujitv.co.jp/apps/api/login/pin/?dv_type=tv")
             if get_loginurl.status_code != 200:
-                return False, "Authentication Failed: Failed to get QR login url", None
+                return False, "Authentication Failed: Failed to get QR login url", None, None, None
             else:
                 request_login_json = get_loginurl.json()
                 print("Login URL:", request_login_json["url"])
@@ -282,15 +283,24 @@ class FOD_downloader:
                         status, message, login_uuid = self.get_userinfo()
                         fod_user_id = message.get("member_id")
                         if message == "1012":
-                            return False, "Authentication Failed: This account is not subscription", None
+                            return False, "Authentication Failed: This account is not subscription", None, None, None
                         else:
                             self.logined_headers = self.session.headers
                             self.login_status = [False, True]
-                            return True, message, login_uuid, self.login_status
+                            
+                            session_json = {
+                                "method": "QR_LOGIN",
+                                "email": hashlib.sha256(email.encode()).hexdigest(),
+                                "password": hashlib.sha256(password.encode()).hexdigest(),
+                                "access_token": gen_token,
+                                "refresh_token": None
+                            }
+                            
+                            return True, message, login_uuid, self.login_status, session_json
         
         if not re.fullmatch('[0-9]+', email):
             if not re.fullmatch(mail_regex, email):
-                return False, "FOD require email and password", None, None
+                return False, "FOD require email and password", None, None, None
             
         payload = {
             "mail_address": email,
@@ -303,7 +313,7 @@ class FOD_downloader:
         email_verify_hashkey = response.json()["hash_key"]
         mail_auth_code = input("MAIL AUTH CODE : ")
         if mail_auth_code == None:
-            return False, "Authentication Failed: Require Mail Auth Code", None, None
+            return False, "Authentication Failed: Require Mail Auth Code", None, None, None
         else:
             pass
         
@@ -334,11 +344,18 @@ class FOD_downloader:
         status, message, login_uuid = self.get_userinfo()
         fod_user_id = message.get("member_id")
         if message == "1012":
-            return False, "Authentication Failed: This account is not subscription", None, None
+            return False, "Authentication Failed: This account is not subscription", None, None, None
         else:
             self.logined_headers = self.session.headers
             self.login_status = [False, True]
-            return True, message, login_uuid, self.login_status
+            session_json = {
+                "method": "NORMAL",
+                "email": hashlib.sha256(email.encode()).hexdigest(),
+                "password": hashlib.sha256(password.encode()).hexdigest(),
+                "access_token": login_token,
+                "refresh_token": None
+            }
+            return True, message, login_uuid, self.login_status, session_json
 
     def gen_crack_token(self):
         secret_key = "II1pq1aFylVZNASr0mea7zXFOhrAPZURZp6Ru3LuqqsUVZ4lyJj2R4kufetQN9mx" # Haha cracked from AndroidTV APK
@@ -370,12 +387,14 @@ class FOD_downloader:
         return jwt_token
     
     def get_userinfo(self):
+        global fod_user_id
         url = "https://fod-sp.fujitv.co.jp/apps/api/user/status/"
         
         querystring = { "dv_type": "tv" }
             
         response = self.session.get(url, params=querystring)
         if response.status_code == 200:
+            fod_user_id = response.json().get("member_id")
             return True, response.json(), response.cookies.get("uuid")
         elif response.status_code == 401:
             return False, response.json["code"], None
@@ -433,9 +452,24 @@ class FOD_downloader:
     
         return False
     
+    def check_token(self, token, check_method):
+        self.session.headers.update({
+            "x-authorization": "Bearer " + token
+        })
+        
+        status, user_data, user_uuid = self.get_userinfo()
+        
+        if status:
+            if check_method == "QR_LOGIN":
+                self.login_status = [False, True]
+            elif check_method == "NORMAL":
+                self.login_status = [True, True]
+        
+        return status, user_data
+    
     
     def check_single_episode(self, url):
-        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
 
         def contains_repeated_identifier(url, identifier):
             pattern = f"({re.escape(identifier)}).*\\1"
@@ -446,7 +480,7 @@ class FOD_downloader:
         else:
             return False
     def get_title_parse_all(self, url):
-        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)(?:/(?P<episode_id>[0-9a-z]+))?/?$', url)
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
         '''エピソードのタイトルについて取得するコード'''
         try:
             metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=false&is_kids=false&dv_type=tv")

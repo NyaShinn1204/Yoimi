@@ -150,7 +150,7 @@ class mpd_parse:
 
 class FOD_utils:
     def check_single_episode(url):
-        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
 
         def contains_repeated_identifier(url, identifier):
             # identifierが2回連続して現れるか確認
@@ -526,6 +526,7 @@ class FOD_downloader:
                 "connection": "Keep-Alive",
                 "accept-encoding": "gzip",
                 "user-agent": "okhttp/4.12.0",
+                "x-authorization": "Bearer "+login_token
             }
             #self.web_headers = headers_xauth
             self.web_headers["referer"] = "https://fod.fujitv.co.jp/"
@@ -599,12 +600,12 @@ class FOD_downloader:
         self.web_headers["origin"] = "https://fod.fujitv.co.jp"
         self.web_headers["host"] = "i.fod.fujitv.co.jp"
         self.web_headers["sec-fetch-site"] = "same-site"
-        self.web_headers["X-Authorization"] = "Bearer " + jwt_token
+        self.web_headers["x-authorization"] = "Bearer " + jwt_token
         login_status = False
         return True, None
 
     def get_title_parse_single(self, url):
-        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
         '''エピソードのタイトルについて取得するコード'''
         try:
             metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/episode/detail/?ep_id={matches_url.group("episode_id")}&is_premium=true&dv_type=web&is_kids=false", headers=self.web_headers)
@@ -619,7 +620,7 @@ class FOD_downloader:
             return False, None, None
         
     def get_title_parse_all(self, url):
-        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
         '''エピソードのタイトルについて取得するコード'''
         try:
             metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false", headers=self.web_headers)
@@ -633,7 +634,7 @@ class FOD_downloader:
             return False, None, None
         
     def get_id_type(self, url):
-        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
         '''映像タイプを取得するコード'''
         try:   
             #print(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=true&dv_type=web&is_kids=false")
@@ -702,15 +703,16 @@ class FOD_downloader:
                 if acc_uuid == None:
                     import uuid
                     acc_uuid = str(uuid.uuid4())
+                    #acc_uuid = "irouljl6-q1ob-4s9o-snnd-ykvb1p1ebuop"
                 
                 #unixtime = str(int(time.time() * 1000))
-                matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+                matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
                 #self.web_headers["X-Authorization"] = "Bearer "+ut
                 #self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
                 self.web_headers["host"] = base_host
                 #self.web_headers["sec-fetch-site"] = "same-origin"
                 #print(self.web_headers)
-                mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={acc_uuid}&starttime=0&dv_type=tv", headers=self.web_headers)
+                mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=high&uuid={acc_uuid}&starttime=0&dv_type=tv", headers=self.web_headers)
                 #print(mpd_content_response.text)
                 if mpd_content_response.json():
                     if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
@@ -719,8 +721,8 @@ class FOD_downloader:
                         #self.web_headers["host"] = base_host
                         #self.web_headers["sec-fetch-site"] = "same-origin"
                         #unixtime = str(int(time.time() * 1000))
-                        # https://fod-sp.fujitv.co.jp/apps/api/auth/contents/tv_common/?site_id=fodapp&ep_id=b0i0110001&qa=auto&uuid=5613dd44-5f4e-444b-bab4-51e04d58b11b&starttime=0&dv_type=tv
-                        mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=auto&uuid={acc_uuid}&starttime=0&dv_type=tv", headers=self.web_headers)
+                        # https://fod-sp.fujitv.co.jp/apps/api/auth/contents/tv_common/?site_id=fodapp&ep_id=b0i0110001&qa=high&uuid=5613dd44-5f4e-444b-bab4-51e04d58b11b&starttime=0&dv_type=tv
+                        mpd_content_response = self.session.get(f"{base_url}/{device_code}?site_id=fodapp&ep_id={matches_url.group("episode_id")}&qa=high&uuid={acc_uuid}&starttime=0&dv_type=tv", headers=self.web_headers)
                         if mpd_content_response.text == '{"code": "2005","relay_code": "0006"}':
                             pass
                         else:
@@ -758,7 +760,7 @@ class FOD_downloader:
     #    for attempt in range(tries):
     #        try:
     #            unixtime = str(int(time.time() * 1000))
-    #            matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?$', url)
+    #            matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
     #            self.web_headers["X-Authorization"] = "Bearer "+ut
     #            self.web_headers["referer"] = f"https://fod.fujitv.co.jp/title/{matches_url.group("title_id")}/{matches_url.group("episode_id")}/"
     #            self.web_headers["host"] = base_host
