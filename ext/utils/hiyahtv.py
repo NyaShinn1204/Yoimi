@@ -2,7 +2,7 @@ import re
 import time
 import hashlib
 
-class FOD_downloader:
+class HI_YAH_downloader:
     def __init__(self, session, config):
         self.session = session
         self.config = config
@@ -19,7 +19,7 @@ class FOD_downloader:
             "x-ott-agent": "android-tv site/90901 android-app/8.402.1",
             "ott-client-version": "8.402.1",
             "x-ott-language": "en_US",
-            "x-authorization": "Bearer "+temp_token["access\token"],
+            "x-authorization": "Bearer "+temp_token["access_token"],
         }
         
         self.session.headers.update(default_headers)
