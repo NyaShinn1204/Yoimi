@@ -7,7 +7,6 @@ import time
 import shutil
 import base64
 import logging
-from urllib.parse import urljoin
 from rich.console import Console
 
 from ext.utils import nhk_plus
@@ -144,16 +143,16 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             highest_bitrate_manifest = Tracks.get_highest_bitrate_manifest(video_info["manifests"])
             
             if highest_bitrate_manifest == "cenc_not_found":
-                logger.error(f"Yoimi does not support this encryption format.", extra={"service_name": __service_name__})
+                logger.error("Yoimi does not support this encryption format.", extra={"service_name": __service_name__})
                 exit(1)
             #print(json.dumps(highest_bitrate_manifest, indent=4))
             #print("[+] Get m3u8")
             
-            logger.info(f"Get best birtate m3u8", extra={"service_name": __service_name__})
+            logger.info("Get best birtate m3u8", extra={"service_name": __service_name__})
             
             m3u8_data = session.get(highest_bitrate_manifest["url"]).text
             tracks = Tracks.parse_m3u8(m3u8_data)
-            logger.info(f"Get Video, Audio, Sub Tracks:", extra={"service_name": __service_name__})
+            logger.info("Get Video, Audio, Sub Tracks:", extra={"service_name": __service_name__})
             track_data = Tracks.print_tracks(tracks)
             
             #print(tracks)
@@ -164,7 +163,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             if (additional_info[8] or additional_info[7]) and not tracks["text_track"] == []: # if get, or embed = true
                 nhkplus_downloader.download_subtitles(title_name_logger, tracks["text_track"], config, logger)
             
-            logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
+            logger.info("Get License for 1 Episode", extra={"service_name": __service_name__})
             
             temp_video_meta = session.get(get_best_track["video"]["url"]).text
             temp_audio_meta = session.get(get_best_track["audio"]["url"]).text
@@ -209,16 +208,16 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             if pssh_box == "":
                 # print("[-] おい！psshどこやねん！殺すぞ！！！")
-                logger.error(f"!Can not found pssh!", extra={"service_name": __service_name__})
+                logger.error("!Can not found pssh!", extra={"service_name": __service_name__})
                 return
             else:
                 logger.info(f" + Video, Audio PSSH: {pssh_box}", extra={"service_name": __service_name__})
                 
-                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 
                 keys = nhk_plus.NHKplus_license.license_vd_ad(pssh_box, session, drm_token, config)
                 
-                logger.info(f"Decrypt Video, Audio License", extra={"service_name": __service_name__})
+                logger.info("Decrypt Video, Audio License", extra={"service_name": __service_name__})
                 
                 pssh_list = ""
                 pssh_dics = []
@@ -301,16 +300,16 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             highest_bitrate_manifest = Tracks.get_highest_bitrate_manifest(video_info["manifests"])
             
             if highest_bitrate_manifest == "cenc_not_found":
-                logger.error(f"Yoimi does not support this encryption format.", extra={"service_name": __service_name__})
+                logger.error("Yoimi does not support this encryption format.", extra={"service_name": __service_name__})
                 exit(1)
             #print(json.dumps(highest_bitrate_manifest, indent=4))
             #print("[+] Get m3u8")
             
-            logger.info(f"Get best birtate m3u8", extra={"service_name": __service_name__})
+            logger.info("Get best birtate m3u8", extra={"service_name": __service_name__})
             
             m3u8_data = session.get(highest_bitrate_manifest["url"]).text
             tracks = Tracks.parse_m3u8(m3u8_data)
-            logger.info(f"Get Video, Audio, Sub Tracks:", extra={"service_name": __service_name__})
+            logger.info("Get Video, Audio, Sub Tracks:", extra={"service_name": __service_name__})
             track_data = Tracks.print_tracks(tracks)
             
             print(track_data)
@@ -320,7 +319,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             if (additional_info[8] or additional_info[7]) and not tracks["text_track"] == []: # if get, or embed = true
                 nhkplus_downloader.download_subtitles(title_name_logger, tracks["text_track"], config, logger)
             
-            logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
+            logger.info("Get License for 1 Episode", extra={"service_name": __service_name__})
             
             temp_video_meta = session.get(get_best_track["video"]["url"]).text
             temp_audio_meta = session.get(get_best_track["audio"]["url"]).text
@@ -364,16 +363,16 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             if pssh_box == "":
                 # print("[-] おい！psshどこやねん！殺すぞ！！！")
-                logger.error(f"!Can not found pssh!", extra={"service_name": __service_name__})
+                logger.error("!Can not found pssh!", extra={"service_name": __service_name__})
                 return
             else:
                 logger.info(f" + Video, Audio PSSH: {pssh_box}", extra={"service_name": __service_name__})
                 
-                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 
                 keys = nhk_plus.NHKplus_license.license_vd_ad(pssh_box, session, drm_token, config)
                 
-                logger.info(f"Decrypt Video, Audio License", extra={"service_name": __service_name__})
+                logger.info("Decrypt Video, Audio License", extra={"service_name": __service_name__})
                 
                 pssh_list = ""
                 pssh_dics = []
@@ -416,7 +415,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     print(f"指定されたディレクトリは存在しません: {dir_path}")
                 
                 logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
-    except Exception as error:
+    except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")

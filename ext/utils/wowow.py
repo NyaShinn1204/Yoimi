@@ -6,7 +6,6 @@ import time
 import requests
 import subprocess
 import urllib.parse
-import xml.etree.ElementTree as ET
 from tqdm import tqdm
 from datetime import datetime
 
@@ -418,7 +417,7 @@ class WOD_downloader:
                             out_file.write(response.content)
                             progress_bar.update(1)
                             break
-                        except requests.exceptions.RequestException as e:
+                        except requests.exceptions.RequestException:
                             retry += 1
                             time.sleep(2)
 

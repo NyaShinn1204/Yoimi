@@ -1,11 +1,9 @@
 # ok analyze is done
 # これだけ無駄にコード綺麗に書いてやろうかな
 import os
-import re
 import yaml
 import time
 import shutil
-import base64
 import logging
 from rich.console import Console
 from urllib.parse import urlparse, parse_qs
@@ -138,7 +136,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     hd_link = urls[0].replace("jp/v4", "jp/v6")
                     logger.info(f" + HD_link: {hd_link[:15]+"*****"}", extra={"service_name": __service_name__})
                     
-                    logger.info(f"Parse MPD file", extra={"service_name": __service_name__})
+                    logger.info("Parse MPD file", extra={"service_name": __service_name__})
                     Tracks = parser.global_parser()
                     transformed_data = Tracks.mpd_parser(session.get(hd_link).text)
                     
@@ -146,34 +144,34 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
                     license_key = wowow.WOD_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, config)
                     
-                    logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                    logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                     logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
                 
                     wod_downloader.send_stop_signal(video_access_token, session_id)
                     
                     
-                    logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
-                    logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+                    logger.info("Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+                    logger.debug(" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
                     track_data = Tracks.print_tracks(transformed_data)
                     
                     print(track_data)
                     
                     get_best_track = Tracks.select_best_tracks(transformed_data)
                     
-                    logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
-                    logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                    logger.debug(" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                    logger.info("Selected Best Track:", extra={"service_name": __service_name__})
                     logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     
-                    logger.debug(f"Calculate about Manifest...", extra={"service_name": __service_name__})
+                    logger.debug("Calculate about Manifest...", extra={"service_name": __service_name__})
                     duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
-                    logger.debug(f" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
+                    logger.debug(" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
                     
                     logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
                     video_segment_list = Tracks.calculate_segments(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
-                    logger.info(f" + Video Segments: "+str(int(video_segment_list)), extra={"service_name": __service_name__})                 
+                    logger.info(" + Video Segments: "+str(int(video_segment_list)), extra={"service_name": __service_name__})                 
                     audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
-                    logger.info(f" + Audio Segments: "+str(int(audio_segment_list)), extra={"service_name": __service_name__})
+                    logger.info(" + Audio Segments: "+str(int(audio_segment_list)), extra={"service_name": __service_name__})
                     
                     video_segment_links = []
                     audio_segment_links = []
@@ -266,7 +264,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     hd_link = urls[0].replace("jp/v4", "jp/v6")
                     logger.info(f" + HD_link: {hd_link[:15]+"*****"}", extra={"service_name": __service_name__})
                     
-                    logger.info(f"Parse MPD file", extra={"service_name": __service_name__})
+                    logger.info("Parse MPD file", extra={"service_name": __service_name__})
                     Tracks = parser.global_parser()
                     transformed_data = Tracks.mpd_parser(session.get(hd_link).text)
                     
@@ -274,37 +272,37 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
                     license_key = wowow.WOD_license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, widevine_url, config)
                     
-                    logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                    logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                     logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
                 
                     wod_downloader.send_stop_signal(video_access_token, session_id)
                     
                     
-                    logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
-                    logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+                    logger.info("Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+                    logger.debug(" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
                     track_data = Tracks.print_tracks(transformed_data)
                     
                     print(track_data)
                     
                     get_best_track = Tracks.select_best_tracks(transformed_data)
                     
-                    logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
-                    logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                    logger.debug(" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                    logger.info("Selected Best Track:", extra={"service_name": __service_name__})
                     logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     
-                    logger.debug(f"Calculate about Manifest...", extra={"service_name": __service_name__})
+                    logger.debug("Calculate about Manifest...", extra={"service_name": __service_name__})
                     #print(transformed_data["info"]["mediaPresentationDuration"])
                     duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
                     #print(duration)
-                    logger.debug(f" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
+                    logger.debug(" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
                     
                     logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
                     #print(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
                     video_segment_list = Tracks.calculate_segments(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
-                    logger.info(f" + Video Segments: "+str(int(video_segment_list)), extra={"service_name": __service_name__})                 
+                    logger.info(" + Video Segments: "+str(int(video_segment_list)), extra={"service_name": __service_name__})                 
                     audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
-                    logger.info(f" + Audio Segments: "+str(int(audio_segment_list)), extra={"service_name": __service_name__})
+                    logger.info(" + Audio Segments: "+str(int(audio_segment_list)), extra={"service_name": __service_name__})
                     
                     video_segment_links = []
                     audio_segment_links = []
@@ -349,7 +347,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info('Finished download: {}'.format(title_name), extra={"service_name": __service_name__})
         else:
             print("unsupported")
-    except Exception as error:
+    except Exception:
         try:
             wod_downloader.send_stop_signal(video_access_token, session_id)
         except:

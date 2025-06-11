@@ -1,14 +1,9 @@
 import os
-import re
 import time
-import json
 import yaml
 import shutil
 import logging
-import xml.etree.ElementTree as ET
 
-from datetime import datetime
-from bs4 import BeautifulSoup
 from rich.console import Console
 
 from ext.utils import jff_theater
@@ -135,7 +130,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             # dmm mpd parser
             
-        logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
+        logger.info("Get License for 1 Episode", extra={"service_name": __service_name__})
         
         mpd_lic = jff_theater.Jff_utils.parse_mpd_logic(mpd_content)
         
@@ -143,7 +138,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         license_key = jff_theater.Jff_license.license_vd_ad(mpd_lic["pssh"][1], session, drm_key, config)
                     
-        logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+        logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
         
         logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
 
@@ -205,7 +200,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         else:
             print(f"指定されたディレクトリは存在しません: {dir_path}")
         logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
-    except Exception as error:
+    except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")

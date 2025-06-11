@@ -1,7 +1,6 @@
 import logging
 import re
 import os
-import tempfile
 from tqdm import tqdm
 
 yuu_log = logging.getLogger('yuu.aniplus')

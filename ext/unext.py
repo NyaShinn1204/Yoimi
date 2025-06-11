@@ -1,18 +1,12 @@
-import hashlib
-import hmac
 import json
 import logging
 import os
 import re
-import struct
 import string
 import tempfile
-import time
-import uuid
 import subprocess
 import random
 import requests
-from base64 import urlsafe_b64encode
 from binascii import unhexlify
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs

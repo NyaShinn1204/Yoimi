@@ -1,4 +1,3 @@
-import struct
 
 class D:
     def __init__(self, high_order, low_order):

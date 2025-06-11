@@ -364,7 +364,7 @@ class Fanza:
                         logger.info('Finished download: {}'.format(single["title"]), extra={"service_name": Fanza.__service_name__})
              
                 
-        except Exception as error:
+        except Exception:
             logger.error("Traceback has occurred", extra={"service_name": Fanza.__service_name__})
             print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
             print("\n----ERROR LOG----")
@@ -590,7 +590,7 @@ class Fanza_VR:
                         logger.info('Finished download: {}'.format(single["title"]), extra={"service_name": Fanza_VR.__service_name__})
              
                 
-        except Exception as error:
+        except Exception:
             logger.error("Traceback has occurred", extra={"service_name": Fanza.__service_name__})
             print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
             print("\n----ERROR LOG----")

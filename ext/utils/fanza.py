@@ -12,7 +12,6 @@ import threading
 import subprocess
 
 from tqdm import tqdm
-from mutagen.mp4 import MP4
 from Crypto.Cipher import AES
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -132,7 +131,7 @@ class Fanza_util:
                     with open(output_path, "wb") as f:
                         f.write(decrypted_data)
                     return output_path
-                except Exception as e:
+                except Exception:
                     retry += 1
                     time.sleep(2)
             if not stop_flag.is_set():

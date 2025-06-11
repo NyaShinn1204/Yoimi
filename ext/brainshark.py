@@ -3,7 +3,6 @@ import yaml
 import time
 import requests
 import logging
-from datetime import datetime
 
 from ext.utils import brainshark
 

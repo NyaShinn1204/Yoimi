@@ -713,7 +713,7 @@ class Unext_downloader:
                     return False 
             else:
                 return False
-        except Exception as e:
+        except Exception:
             return False
         
     def buy_episode(self, title_id, episode_id):
@@ -747,13 +747,13 @@ class Unext_downloader:
                             return True
                         else:
                             return False
-                    except Exception as e:
+                    except Exception:
                         return False
                 else:
                     return False 
             else:
                 return False
-        except Exception as e:
+        except Exception:
             return False
         
     def get_thumbnail_list(self, title_id, episode_id, id_type, config, unixtime):
@@ -967,9 +967,9 @@ def check_proxie(session):
         try:
             if auth_response["error_hint"] == "GAW0500003":
                 logger.error(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
-                logger.error(f"However, this proxy is not located in Japan. You will not be able to use it.", extra={"service_name": "Yoimi"})
+                logger.error("However, this proxy is not located in Japan. You will not be able to use it.", extra={"service_name": "Yoimi"})
                 exit(1)
-        except Exception as e:
+        except Exception:
             pass
         
         logger.info(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
@@ -1131,10 +1131,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                               "X-Frontend-Version": "0",
                               "Content-Type": "application/json"
                             }
-                            result = session.post(f"https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
+                            result = session.post("https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
                             return result
                         
-                    logger.info(f"Getting Niconico Comment", extra={"service_name": "U-Next"})
+                    logger.info("Getting Niconico Comment", extra={"service_name": "U-Next"})
                     return_meta = get_niconico_info(1, sate["info"]["raw_text"])
                     
                     base_content_id = return_meta["data"][0]["contentId"]
@@ -1221,7 +1221,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if status == False:
                     logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
                     exit(1)
-                logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
+                logger.info("Get License for 1 Episode", extra={"service_name": "U-Next"})
                 status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
                 if status == False:
                     logger.error("Failed to Get Episode MPD_Content", extra={"service_name": "U-Next"})
@@ -1236,7 +1236,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 license_key = Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session, mpd_content, media_code)
                 
-                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": "U-Next"})
+                logger.info("Decrypt License for 1 Episode", extra={"service_name": "U-Next"})
                 
                 logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
                 logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": "U-Next"})
@@ -1282,7 +1282,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if message["minimumPrice"] != -1:
                     logger.info(f" ! {title_name_logger} require {message["minimumPrice"]} point", extra={"service_name": "U-Next"})
                     if int(message["minimumPrice"]) > int(account_point):
-                        logger.info(f" ! ポイントが足りません", extra={"service_name": "U-Next"})
+                        logger.info(" ! ポイントが足りません", extra={"service_name": "U-Next"})
                         pass
                     else:
                         is_buyed = unext_downloader.check_buyed(url)
@@ -1290,7 +1290,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             logger.info(f" ! {title_name_logger} have already been purchased.", extra={"service_name": "U-Next"})
                         else:
                             check_downlaod = input(COLOR_GREEN+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+COLOR_RESET+" "+f"[{COLOR_GRAY}INFO{COLOR_RESET}]"+" "+f"{COLOR_BLUE}U-Next{COLOR_RESET}"+" : "+f" ! Do you want to buy {title_name_logger}?"+" | "+"y/n"+" ")
-                            logger.info(f"Coming soon", extra={"service_name": "U-Next"})
+                            logger.info("Coming soon", extra={"service_name": "U-Next"})
                             return
                     
                 status = True
@@ -1300,7 +1300,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.error("Failed to Get Episode Playtoken", extra={"service_name": "U-Next"})
                     exit(1)
                 else:
-                    logger.info(f"Get License for 1 Episode", extra={"service_name": "U-Next"})
+                    logger.info("Get License for 1 Episode", extra={"service_name": "U-Next"})
                     status = True
                     mpd_content = global_license_json.get(episode_num)["mpd_content"]
                     if status == False:

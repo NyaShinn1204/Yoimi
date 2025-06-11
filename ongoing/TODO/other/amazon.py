@@ -14,7 +14,6 @@ from typing import Union
 import click
 import jsonpickle
 import requests
-from click import Context
 from langcodes import Language
 from tldextract import tldextract
 from click.core import ParameterSource
@@ -22,7 +21,6 @@ from click.core import ParameterSource
 from vinetrimmer.objects import TextTrack, Title, Tracks
 from vinetrimmer.objects.tracks import MenuTrack
 from vinetrimmer.services.BaseService import BaseService
-from vinetrimmer.utils import is_close_match
 from vinetrimmer.utils.Logger import Logger
 from vinetrimmer.utils.widevine.device import LocalDevice
 
@@ -344,7 +342,7 @@ class Amazon(BaseService):
         chosen_manifest = self.choose_manifest(manifest, self.cdn)
 
         if not chosen_manifest:
-            raise self.log.exit(f"No manifests available")
+            raise self.log.exit("No manifests available")
 
         manifest_url = self.clean_mpd_url(chosen_manifest["avUrlInfoList"][0]["url"], False)
         self.log.debug(manifest_url)
@@ -438,7 +436,7 @@ class Amazon(BaseService):
 
             try:
                 if self.cdm.device.type == LocalDevice.Types.CHROME and self.quality < 2160:
-                    self.log.info(f" + Switching to device to get UHD manifest")
+                    self.log.info(" + Switching to device to get UHD manifest")
                     self.register_device()
 
                 uhd_audio_manifest = self.get_manifest(
@@ -457,9 +455,9 @@ class Amazon(BaseService):
             self.device_id = temp_device_id
 
             if not uhd_audio_manifest:
-                self.log.warning(f" - Unable to get UHD manifests, skipping")
+                self.log.warning(" - Unable to get UHD manifests, skipping")
             elif not (chosen_uhd_audio_manifest := self.choose_manifest(uhd_audio_manifest, self.cdn)):
-                self.log.warning(f" - No UHD manifests available, skipping")
+                self.log.warning(" - No UHD manifests available, skipping")
             else:
                 uhd_audio_mpd_url = self.clean_mpd_url(chosen_uhd_audio_manifest["avUrlInfoList"][0]["url"], optimise=False)
                 self.log.debug(uhd_audio_mpd_url)
@@ -474,7 +472,7 @@ class Amazon(BaseService):
                         ))
                     ])
                 except KeyError:
-                    self.log.warning(f" - Title has no UHD stream, cannot get higher quality audio")
+                    self.log.warning(" - Title has no UHD stream, cannot get higher quality audio")
                 else:
                     # replace the audio tracks with DV manifest version if atmos is present
                     if any(x for x in uhd_audio_mpd.audios if x.atmos):
@@ -658,7 +656,7 @@ class Amazon(BaseService):
 
         self.device = (self.config.get("device") or {}).get(self.profile, {})
         if (self.quality > 1080 or self.range != "SDR") and self.vcodec == "H265" and self.cdm.device.type == LocalDevice.Types.CHROME:
-            self.log.info(f"Using device to get UHD manifests")
+            self.log.info("Using device to get UHD manifests")
             self.register_device()
         elif not self.device or self.vquality != "UHD" or self.cdm.device.type == LocalDevice.Types.CHROME:
             # falling back to browser-based device ID

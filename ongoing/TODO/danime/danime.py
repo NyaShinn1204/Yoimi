@@ -112,7 +112,7 @@ class Download:
             "accept-encoding": "gzip, deflate, br, zstd"
         }
         
-        html_content = self.session.get(f"https://animestore.docomo.ne.jp/animestore/ci_pc", params=querystring, cookies=self.cookies, headers=headers).text
+        html_content = self.session.get("https://animestore.docomo.ne.jp/animestore/ci_pc", params=querystring, cookies=self.cookies, headers=headers).text
         soup = BeautifulSoup(html_content, 'html.parser')
         
         # <li class="optionText">の部分のテキストを取得

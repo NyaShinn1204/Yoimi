@@ -1,4 +1,3 @@
-import base64
 import base58
 import binascii
 import pythonmonkey as pm
@@ -39,7 +38,7 @@ def aes_decrypt(original_json, O, y, x):
     try:
         decrypted_bytes = unpad(decrypted_raw, AES.block_size)
         decrypted_text = decrypted_bytes.decode('utf-8')
-    except ValueError as e:
+    except ValueError:
         #print("Padding error:", e)
         decrypted_text = "[Padding error: Raw data not decodable]"
 

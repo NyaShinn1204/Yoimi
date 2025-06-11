@@ -102,9 +102,9 @@ def check_proxie(session):
         try:
             if auth_response["error_hint"] == "GAW0500003":
                 logger.error(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
-                logger.error(f"However, this proxy is not located in Japan. You will not be able to use it.", extra={"service_name": "Yoimi"})
+                logger.error("However, this proxy is not located in Japan. You will not be able to use it.", extra={"service_name": "Yoimi"})
                 exit(1)
-        except Exception as e:
+        except Exception:
             pass
         
         logger.info(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
@@ -259,7 +259,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if message["minimumPrice"] != -1:
                     logger.info(f" ! {title_name_logger} require {message["minimumPrice"]} point", extra={"service_name": __service_name__})
                     if int(message["minimumPrice"]) > int(account_point):
-                        logger.info(f" ! ポイントが足りません", extra={"service_name": __service_name__})
+                        logger.info(" ! ポイントが足りません", extra={"service_name": __service_name__})
                         pass
                     else:
                         is_buyed = unext_downloader.check_buyed(url)
@@ -267,7 +267,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             logger.info(f" ! {title_name_logger} have already been purchased.", extra={"service_name": __service_name__})
                         else:
                             check_downlaod = input(COLOR_GREEN+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+COLOR_RESET+" "+f"[{COLOR_GRAY}INFO{COLOR_RESET}]"+" "+f"{COLOR_BLUE}U-Next{COLOR_RESET}"+" : "+f" ! Do you want to buy {title_name_logger}?"+" | "+"y/n"+" ")
-                            logger.info(f"Coming soon", extra={"service_name": __service_name__})
+                            logger.info("Coming soon", extra={"service_name": __service_name__})
                             return
                     
                 status, playtoken, media_code, additional_meta = unext_downloader.get_playtoken(message["id"])
@@ -278,7 +278,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     if additional_info[6] or additional_info[9]:
                         unext_downloader.create_ffmetadata(productionYear, [id_type, title_name, message.get("displayNo", ""), message.get("episodeName", "")], unixtime, additional_meta, message.get("displayNo", ""), message["duration"], message["introduction"], copyright, additional_info)
                     
-                    logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
+                    logger.info("Get License for 1 Episode", extra={"service_name": __service_name__})
                     status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
                     if status == False:
                         logger.error("Failed to Get Episode MPD_Content", extra={"service_name": __service_name__})
@@ -293,7 +293,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session, config)
                     
-                    logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                    logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                     
                     logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
                     logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
@@ -411,7 +411,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             if point != -1:
                 logger.info(f" ! {title_name_logger} require {point} point", extra={"service_name": __service_name__})
                 if int(point) > int(account_point):
-                    logger.info(f" ! ポイントが足りません", extra={"service_name": __service_name__})
+                    logger.info(" ! ポイントが足りません", extra={"service_name": __service_name__})
                     pass
                 else:
                     is_buyed = unext_downloader.check_buyed(url)
@@ -419,7 +419,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         logger.info(f" ! {title_name_logger} have already been purchased.", extra={"service_name": __service_name__})
                     else:
                         check_downlaod = input(COLOR_GREEN+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+COLOR_RESET+" "+f"[{COLOR_GRAY}INFO{COLOR_RESET}]"+" "+f"{COLOR_BLUE}U-Next{COLOR_RESET}"+" : "+f" ! Do you want to buy {title_name_logger}?"+" | "+"y/n"+" ")
-                        logger.info(f"Coming soon", extra={"service_name": __service_name__})
+                        logger.info("Coming soon", extra={"service_name": __service_name__})
                         return
             
             status, playtoken, media_code, additional_meta = unext_downloader.get_playtoken(message["id"])
@@ -429,7 +429,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             else:
                 if additional_info[6] or additional_info[9]:
                     unext_downloader.create_ffmetadata(productionYear, [id_type, title_name, message.get("displayNo", ""), message.get("episodeName", "")], unixtime, additional_meta, message.get("displayNo", ""), message["duration"], message["introduction"], copyright, additional_info)
-                logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
+                logger.info("Get License for 1 Episode", extra={"service_name": __service_name__})
                 status, mpd_content = unext_downloader.get_mpd_content(media_code, playtoken)
                 if status == False:
                     logger.error("Failed to Get Episode MPD_Content", extra={"service_name": __service_name__})
@@ -442,7 +442,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session, config)
                 
-                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 
                 logger.info(f" + Decrypt Video License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["video_key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
                 logger.info(f" + Decrypt Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["audio_key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
@@ -512,7 +512,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                        
                 session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
                 session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
-    except Exception as error:
+    except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")

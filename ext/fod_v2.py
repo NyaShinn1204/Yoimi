@@ -7,7 +7,6 @@ import time
 import shutil
 import hashlib
 import logging
-import ext.global_func.niconico as comment
 
 import ext.global_func.parser as parser
 
@@ -265,19 +264,19 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
                     license_key = fod_v2.FOD_license.license_vd_ad(transformed_data["pssh_list"]["widevine"],  episode_metadata["ticket"], session, config)
                     
-                    logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                    logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                     logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})        
                     
-                    logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
-                    logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+                    logger.info("Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+                    logger.debug(" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
                     track_data = Tracks.print_tracks(transformed_data)
                     
                     print(track_data) 
                     
                     get_best_track = Tracks.select_best_tracks(transformed_data)
                     
-                    logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
-                    logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                    logger.debug(" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                    logger.info("Selected Best Track:", extra={"service_name": __service_name__})
                     logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     
@@ -300,7 +299,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                     if not video_status or not audio_status:
                         #logger.error(f"Error: {video_downloaded, audio_downloaded}", extra={"service_name": __service_name__})
-                        logger.error(f"Error: Download failed with error", extra={"service_name": __service_name__})
+                        logger.error("Error: Download failed with error", extra={"service_name": __service_name__})
                         
                         logger.error("---Video Download Error---", extra={"service_name": __service_name__})
                         print("".join(video_downloaded).strip())
@@ -340,16 +339,16 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info("Getting information from HLS", extra={"service_name": __service_name__})
                     Tracks = parser.global_parser()
                     transformed_data = Tracks.hls_parser(session.get(episode_metadata["url"]).text)
-                    logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
-                    logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+                    logger.info("Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+                    logger.debug(" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
                     track_data = Tracks.print_tracks(transformed_data)
                     
                     print(track_data)
                     
                     get_best_track = Tracks.select_best_tracks(transformed_data)
                     
-                    logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
-                    logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                    logger.debug(" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                    logger.info("Selected Best Track:", extra={"service_name": __service_name__})
                     logger.info(f" + Video: [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     
                     files, duration, iv, key = fod_v2.FOD_utils.parse_m3u8(get_best_track["video"]["url"])
@@ -435,19 +434,19 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
                 license_key = fod_v2.FOD_license.license_vd_ad(transformed_data["pssh_list"]["widevine"],  episode_metadata["ticket"], session, config)
                 
-                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})        
                 
-                logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
-                logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+                logger.info("Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+                logger.debug(" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
                 track_data = Tracks.print_tracks(transformed_data)
                 
                 print(track_data) 
                 
                 get_best_track = Tracks.select_best_tracks(transformed_data)
                 
-                logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
-                logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                logger.debug(" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                logger.info("Selected Best Track:", extra={"service_name": __service_name__})
                 logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                 logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                 
@@ -470,7 +469,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 if not video_status or not audio_status:
                     #logger.error(f"Error: {video_downloaded, audio_downloaded}", extra={"service_name": __service_name__})
-                    logger.error(f"Error: Download failed with error", extra={"service_name": __service_name__})
+                    logger.error("Error: Download failed with error", extra={"service_name": __service_name__})
                     
                     logger.error("---Video Download Error---", extra={"service_name": __service_name__})
                     print("".join(video_downloaded).strip())
@@ -511,16 +510,16 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info("Getting information from HLS", extra={"service_name": __service_name__})
                 Tracks = parser.global_parser()
                 transformed_data = Tracks.hls_parser(session.get(episode_metadata["url"]).text)
-                logger.info(f"Get Video, Audio Tracks:", extra={"service_name": __service_name__})
-                logger.debug(f" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+                logger.info("Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+                logger.debug(" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
                 track_data = Tracks.print_tracks(transformed_data)
                 
                 print(track_data)
                 
                 get_best_track = Tracks.select_best_tracks(transformed_data)
                 
-                logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
-                logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                logger.debug(" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                logger.info("Selected Best Track:", extra={"service_name": __service_name__})
                 logger.info(f" + Video: [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                 
                 files, duration, iv, key = fod_v2.FOD_utils.parse_m3u8(get_best_track["video"]["url"])
@@ -550,7 +549,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 if account_logined != False:
                     fod_downloader.send_stop_signal_hls(episode_metadata, ep_uuid, get_best_track["video"]["bitrate"], duration)
         
-    except Exception as error:
+    except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")

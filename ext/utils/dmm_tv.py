@@ -6,9 +6,8 @@ import requests
 import threading
 import subprocess
 from tqdm import tqdm
-from lxml import etree
 from datetime import datetime
-from urllib.parse import urljoin, urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -727,7 +726,7 @@ class Dmm_TV_downloader:
                 return True, content_mpd_list
             else:
                 return False, None
-        except Exception as e:
+        except Exception:
             #print(e)
             #import traceback
             #import sys

@@ -177,7 +177,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         #print(anime_name, anime_link_episode_num)
             
         
-    except Exception as error:
+    except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         #print(traceback.format_exc())
         #print("\n")

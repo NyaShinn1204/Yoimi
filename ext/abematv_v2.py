@@ -1,13 +1,11 @@
 import re
 import os
-import sys
 import yaml
 import time
 import m3u8
 import shutil
 import logging
 import datetime
-import traceback
 
 from datetime import datetime
 from rich.console import Console
@@ -93,9 +91,9 @@ def check_proxie(session):
         try:
             if auth_json["location"] != "JP" or region_response.status_code == 403:
                 logger.error(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
-                logger.error(f"However, this proxy is not located in Japan. You will not be able to use it.", extra={"service_name": "Yoimi"})
+                logger.error("However, this proxy is not located in Japan. You will not be able to use it.", extra={"service_name": "Yoimi"})
                 exit(1)
-        except Exception as e:
+        except Exception:
             pass
         
         logger.info(f"{session.proxies} - Working {round(time_elapsed)}ms", extra={"service_name": "Yoimi"})
@@ -441,7 +439,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     abema_downloader.merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), os.path.join(config["directorys"]["Downloads"], title_name))
                     
                 logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
-            except Exception as e:
+            except Exception:
                 logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                 print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                 print("\n----ERROR LOG----")
@@ -451,7 +449,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 print("----END ERROR LOG----")
             
         else:
-            logger.info(f"Get Title for Season", extra={"service_name": __service_name__})
+            logger.info("Get Title for Season", extra={"service_name": __service_name__})
             logger.debug("series download", extra={"service_name": __service_name__})
             content_id = re.match(r"^(\d+-\d+)", abema_get_series_id).group(1)
             if abema_get_series_id.__contains__("_s"):
@@ -709,7 +707,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             abema_downloader.merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), os.path.join(config["directorys"]["Downloads"], title_name))
                         
                         logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
-                    except Exception as e:
+                    except Exception:
                         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                         print("\n----ERROR LOG----")
@@ -993,7 +991,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                             abema_downloader.merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), os.path.join(config["directorys"]["Downloads"], title_name))
                         
                         logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
-                    except Exception as e:
+                    except Exception:
                         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                         print("\n----ERROR LOG----")
