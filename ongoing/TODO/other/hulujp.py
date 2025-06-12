@@ -5,7 +5,6 @@ import re
 import sys
 import time
 import uuid
-import bs4
 
 import click
 import requests

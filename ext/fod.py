@@ -1,7 +1,6 @@
 import re
 import os
 import yaml
-import json
 import time
 import logging
 import shutil
@@ -194,15 +193,15 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f" ! {title_name_logger} require {message["price"]}", extra={"service_name": __service_name__})
                     if login_status:
                         if int(message["price"]) > int(account_point):
-                            logger.info(f" ! ポイントが足りません", extra={"service_name": __service_name__})
+                            logger.info(" ! ポイントが足りません", extra={"service_name": __service_name__})
                             pass
                         else:
                             logger.info(f" ! {title_name_logger} require BUY or RENTAL", extra={"service_name": __service_name__})
                     else:
-                        logger.info(f" ! Require Account", extra={"service_name": __service_name__})
+                        logger.info(" ! Require Account", extra={"service_name": __service_name__})
                         exit(1)
                 
-                logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
+                logger.info("Get License for 1 Episode", extra={"service_name": __service_name__})
                 uuid = session.cookies.get("uuid")
                 ut = session.cookies.get("UT")
                 #print(ut)
@@ -345,15 +344,15 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(f" ! {title_name_logger} require {message["price"]}", extra={"service_name": __service_name__})
                 if login_status:
                     if int(message["price"]) > int(account_point):
-                        logger.info(f" ! ポイントが足りません", extra={"service_name": __service_name__})
+                        logger.info(" ! ポイントが足りません", extra={"service_name": __service_name__})
                         pass
                     else:
                         logger.info(f" ! {title_name_logger} require BUY or RENTAL", extra={"service_name": __service_name__})
                 else:
-                    logger.info(f" ! Require Account", extra={"service_name": __service_name__})
+                    logger.info(" ! Require Account", extra={"service_name": __service_name__})
                     exit(1)
                     
-            logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
+            logger.info("Get License for 1 Episode", extra={"service_name": __service_name__})
             uuid = session.cookies.get("uuid")
             ut = session.cookies.get("UT")
             #print(ut)
@@ -454,7 +453,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             #
             #license_key = unext.Unext_license.license_vd_ad(mpd_lic["video_pssh"], mpd_lic["audio_pssh"], playtoken, session)
         
-    except Exception as error:
+    except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")

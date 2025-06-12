@@ -190,7 +190,6 @@ content_link = m3u8_1.headers["Location"].replace(
 
 import m3u8
 from Crypto.Cipher import AES
-from urllib.parse import urljoin
 
 
 base_link = content_link.rsplit("/", 1)[0] + "/"

@@ -3,7 +3,6 @@ import os
 import yaml
 import uuid
 import time
-import uuid
 import base64
 import logging
 import hashlib
@@ -96,11 +95,11 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange, use_
         
         if vquality_source != ParameterSource.COMMANDLINE:
             if 0 < quality <= 576 and vrange == "SDR":
-                logger.info(f" + Setting manifest quality to SD", extra={"service_name": "Amazon"})
+                logger.info(" + Setting manifest quality to SD", extra={"service_name": "Amazon"})
                 vquality = "SD"
 
             if quality > 1080:
-                logger.info(f" + Setting manifest quality to UHD to be able to get 2160p video track", extra={"service_name": "Amazon"})
+                logger.info(" + Setting manifest quality to UHD to be able to get 2160p video track", extra={"service_name": "Amazon"})
                 vquality = "UHD"
 
         vquality = vquality or "HD"
@@ -124,8 +123,8 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange, use_
         cookies = amazon_downloader.parse_cookie(profile)
         if not cookies:
             logger.error(f"Profile {profile} has no cookies", extra={"service_name": "Amazon"})
-            logger.error(f"Get cookie from `https://www.amazon.co.jp/gp/video/ontv/code`", extra={"service_name": "Amazon"})
-            logger.error(f"Please Cookies to /cookies/amazon/default.txt (Netescape format)", extra={"service_name": "Amazon"})
+            logger.error("Get cookie from `https://www.amazon.co.jp/gp/video/ontv/code`", extra={"service_name": "Amazon"})
+            logger.error("Please Cookies to /cookies/amazon/default.txt (Netescape format)", extra={"service_name": "Amazon"})
             raise
         else:
             logger.debug(f"Get cookies: {len(cookies)}", extra={"service_name": "Amazon"})
@@ -179,7 +178,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange, use_
         logger.debug(f"DLOG: {cdm.device_type}", extra={"service_name": "Amazon"})
         
         if (quality > 1080 or vrange != "SDR") and vcodec == "H265" and cdm.device_type == Types.CHROME:
-            logger.info(f"Using device to Get UHD manifests", extra={"service_name": "Amazon"})
+            logger.info("Using device to Get UHD manifests", extra={"service_name": "Amazon"})
             device_id, device_token = amazon_downloader.register_device(session, profile, logger)
         elif not device or vquality != "UHD" or cdm.device_type == Types.CHROME:
             # falling back to browser-based device ID
@@ -352,7 +351,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange, use_
         
                     try:
                         if cdm.device_type == Types.CHROME and quality < 2160:
-                            logger.info(f" + Switching to device to get UHD manifest", extra={"service_name": "Amazon"})
+                            logger.info(" + Switching to device to get UHD manifest", extra={"service_name": "Amazon"})
                             amazon_downloader.register_device(session, profile, logger)
         
                         uhd_audio_manifest = amazon_downloader.get_manifest(
@@ -371,9 +370,9 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange, use_
                     device_id = temp_device_id
         
                     if not uhd_audio_manifest:
-                        logger.warning(f" - Unable to get UHD manifests, skipping", extra={"service_name": "Amazon"})
+                        logger.warning(" - Unable to get UHD manifests, skipping", extra={"service_name": "Amazon"})
                     elif not (chosen_uhd_audio_manifest := amazon_downloader.choose_manifest(uhd_audio_manifest, cdn=None)):
-                        logger.warning(f" - No UHD manifests available, skipping", extra={"service_name": "Amazon"})
+                        logger.warning(" - No UHD manifests available, skipping", extra={"service_name": "Amazon"})
                     else:
                         uhd_audio_mpd_url = amazon_downloader.clean_mpd_url(chosen_uhd_audio_manifest["avUrlInfoList"][0]["url"], optimise=False)
                         logger.debug(uhd_audio_mpd_url, extra={"service_name": "Amazon"})
@@ -386,7 +385,7 @@ def main_command(session, url, email, password, LOG_LEVEL, quality, vrange, use_
                                 source="AMZN"
                             )
                         except KeyError:
-                            logger.warning(f" - Title has no UHD stream, cannot get higher quality audio", extra={"service_name": "Amazon"})
+                            logger.warning(" - Title has no UHD stream, cannot get higher quality audio", extra={"service_name": "Amazon"})
                         else:
                             # replace the audio tracks with DV manifest version if atmos is present
                             if any(x for x in uhd_audio_mpd["audio_track"] if x["atmos"]):

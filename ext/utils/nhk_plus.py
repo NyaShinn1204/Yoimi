@@ -1,5 +1,4 @@
 import re
-import io
 import os
 import jwt
 import ast
@@ -8,7 +7,6 @@ import m3u8
 import base64
 import random
 import struct
-import base64
 import string
 import requests
 import subprocess

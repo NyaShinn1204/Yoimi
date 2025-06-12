@@ -5,7 +5,6 @@ import time
 import subprocess
 from lxml import etree
 from tqdm import tqdm
-from bs4 import BeautifulSoup
 from datetime import datetime
 
 COLOR_GREEN = "\033[92m"

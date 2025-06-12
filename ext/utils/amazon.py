@@ -19,7 +19,7 @@ from tldextract import tldextract
 from collections import defaultdict
 from urllib.parse import urlencode, quote
 from http.cookiejar import MozillaCookieJar
-from langcodes import Language, closest_match
+from langcodes import closest_match
 
 class Types(Enum):
     CHROME = 1
@@ -737,7 +737,7 @@ class Amazon_downloader:
         chosen_manifest = self.choose_manifest(manifest, self.cdn)
 
         if not chosen_manifest:
-            raise print(f"No manifests available")
+            raise print("No manifests available")
 #
         manifest_url = self.clean_mpd_url(chosen_manifest["avUrlInfoList"][0]["url"], False)
         print(manifest_url)

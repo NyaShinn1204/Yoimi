@@ -94,10 +94,10 @@ class global_comment:
                       "X-Frontend-Version": "0",
                       "Content-Type": "application/json"
                     }
-                    result = requests.post(f"https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
+                    result = requests.post("https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
                     return result
                 
-            logger.info(f"Getting Niconico Comment", extra={"service_name": service_type})
+            logger.info("Getting Niconico Comment", extra={"service_name": service_type})
             return_meta = get_niconico_info(1, f'{sate["info"]["work_title"]} {sate["info"]["episode_number"]}話 OR {self.convert_int_to_kanji(sate["info"]["episode_number"])}話 OR エピソード{sate["info"]["episode_number"]} OR episode{sate["info"]["episode_number"]} OR ep{sate["info"]["episode_number"]} OR #{sate["info"]["episode_number"]} OR 第{sate["info"]["episode_number"]}話 OR "{sate["info"]["subtitle"]}"')
             
             base_content_id = return_meta["data"][0]["contentId"]

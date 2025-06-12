@@ -21,7 +21,6 @@ def main_command(session, url):
         return text
     def get_single_status(url):
         import re
-        import json
         from bs4 import BeautifulSoup
         
         html = session.get(url).text

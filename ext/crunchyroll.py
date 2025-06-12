@@ -126,7 +126,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 license_key = crunchyroll.Crunchyroll_license.license_vd_ad(mpd_lic["pssh"][1], session, player_info["token"], single_info["id"], config)
                 session.delete(f"https://www.crunchyroll.com/playback/v1/token/{single_info["id"]}/{player_info["token"]}", json={}, headers=headers)
                             
-                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 
                 logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
                 
@@ -185,7 +185,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 else:
                     print(f"指定されたディレクトリは存在しません: {dir_path}")
                 logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
-            except Exception as e:
+            except Exception:
                 logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                 print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                 print("\n----ERROR LOG----")
@@ -221,7 +221,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     license_key = crunchyroll.Crunchyroll_license.license_vd_ad(mpd_lic["pssh"][1], session, player_info["token"], meta_i["id"], config)
                     session.delete(f"https://www.crunchyroll.com/playback/v1/token/{meta_i["id"]}/{player_info["token"]}", json={}, headers=headers)
                                 
-                    logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                    logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                     
                     logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
                     
@@ -281,7 +281,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     #session.headers.update({"Authorization": "Bearer "+update_token})
                     
                     logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
-                except Exception as e:
+                except Exception:
                     logger.error("Traceback has occurred", extra={"service_name": __service_name__})
                     print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
                     print("\n----ERROR LOG----")

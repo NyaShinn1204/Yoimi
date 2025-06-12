@@ -198,7 +198,7 @@ class Bandai_ch_downloader:
                             
             metainfo_json = self.session.get(metainfo_url, headers={"X-API-KEY": data_auth}).json()
             return True, metainfo_json
-        except Exception as e:
+        except Exception:
             return False, None
         
     def download_segment(self, segment_links, config, unixtime, name, service_name="Bandai-Ch"):
@@ -215,7 +215,7 @@ class Bandai_ch_downloader:
                             out_file.write(response.content)
                             progress_bar.update(1)
                             break
-                        except requests.exceptions.RequestException as e:
+                        except requests.exceptions.RequestException:
                             retry += 1
                             time.sleep(2)
 

@@ -151,7 +151,7 @@ class FOD_utils:
                     with open(output_path, "wb") as f:
                         f.write(decrypted_data)
                     return output_path
-                except Exception as e:
+                except Exception:
                     retry += 1
                     time.sleep(2)
             if not stop_flag.is_set():
@@ -490,7 +490,7 @@ class FOD_downloader:
                 return True, return_json["episodes"], return_json["detail"]
             else:
                 return False, None, None
-        except Exception as e:
+        except Exception:
             return False, None, None
     def get_title_parse_single(self, url):
         matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
@@ -503,7 +503,7 @@ class FOD_downloader:
                 return True, metadata_response_single
             else:
                 return False, None
-        except Exception as e:
+        except Exception:
             return False, None
     def get_episode_metadata(self, ep_id, ep_uuid):
         url = "https://fod-sp.fujitv.co.jp/apps/api/auth/contents/tv_common/"
@@ -520,7 +520,7 @@ class FOD_downloader:
         try:
             metadata_response = self.session.get(url, params=querystring).json()
             return metadata_response
-        except Exception as e:
+        except Exception:
             return None
         
     def create_titlename_logger(self, id_type, episode_count, title_name, episode_num, episode_name):

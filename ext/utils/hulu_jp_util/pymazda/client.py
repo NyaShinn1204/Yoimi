@@ -249,13 +249,13 @@ class Client:
         assumed_value_timestamp_key = assumed_value_key + "_timestamp"
         api_value_timestamp_key = api_value_key + "_timestamp"
 
-        if not assumed_value_key in cached_state and not api_value_key in cached_state:
+        if assumed_value_key not in cached_state and api_value_key not in cached_state:
             return None
 
-        if assumed_value_key in cached_state and not api_value_key in cached_state:
+        if assumed_value_key in cached_state and api_value_key not in cached_state:
             return cached_state.get(assumed_value_key)
 
-        if not assumed_value_key in cached_state and api_value_key in cached_state:
+        if assumed_value_key not in cached_state and api_value_key in cached_state:
             return cached_state.get(api_value_key)
 
         now_timestamp = datetime.datetime.now(datetime.timezone.utc)
@@ -287,7 +287,7 @@ class Client:
         cached_state["api_" + key + "_timestamp"] = timestamp_value
 
     def __get_cached_state(self, vehicle_id):
-        if not vehicle_id in self._cached_state:
+        if vehicle_id not in self._cached_state:
             self._cached_state[vehicle_id] = {}
 
         return self._cached_state[vehicle_id]

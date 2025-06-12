@@ -50,7 +50,6 @@ def new_cookie_jar(username, password):
 jar = new_cookie_jar("popo004@cocoro.uk", "popo004@cocoro.uk1")
 print(jar["BCHWWW"])
 
-import requests
 
 url = "https://appsvr.b-ch.com/api/mbauth/ajax_session_check"
 

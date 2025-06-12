@@ -757,7 +757,7 @@ class Unext_downloader:
                     return False 
             else:
                 return False
-        except Exception as e:
+        except Exception:
             return False
         
     def buy_episode(self, title_id, episode_id):
@@ -794,13 +794,13 @@ class Unext_downloader:
                             return True
                         else:
                             return False
-                    except Exception as e:
+                    except Exception:
                         return False
                 else:
                     return False 
             else:
                 return False
-        except Exception as e:
+        except Exception:
             return False
         
     def get_thumbnail_list(self, title_id, episode_id, id_type, config, unixtime):

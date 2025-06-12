@@ -274,10 +274,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                               "X-Frontend-Version": "0",
                               "Content-Type": "application/json"
                             }
-                            result = session.post(f"https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
+                            result = session.post("https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
                             return result
                         
-                    logger.info(f"Getting Niconico Comment", extra={"service_name": "U-Next"})
+                    logger.info("Getting Niconico Comment", extra={"service_name": "U-Next"})
                     return_meta = get_niconico_info(1, sate["info"]["raw_text"])
                     
                     base_content_id = return_meta["data"][0]["contentId"]
@@ -374,12 +374,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                         logger.warning("This episode is require PREMIUM. Skipping...", extra={"service_name": __service_name__})
                         continue
                 
-                logger.debug(f"Parse links", extra={"service_name": __service_name__})
+                logger.debug("Parse links", extra={"service_name": __service_name__})
                 
                 hd_link = dmm_tv_downloader.parse_quality(links)
                 logger.debug(f" + MPD: {hd_link}", extra={"service_name": __service_name__})
                 
-                logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
+                logger.info("Get License for 1 Episode", extra={"service_name": __service_name__})
                 status, mpd_content, hd_link_base = dmm_tv_downloader.get_mpd_content(hd_link)
                 
                 Tracks = parser.global_parser()
@@ -389,7 +389,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                             
                 license_key = dmm_tv.Dmm_TV__license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, config)
                             
-                logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+                logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
                 
                 logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
                 
@@ -414,14 +414,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
                 get_best_track = Tracks.select_best_tracks(transformed_data)
                 
-                logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
-                logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+                logger.debug(" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+                logger.info("Selected Best Track:", extra={"service_name": __service_name__})
                 logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                 logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                 
-                logger.debug(f"Calculate about Manifest...", extra={"service_name": __service_name__})
+                logger.debug("Calculate about Manifest...", extra={"service_name": __service_name__})
                 duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
-                logger.debug(f" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
+                logger.debug(" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
                 
                 logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
                 video_segment_links_temp = Tracks.get_segment_link_list(mpd_content, get_best_track["video"]["id"], hd_link.replace("manifest.mpd", "").replace("str.dmm.com", "stc005.dmm.com"))
@@ -436,8 +436,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     video_segment_links.append(i)
                 for i in audio_segment_links_temp["segments"]:
                     audio_segment_links.append(i)
-                logger.info(f" + Video Segments: "+str(int(len(video_segment_links))), extra={"service_name": __service_name__})                 
-                logger.info(f" + Audio Segments: "+str(int(len(audio_segment_links))), extra={"service_name": __service_name__})
+                logger.info(" + Video Segments: "+str(int(len(video_segment_links))), extra={"service_name": __service_name__})                 
+                logger.info(" + Audio Segments: "+str(int(len(audio_segment_links))), extra={"service_name": __service_name__})
                 
                 logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
                 
@@ -571,10 +571,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                           "X-Frontend-Version": "0",
                           "Content-Type": "application/json"
                         }
-                        result = session.post(f"https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
+                        result = session.post("https://public.nvcomment.nicovideo.jp/v1/threads", data=json.dumps(payload), headers=headers).json()
                         return result
                     
-                logger.info(f"Getting Niconico Comment", extra={"service_name": "U-Next"})
+                logger.info("Getting Niconico Comment", extra={"service_name": "U-Next"})
                 return_meta = get_niconico_info(1, sate["info"]["raw_text"])
                 
                 base_content_id = return_meta["data"][0]["contentId"]
@@ -672,12 +672,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             status, links = dmm_tv_downloader.get_mpd_link(content_id)
             logger.debug(f"{status},{links}", extra={"service_name": __service_name__})
             
-            logger.debug(f"Parse links", extra={"service_name": __service_name__})
+            logger.debug("Parse links", extra={"service_name": __service_name__})
             
             hd_link = dmm_tv_downloader.parse_quality(links)
             logger.debug(f" + MPD: {hd_link}", extra={"service_name": __service_name__})
             
-            logger.info(f"Get License for 1 Episode", extra={"service_name": __service_name__})
+            logger.info("Get License for 1 Episode", extra={"service_name": __service_name__})
             status, mpd_content, hd_link_base = dmm_tv_downloader.get_mpd_content(hd_link)
             
             Tracks = parser.global_parser()
@@ -687,7 +687,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             license_key = dmm_tv.Dmm_TV__license.license_vd_ad(transformed_data["pssh_list"]["widevine"], session, config)
                         
-            logger.info(f"Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+            logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
             
             logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})
             
@@ -712,14 +712,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 
             get_best_track = Tracks.select_best_tracks(transformed_data)
             
-            logger.debug(f" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
-            logger.info(f"Selected Best Track:", extra={"service_name": __service_name__})
+            logger.debug(" + Track Json: "+str(get_best_track), extra={"service_name": __service_name__})
+            logger.info("Selected Best Track:", extra={"service_name": __service_name__})
             logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
             logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
             
-            logger.debug(f"Calculate about Manifest...", extra={"service_name": __service_name__})
+            logger.debug("Calculate about Manifest...", extra={"service_name": __service_name__})
             duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
-            logger.debug(f" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
+            logger.debug(" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})
             
             logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
             video_segment_links_temp = Tracks.get_segment_link_list(mpd_content, get_best_track["video"]["id"], hd_link.replace("manifest.mpd", "").replace("str.dmm.com", "stc005.dmm.com"))
@@ -734,8 +734,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 video_segment_links.append(i)
             for i in audio_segment_links_temp["segments"]:
                 audio_segment_links.append(i)
-            logger.info(f" + Video Segments: "+str(int(len(video_segment_links))), extra={"service_name": __service_name__})                 
-            logger.info(f" + Audio Segments: "+str(int(len(audio_segment_links))), extra={"service_name": __service_name__})
+            logger.info(" + Video Segments: "+str(int(len(video_segment_links))), extra={"service_name": __service_name__})                 
+            logger.info(" + Audio Segments: "+str(int(len(audio_segment_links))), extra={"service_name": __service_name__})
             
             logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
             
@@ -765,7 +765,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 print(f"指定されたディレクトリは存在しません: {dir_path}")
             logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
                         
-    except Exception as error:
+    except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")
