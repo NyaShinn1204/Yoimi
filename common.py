@@ -44,6 +44,7 @@ def get_parser(url):
     valid_hulu_jp = r'^["\']?https?://(?:www\.)?hulu\.jp/(?:watch/)?[^"\']+["\']?$'
     valid_fanza = r'^["\']?https?://www\.dmm\.co\.jp/digital/-/player/=/.*["\']?$'
     valid_dmm_gravure = r'^["\']?https?://tv\.dmm\.com/vod/restrict(?:/(?:list|detail))?/\?(?:[^&]*&)*season=(?P<season>[^&]+)(?:&|$)'
+    valid_hiyahtv = r'^["\']?https?://(?:www\.)?hiyahtv\.com(?:/[\w\-]+)+(?:/videos/[\w\-]+)?["\']?$' 
     
     if re.match(valid_abema, url) and "-v1" in url:
         from ext import abematv as AbemaTV
@@ -135,6 +136,9 @@ def get_parser(url):
             elif content_type == "VOD_2D":
                 from ext import fanza as Fanza
                 return Fanza.Fanza, "Fanza"
+    elif re.match(valid_hiyahtv, url):
+        from ext import hiyahtv as Hi_YAH
+        return Hi_YAH, "Hi-YAH!"
     return None, None
 
 

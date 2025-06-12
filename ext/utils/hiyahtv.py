@@ -1,6 +1,9 @@
 import re
 import time
+import json
 import hashlib
+
+from urllib.parse import urlparse
 
 class HI_YAH_downloader:
     def __init__(self, session, config):
@@ -19,7 +22,7 @@ class HI_YAH_downloader:
             "x-ott-agent": "android-tv site/90901 android-app/8.402.1",
             "ott-client-version": "8.402.1",
             "x-ott-language": "en_US",
-            "x-authorization": "Bearer "+temp_token["access_token"],
+            "authorization": "Bearer "+temp_token["access_token"],
         }
         
         self.session.headers.update(default_headers)
@@ -30,12 +33,12 @@ class HI_YAH_downloader:
             """
             # default_headers["host"] = "fod-sp.fujitv.co.jp"
             # self.session.headers.update(default_headers)
-            get_loginurl = self.session.get("https://api.vhx.tv/oauth/codes/")
+            get_loginurl = self.session.post("https://api.vhx.tv/oauth/codes/", json={"client_id": "27ef31d7c3817dfdcb9db4d47fbf9ce92144f361c34fe45e5cd80baab2f258b6","client_secret": "4bc905f4faa17b9e379bbcf0547d7cad710603e316b0a35dc0f3e3568d797bfd"})
             if get_loginurl.status_code != 201:
-                return False, "Authentication Failed: Failed to get QR login url", None, None, None
+                return False, "Authentication Failed: Failed to get QR login url", None, None
             else:
                 request_login_json = get_loginurl.json()
-                print("Login URL:", "https://www.hijahtv.com/activate")
+                print("Login URL:", "https://www.hiyahtv.com/activate")
                 print("Code:", request_login_json["code"])
                 
                 start_time = time.time()
@@ -44,14 +47,14 @@ class HI_YAH_downloader:
                     if time.time() - start_time >= request_login_json["expires_in"]:
                         print("Code Expired. Please Re-try")
                         break
-                    send_checkping = self.session.post(f"https://api.vhx.tv/oauth/codes/{request_login_json["code"]}", params={"client_id": "27ef31d7c3817dfdcb9db4d47fbf9ce92144f361c34fe45e5cd80baab2f258b6","client_secret": "4bc905f4faa17b9e379bbcf0547d7cad710603e316b0a35dc0f3e3568d797bfd"})                        
+                    send_checkping = self.session.get(f"https://api.vhx.tv/oauth/codes/{request_login_json["code"]}", params={"client_id": "27ef31d7c3817dfdcb9db4d47fbf9ce92144f361c34fe45e5cd80baab2f258b6","client_secret": "4bc905f4faa17b9e379bbcf0547d7cad710603e316b0a35dc0f3e3568d797bfd"})                        
                     if send_checkping.status_code == 404:
                         print("Waiting Login...")
                         time.sleep(5)
                     elif send_checkping.status_code == 200:
                         print("Login Accept")
                         login_success_json = send_checkping.json()
-                        self.session.headers.update({"x-authorization": "Bearer "+login_success_json["access_token"]})
+                        self.session.headers.update({"authorization": "Bearer "+login_success_json["access_token"]})
                       
                         status, message = self.get_userinfo()
                         
@@ -107,7 +110,9 @@ class HI_YAH_downloader:
         else:
             return False, None
     def check_token(self, token):
-        self.session.headers.update({"x-authorization": "Bearer " + token})
+        self.session.headers.update({
+            "authorization": "Bearer " + token
+        })
         status, return_json = self.get_userinfo()
         return status, return_json
     def get_userinfo(self):
@@ -127,7 +132,7 @@ class HI_YAH_downloader:
         }
         refresh_return = self.session.post("https://api.vhx.tv/oauth/token/", json=payload)
         if refresh_return.status_code == 200:
-            self.session.headers.update({"x-authorization": "Bearer " + refresh_return.json()["access_token"]})
+            self.session.headers.update({"authorization": "Bearer " + refresh_return.json()["access_token"]})
             return True, refresh_return.json()
         else:
             return False, None
@@ -143,3 +148,26 @@ class HI_YAH_downloader:
             return True
         else:
             return False
+        
+    
+    def get_contentid_page(self, url):
+        try:
+            parsed = urlparse(url)
+            path_parts = parsed.path.strip("/").split("/")
+            variable_name = r'window\.Page'
+        
+            if "videos" in path_parts: # Single check
+                videos_index = path_parts.index("videos")
+                if videos_index + 1 < len(path_parts):
+                    content_id_name = path_parts[videos_index + 1]
+            else:
+                content_id_name = path_parts[-1]
+                
+            title_html = self.session.get("https://www.hiyahtv.com/"+content_id_name)    
+            pattern = re.compile(rf'{re.escape(variable_name)}\s*=\s*(\{{.*?\}});', re.DOTALL)
+            matches = pattern.findall(title_html.text)
+            if matches:
+                return json.loads(matches[-1])
+            return None
+        except:
+            return None
