@@ -526,7 +526,7 @@ class Fanza_downloader:
         license_response = self.session.post(
             "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
         ).json()
-        if license_response["data"]["data"] == None:
+        if license_response["data"] == None:
             params = {
                 "android_drm": False,
                 "bitrate": 0,
