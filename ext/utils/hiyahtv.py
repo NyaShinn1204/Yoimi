@@ -98,6 +98,7 @@ class HI_YAH_downloader:
         return True, message, self.login_status, session_json
     
     def get_temp_token(self):
+        self.session.headers.update({"authorization": None})
         payload = {
           "client_id": "27ef31d7c3817dfdcb9db4d47fbf9ce92144f361c34fe45e5cd80baab2f258b6",      # From Android TV
           "client_secret": "4bc905f4faa17b9e379bbcf0547d7cad710603e316b0a35dc0f3e3568d797bfd",  # From Android TV
@@ -122,9 +123,11 @@ class HI_YAH_downloader:
         response = self.session.get(url)
         if response.status_code == 200:
             return True, response.json()
-        elif response.status_code == 400:
+        else:
             return False, None
-    def refresh_token(self, refresh_token):
+    def refresh_token(self, refresh_token, old_session_json):
+        status, temp_token = self.get_temp_token()
+        self.session.headers.update({"authorization": "Bearer "+ temp_token["access_token"]})
         payload = {
           "client_id": "27ef31d7c3817dfdcb9db4d47fbf9ce92144f361c34fe45e5cd80baab2f258b6",      # From Android TV
           "client_secret": "4bc905f4faa17b9e379bbcf0547d7cad710603e316b0a35dc0f3e3568d797bfd",  # From Android TV
@@ -134,9 +137,16 @@ class HI_YAH_downloader:
         refresh_return = self.session.post("https://api.vhx.tv/oauth/token/", json=payload)
         if refresh_return.status_code == 200:
             self.session.headers.update({"authorization": "Bearer " + refresh_return.json()["access_token"]})
-            return True, refresh_return.json()
+            session_json = {
+                "method": "NORMAL",
+                "email": old_session_json["email"],
+                "password": old_session_json["password"],
+                "access_token": refresh_return.json()["acccess_token"],
+                "refresh_token": refresh_return.json()["refresh_token"]
+            }
+            return True, refresh_return.json(), session_json
         else:
-            return False, None
+            return False, None, None
         
     def revoke_token(self, token):
         payload = {
@@ -183,3 +193,14 @@ class HI_YAH_downloader:
         except Exception as e:
             print(e)
             return None
+        
+    def get_content_info(self, content_id):
+        try:
+            metadata_response = self.session.get(f"https://api.vhx.com/v2/sites/90901/collections/{content_id}?include_events=1")
+            return_json = metadata_response.json()
+            if return_json != None:
+                return True, return_json
+            else:
+                return False, None
+        except Exception:
+            return False, None
