@@ -171,10 +171,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
         if not re.match(r'^https?://(?:www\.)?hiyahtv\.com/.*/videos/[\w\-]+', url): # Season
             # Get Content id
-            content_id = hi_yah_downloader.get_contentid_page(url)
+            content_id = hi_yah_downloader.get_contentid_page(url)["PROPERTIES"]["COLLECTION_ID"]
+            print(content_id)
         else: # Single
             # Get Content id
-            content_id = hi_yah_downloader.get_contentid_page(url)
+            content_id = hi_yah_downloader.get_contentid_page(url)["PROPERTIES"]["COLLECTION_ID"]
     except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")

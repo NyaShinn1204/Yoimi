@@ -3,7 +3,8 @@ import time
 import json
 import hashlib
 
-from urllib.parse import urlparse
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse, urljoin
 
 class HI_YAH_downloader:
     def __init__(self, session, config):
@@ -154,20 +155,31 @@ class HI_YAH_downloader:
         try:
             parsed = urlparse(url)
             path_parts = parsed.path.strip("/").split("/")
-            variable_name = r'window\.Page'
-        
-            if "videos" in path_parts: # Single check
+    
+            content_id_name = None
+            if "videos" in path_parts:
                 videos_index = path_parts.index("videos")
                 if videos_index + 1 < len(path_parts):
                     content_id_name = path_parts[videos_index + 1]
             else:
                 content_id_name = path_parts[-1]
-                
-            title_html = self.session.get("https://www.hiyahtv.com/"+content_id_name)    
-            pattern = re.compile(rf'{re.escape(variable_name)}\s*=\s*(\{{.*?\}});', re.DOTALL)
-            matches = pattern.findall(title_html.text)
-            if matches:
-                return json.loads(matches[-1])
+    
+            if not content_id_name:
+                return None
+    
+            full_url = urljoin("https://www.hiyahtv.com/", content_id_name)
+            response = self.session.get(full_url)
+            response.raise_for_status()
+
+            match = re.search(r'window\.Page\s*=\s*({.*?})\s*(?:</script>|$)', response.text, re.DOTALL)
+            if match:
+                json_text = match.group(1)
+                page_data = json.loads(json_text)
+                return page_data
+            else:
+                return None
             return None
-        except:
+    
+        except Exception as e:
+            print(e)
             return None
