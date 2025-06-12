@@ -139,7 +139,10 @@ class HI_YAH_downloader:
             return True, temp_token.json()
         else:
             return False, None
-    
+    def check_token(self, token):
+        self.session.headers.update({"x-authorization": "Bearer " + token})
+        status, return_json = self.get_userinfo()
+        return status, return_json
     def get_userinfo(self):
         url = "https://api.vhx.com/v2/sites/90901/me"
                     
@@ -147,4 +150,17 @@ class HI_YAH_downloader:
         if response.status_code == 200:
             return True, response.json()
         elif response.status_code == 400:
+            return False, None
+    def refresh_token(self, refresh_token):
+        payload = {
+          "client_id": "27ef31d7c3817dfdcb9db4d47fbf9ce92144f361c34fe45e5cd80baab2f258b6",      # From Android TV
+          "client_secret": "4bc905f4faa17b9e379bbcf0547d7cad710603e316b0a35dc0f3e3568d797bfd",  # From Android TV
+          "grant_type": "refresh_token",
+          "refresh_token": refresh_token
+        }
+        refresh_return = self.session.post("https://api.vhx.tv/oauth/token/", json=payload)
+        if refresh_return.status_code == 200:
+            self.session.headers.update({"x-authorization": "Bearer " + refresh_return.json()["access_token"]})
+            return True, refresh_return.json()
+        else:
             return False, None
