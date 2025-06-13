@@ -157,7 +157,15 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 else:
                     token_status, message = hi_yah_downloader.check_token(session_data["access_token"])
                     if token_status == False:
-                        logger.error("Session is Invalid. Please re-login", extra={"service_name": __service_name__})
+                        logger.info("Session is Invalid. Refresing...", extra={"service_name": __service_name__})
+                        hi_yah_downloader.refresh_token(session_data["refresh_token"], session_data)
+                        status, message = hi_yah_downloader.get_userinfo()
+                        if status:
+                            with open(os.path.join("cache", "session", __service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
+                                json.dump(session_data, f, ensure_ascii=False, indent=4)      
+                            session_status = True
+                        else:
+                            logger.error("Refresh failed. Please re-login", extra={"service_name": __service_name__})
                     else:
                         session_status = True
             
@@ -188,8 +196,12 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         if not re.match(r'^https?://(?:www\.)?hiyahtv\.com/.*/videos/[\w\-]+', url): # Season
             # Get Content id
             content_id = hi_yah_downloader.get_contentid_page(url)["PROPERTIES"]["COLLECTION_ID"]
-            print(content_id)
-            hi_yah_downloader.get_content_info(content_id)
+            status, metadata = hi_yah_downloader.get_content_info(content_id)
+            if metadata["items_count"] != 0:
+                logger.info("Get Title for Season", extra={"service_name": __service_name__})
+            else:
+                logger.error("Item not found", extra={"service_name": __service_name__})
+                
         else: # Single
             # Get Content id
             content_id = hi_yah_downloader.get_contentid_page(url)["PROPERTIES"]["COLLECTION_ID"]

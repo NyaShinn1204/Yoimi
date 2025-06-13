@@ -78,9 +78,9 @@ class HI_YAH_downloader:
         payload = {
             "client_id": "27ef31d7c3817dfdcb9db4d47fbf9ce92144f361c34fe45e5cd80baab2f258b6",      # From Android TV
             "client_secret": "4bc905f4faa17b9e379bbcf0547d7cad710603e316b0a35dc0f3e3568d797bfd",  # From Android TV
-            "username": "adobepd50@gmail.com",
+            "username": email,
             "grant_type": "password",
-            "password": "Mohsen1234"
+            "password": password
         }
         
         response = self.session.post("https://auth.vhx.com/v1/oauth/token", headers=default_headers, json=payload)
@@ -141,7 +141,7 @@ class HI_YAH_downloader:
                 "method": "NORMAL",
                 "email": old_session_json["email"],
                 "password": old_session_json["password"],
-                "access_token": refresh_return.json()["acccess_token"],
+                "access_token": refresh_return.json()["access_token"],
                 "refresh_token": refresh_return.json()["refresh_token"]
             }
             return True, refresh_return.json(), session_json
