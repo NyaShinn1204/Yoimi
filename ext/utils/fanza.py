@@ -489,7 +489,6 @@ class Fanza_downloader:
             "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
         ).json()["data"]
         
-        print(get_select_product_info["delivery_content_info"]["iphone"]["stream"][-1]["parts"])
         if get_select_product_info["delivery_content_info"]["iphone"]["stream"][-1]["parts"] == (1 and 0):
             params = {
                 "android_drm": False,
