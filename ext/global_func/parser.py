@@ -18,11 +18,34 @@ class global_parser:
             resolved = urljoin(current_base_url, base_url_elem.text.strip())
             new_base_url = resolved
         return new_base_url
-    def _extract_track_info_from_representation(self, representation, adaptation_set, current_period_base_url, ns, debug=False):
+    # この関数を global_parser クラスの中に追加してください
+    def _count_segments_from_timeline(self, segment_timeline_element, ns):
         """
-        Representation要素からトラック情報を抽出するヘルパー関数。
-        SegmentTemplate (AdaptationSetレベルも考慮), SegmentBase (range含む) に対応。
-        BaseURLの解決、$RepresentationID$の置換も行う。
+        SegmentTimeline要素からセグメントの総数を正確に集計する。
+        r（repeat）属性を考慮に入れる。
+        """
+        if segment_timeline_element is None:
+            return 0
+        
+        total_segments = 0
+        s_elements = segment_timeline_element.findall("mpd:S", ns)
+        
+        for s in s_elements:
+            # r属性（繰り返し回数）を取得。存在しない場合は0。
+            repeat_attr = s.attrib.get('r', '0')
+            try:
+                # r="N" は N回 "繰り返す" ので、元の1回と合わせて N+1 個のセグメントになる
+                repeat_count = int(repeat_attr)
+                total_segments += (repeat_count + 1)
+            except (ValueError, TypeError):
+                # r属性が無効な場合は、このS要素を1セグメントとしてカウント
+                total_segments += 1
+                
+        return total_segments
+    def _extract_track_info_from_representation(self, representation, adaptation_set, current_period_base_url, total_duration_sec, ns, debug=False):
+        """
+        Representation要素からトラック情報を抽出する。
+        total_duration_sec: MPD全体の再生時間（秒）。SegmentTimelineがない場合の計算に使用。
         """
         rep_id = representation.attrib.get("id")
         if not rep_id:
@@ -55,9 +78,33 @@ class global_parser:
 
             init_template = segment_template.attrib.get("initialization")
             media_template = segment_template.attrib.get("media")
-            segment_duration = segment_template.attrib.get("duration", "N/A")
             timescale = segment_template.attrib.get("timescale", "N/A")
-            start_number_str = segment_template.attrib.get("startNumber", "1") # 元のコードに合わせてデフォルト"1"
+            
+            segment_duration = segment_template.attrib.get("duration")
+            segment_timeline = segment_template.find("mpd:SegmentTimeline", ns)
+
+            # ▼▼▼▼▼ ここからロジック修正 ▼▼▼▼▼
+            segment_count = 0
+            # Case 1: SegmentTimelineが存在する場合 (最優先かつ最も正確)
+            if segment_timeline is not None:
+                if debug: print(f"    Found SegmentTimeline. Counting segments directly.")
+                segment_count = self._count_segments_from_timeline(segment_timeline, ns)
+                
+                # seg_durationには代表値として最初のS要素のd属性を入れておく
+                first_s_element = segment_timeline.find("mpd:S", ns)
+                if first_s_element is not None:
+                    segment_duration = first_s_element.attrib.get("d")
+
+            # Case 2: SegmentTimelineがなく、duration属性が存在する場合 (固定長セグメント)
+            elif segment_duration:
+                if debug: print(f"    Found @duration attribute. Calculating segments.")
+                # 以前の計算ロジックをフォールバックとして使用
+                segment_count = self.calculate_segments(total_duration_sec, segment_duration, timescale)
+            
+            # どちらもない場合は "N/A"
+            if not segment_duration:
+                segment_duration = "N/A"
+            # ▲▲▲▲▲ ここまでロジック修正 ▲▲▲▲▲
 
             if not init_template or not media_template:
                 if debug: print(f"    SegmentTemplate found but missing 'initialization' or 'media' attribute for Rep ID {rep_id}")
@@ -102,6 +149,7 @@ class global_parser:
                 "seg_timescale": timescale,
                 # "initialization_range": None, # Add if needed later
                 # "segment_index_range": None,  # Add if needed later
+                "segment_count": segment_count,
                 "id": rep_id
             }
 
@@ -257,6 +305,12 @@ class global_parser:
 
         if debug: print(f"PSSH List: {pssh_list}")
 
+        # ▼▼▼▼▼ ここから修正 ▼▼▼▼▼
+        # MPD全体の再生時間を秒単位で取得
+        media_duration_str = root.attrib.get('mediaPresentationDuration', 'PT0S')
+        total_duration_sec = self.calculate_video_duration(media_duration_str)
+        if debug: print(f"MPD mediaPresentationDuration: {media_duration_str} ({total_duration_sec} seconds)")
+        # ▲▲▲▲▲ ここまで修正 ▲▲▲▲▲
 
         # --- トラック情報の抽出 ---
         video_tracks = []
@@ -278,8 +332,9 @@ class global_parser:
                 if debug: print(f"  Processing AdaptationSet (ID: {adapt_id}, mimeType: {mime_type_adapt}, contentType: {content_type_adapt})")
 
                 for representation in adaptation_set.findall("mpd:Representation", ns):
+                    # ★引数に total_duration_sec を渡す
                     track_info = self._extract_track_info_from_representation(
-                        representation, adaptation_set, current_period_base_url, ns, debug=debug
+                        representation, adaptation_set, current_period_base_url, total_duration_sec, ns, debug=debug
                     )
 
                     if track_info:
