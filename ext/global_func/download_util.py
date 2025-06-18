@@ -102,7 +102,7 @@ class aria2c_downloader:
         return "aria2c"
 
     
-    def download(self, url: str, output_file_name: str, config: Dict[str, Any], unixtime: str, service_name: str = "FOD") -> Tuple[bool, str]:
+    def download(self, url: str, output_file_name: str, config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool, str]:
         """
         指定されたURLからファイルをダウンロードする。
 
