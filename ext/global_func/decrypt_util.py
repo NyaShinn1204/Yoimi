@@ -37,7 +37,14 @@ class main_decrypt:
     
     def _decrypt_single(self, license_keys, input_path, output_path, config, service_name):
         print(f"[Single] input: {input_path}, output: {output_path}")
-
+        status = comamnd_util.check_command()
+        
+        if status == "shaka":
+            command = command_create.command_shaka_packager(license_keys, config)
+        elif status == "mp4decrpyt":
+            command = command_create.command_mp4decrypt(license_keys, config)
+        elif status == "all":
+            command = command_create.command_shaka_packager(license_keys, config)
     def _decrypt_multi(self, license_keys, input_paths, output_paths, config, service_name):
         print(f"[Multi] input: {input_paths}, output: {output_paths}")
         if len(input_paths) != len(output_paths):
