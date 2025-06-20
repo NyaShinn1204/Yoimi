@@ -128,22 +128,22 @@ We currently support or are working on the following sites
 
 Completed: ✅ | In Progress: 🔄️ | Cancelled: ❌ | Not Available: N/A
 
-| Service            | Premium | Free  | Subtitles                   | Cache Session |
-|--------------------|---------|-------|-----------------------------|---------------|
-| Abema              | ✅      | ✅    | ✅ (Around 10~20 titles)  | ❌           |
-| U-Next             | ✅      | N/A   | N/A                         | ❌           |
-| DMM TV             | ✅      | ✅    | ✅                        | ❌           |
-| Danime             | 🔄️      | 🔄️    | N/A                        | ❌           |
-| FOD                | ✅      | ✅    | N/A                        | ✅(v2 only)  |
-| NHK+               | ✅      | ✅    | ✅                        | ❌           |
-| Anime3rb           | N/A     | ✅    | N/A                         | ❌           |
-| Crunchyroll        | 🔄️      | ✅    | 🔄️                        | ❌           |
-| JFF Theater        | N/A     | ✅    | N/A                         | ❌           |
-| WOWOW              | 🔄️(under adjustment)      | N/A   | N/A       | ❌           |
-| Bandai Channel     | ✅      | ✅    | N/A                        | ❌            |
-| Hulu JP            | ✅(4K)  | N/A   | N/A                        | ❌            |
-| Fanza              | ✅      | N/A    | N/A                       | ✅            |
-| Fanza VR           | ✅(4K)  | N/A    | N/A                       | ✅            |
+| Service            | Premium | Free  | Subtitles                   | Cache Session | DL TYPE | 
+|--------------------|---------|-------|-----------------------------|---------------|---------|
+| Abema              | ✅      | ✅    | ✅ (Around 10~20 titles)  | ❌           |   HLS  |
+| U-Next             | ✅      | N/A   | N/A                         | ❌           |  WV   |
+| DMM TV             | ✅      | ✅    | ✅                        | ❌           |  WV    |
+| Danime             | 🔄️      | 🔄️    | N/A                        | ❌           |  WV    |
+| FOD                | ✅      | ✅    | N/A                        | ✅(v2 only)  | WV/HLS |
+| NHK+               | ✅      | ✅    | ✅                        | ❌           | WV/HLS |
+| Anime3rb           | N/A     | ✅    | N/A                         | ❌           | HLS   |
+| Crunchyroll        | 🔄️      | ✅    | 🔄️                        | ❌           |  WV   |
+| JFF Theater        | N/A     | ✅    | N/A                         | ❌           |  WV  |
+| WOWOW              | 🔄️(under adjustment)      | N/A   | N/A       | ❌           |  WV  |
+| Bandai Channel     | ✅      | ✅    | N/A                        | ❌            | WV  |
+| Hulu JP            | ✅(4K)  | N/A   | N/A                        | ❌            |  WV  |
+| Fanza              | ✅      | N/A    | N/A                       | ✅            |  HLS |
+| Fanza VR           | ✅(4K)  | N/A    | N/A                       | ✅            |  HLS |
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 
