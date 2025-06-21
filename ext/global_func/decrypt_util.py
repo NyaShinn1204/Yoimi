@@ -1,9 +1,10 @@
 import os
+import subprocess
 from typing import Union, List, Dict, Any
 
-class command_create:
-    def command_mp4decrypt(decrypt_keys, config):
-        if os.name == 'nt': # Windows
+class comamnd_util:
+    def create_mp4decrypt(decrypt_keys, config):
+        if os.name == "nt": # Windows
             mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")]
         else: # Linux or else
             mp4decrypt_command = [os.path.join(config["directorys"]["Binaries"], "mp4decrypt")]
@@ -17,8 +18,8 @@ class command_create:
                     ]
                 )
         return mp4decrypt_command
-    def command_shaka_packager(decrypt_keys, config):
-        if os.name == 'nt': # Windows
+    def create_shaka_packager(decrypt_keys, config):
+        if os.name == "nt": # Windows
             shaka_decrypt_command = [os.path.join(config["directorys"]["Binaries"], "3.4.2_packager-win-x64.exe")]
         else: # Linux or else
             shaka_decrypt_command = [os.path.join(config["directorys"]["Binaries"], "3.4.2_packager-linux-arm64")]
@@ -33,6 +34,40 @@ class command_create:
                 )
         return shaka_decrypt_command
     
+    def check_command(config):
+        if os.name == "nt": # Windows
+            mp4decrypt_path = os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")
+            shaka_path = os.path.join(config["directorys"]["Binaries"], "shaka_packager_win.exe")
+        else:
+            mp4decrypt_path = os.path.join(config["directorys"]["Binaries"], "mp4decrypt")
+            shaka_path = os.path.join(config["directorys"]["Binaries"], "shaka_packager_linux_arm64")
+    
+        mp4decrypt_ok = False
+        shaka_ok = False
+    
+        try:
+            subprocess.run([mp4decrypt_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            mp4decrypt_ok = True
+        except Exception:
+            pass
+    
+        try:
+            subprocess.run([shaka_path, "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            shaka_ok = True
+        except Exception:
+            pass
+    
+        if mp4decrypt_ok and shaka_ok:
+            status = "all"
+        elif shaka_ok:
+            status = "shaka"
+        elif mp4decrypt_ok:
+            status = "mp4decrypt"
+        else:
+            status = "none"
+    
+        return status
+    
 class main_decrypt:
     
     def _decrypt_single(self, license_keys, input_path, output_path, config, service_name):
@@ -40,11 +75,13 @@ class main_decrypt:
         status = comamnd_util.check_command()
         
         if status == "shaka":
-            command = command_create.command_shaka_packager(license_keys, config)
+            command = comamnd_util.create_shaka_packager(license_keys, config)
         elif status == "mp4decrpyt":
-            command = command_create.command_mp4decrypt(license_keys, config)
+            command = comamnd_util.create_mp4decrypt(license_keys, config)
         elif status == "all":
-            command = command_create.command_shaka_packager(license_keys, config)
+            command = comamnd_util.create_shaka_packager(license_keys, config)
+        else:
+            command = None
     def _decrypt_multi(self, license_keys, input_paths, output_paths, config, service_name):
         print(f"[Multi] input: {input_paths}, output: {output_paths}")
         if len(input_paths) != len(output_paths):
