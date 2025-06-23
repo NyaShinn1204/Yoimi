@@ -489,42 +489,9 @@ class Fanza_downloader:
             "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
         ).json()["data"]
         
-        if get_select_product_info["delivery_content_info"]["iphone"]["stream"][-1]["parts"] == (1 and 0):
-            params = {
-                "android_drm": False,
-                "bitrate": 0,
-                "drm": False,
-                "exploit_id": "uid:" + user_id,
-                "chrome_cast": False,
-                "isTablet": False,
-                "licenseUID": license_uid,
-                "parent_product_id": get_select_product_info["product_id"],
-                "part": part_num,
-                "product_id": get_select_product_info["product_id"],
-                "secure_url_flag": False,
-                "service": "digital",
-                "shop": single["shop_name"],
-                "smartphone_access": True,
-                "transfer_type": "stream",
-                "HTTP_USER_AGENT": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
-                "device": "iphone",
-                "HTTP_SMARTPHONE_APP": "DMM-APP",
-                "message": "Digital_Api_Proxy.getURL",
-            }
-            payload = set_post_params(
-                message="Digital_Api_Proxy.getURL",
-                params=params,
-                appid="android_movieplayer_app",
-                secret_key=secret_key,
-            )
-            
-            
-            license_response = self.session.post(
-                "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
-            ).json()
-            
-            err_check_data = license_response.get("data")
-            if isinstance(err_check_data, dict) and "errno" in err_check_data:
+        if get_select_product_info["delivery_content_info"] != None:
+
+            if get_select_product_info["delivery_content_info"]["iphone"]["stream"][-1]["parts"] == (1 and 0):
                 params = {
                     "android_drm": False,
                     "bitrate": 0,
@@ -534,6 +501,7 @@ class Fanza_downloader:
                     "isTablet": False,
                     "licenseUID": license_uid,
                     "parent_product_id": get_select_product_info["product_id"],
+                    "part": part_num,
                     "product_id": get_select_product_info["product_id"],
                     "secure_url_flag": False,
                     "service": "digital",
@@ -551,9 +519,12 @@ class Fanza_downloader:
                     appid="android_movieplayer_app",
                     secret_key=secret_key,
                 )
+                
+                
                 license_response = self.session.post(
                     "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
                 ).json()
+                
                 err_check_data = license_response.get("data")
                 if isinstance(err_check_data, dict) and "errno" in err_check_data:
                     params = {
@@ -565,7 +536,7 @@ class Fanza_downloader:
                         "isTablet": False,
                         "licenseUID": license_uid,
                         "parent_product_id": get_select_product_info["product_id"],
-                        "product_id": get_select_product_info["stream_product_id"],
+                        "product_id": get_select_product_info["product_id"],
                         "secure_url_flag": False,
                         "service": "digital",
                         "shop": single["shop_name"],
@@ -587,51 +558,49 @@ class Fanza_downloader:
                     ).json()
                     err_check_data = license_response.get("data")
                     if isinstance(err_check_data, dict) and "errno" in err_check_data:
-                        return False, None, None
+                        params = {
+                            "android_drm": False,
+                            "bitrate": 0,
+                            "drm": False,
+                            "exploit_id": "uid:" + user_id,
+                            "chrome_cast": False,
+                            "isTablet": False,
+                            "licenseUID": license_uid,
+                            "parent_product_id": get_select_product_info["product_id"],
+                            "product_id": get_select_product_info["stream_product_id"],
+                            "secure_url_flag": False,
+                            "service": "digital",
+                            "shop": single["shop_name"],
+                            "smartphone_access": True,
+                            "transfer_type": "stream",
+                            "HTTP_USER_AGENT": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
+                            "device": "iphone",
+                            "HTTP_SMARTPHONE_APP": "DMM-APP",
+                            "message": "Digital_Api_Proxy.getURL",
+                        }
+                        payload = set_post_params(
+                            message="Digital_Api_Proxy.getURL",
+                            params=params,
+                            appid="android_movieplayer_app",
+                            secret_key=secret_key,
+                        )
+                        license_response = self.session.post(
+                            "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
+                        ).json()
+                        err_check_data = license_response.get("data")
+                        if isinstance(err_check_data, dict) and "errno" in err_check_data:
+                            return False, None, None
+                        else:
+                            return True, license_response, payload
                     else:
                         return True, license_response, payload
                 else:
                     return True, license_response, payload
             else:
-                return True, license_response, payload
-        else:
-            license_response = self.session.post(
-                "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
-            ).json()
-            
-            params = {
-                "android_drm": False,
-                "bitrate": 0,
-                "drm": False,
-                "exploit_id": "uid:" + user_id,
-                "chrome_cast": False,
-                "isTablet": False,
-                "licenseUID": license_uid,
-                "parent_product_id": get_select_product_info["product_id"],
-                "part": part_num,
-                "product_id": get_select_product_info["product_id"],
-                "secure_url_flag": False,
-                "service": "digital",
-                "shop": single["shop_name"],
-                "smartphone_access": True,
-                "transfer_type": "stream",
-                "HTTP_USER_AGENT": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
-                "device": "iphone",
-                "HTTP_SMARTPHONE_APP": "DMM-APP",
-                "message": "Digital_Api_Proxy.getURL",
-            }
-            payload = set_post_params(
-                message="Digital_Api_Proxy.getURL",
-                params=params,
-                appid="android_movieplayer_app",
-                secret_key=secret_key,
-            )
-            
-            err_check_data = license_response.get("data")
-            license_response = self.session.post(
-                "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
-            ).json()
-            if isinstance(err_check_data, dict) and "errno" in err_check_data:
+                license_response = self.session.post(
+                    "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
+                ).json()
+                
                 params = {
                     "android_drm": False,
                     "bitrate": 0,
@@ -642,7 +611,7 @@ class Fanza_downloader:
                     "licenseUID": license_uid,
                     "parent_product_id": get_select_product_info["product_id"],
                     "part": part_num,
-                    "product_id": get_select_product_info["content_id"],
+                    "product_id": get_select_product_info["product_id"],
                     "secure_url_flag": False,
                     "service": "digital",
                     "shop": single["shop_name"],
@@ -660,16 +629,125 @@ class Fanza_downloader:
                     secret_key=secret_key,
                 )
                 
+                license_response = self.session.post(
+                    "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
+                ).json()
+                err_check_data = license_response.get("data")
+                if isinstance(err_check_data, dict) and "errno" in err_check_data:
+                    params = {
+                        "android_drm": False,
+                        "bitrate": 0,
+                        "drm": False,
+                        "exploit_id": "uid:" + user_id,
+                        "chrome_cast": False,
+                        "isTablet": False,
+                        "licenseUID": license_uid,
+                        "parent_product_id": get_select_product_info["product_id"],
+                        "part": part_num,
+                        "product_id": get_select_product_info["content_id"],
+                        "secure_url_flag": False,
+                        "service": "digital",
+                        "shop": single["shop_name"],
+                        "smartphone_access": True,
+                        "transfer_type": "stream",
+                        "HTTP_USER_AGENT": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
+                        "device": "iphone",
+                        "HTTP_SMARTPHONE_APP": "DMM-APP",
+                        "message": "Digital_Api_Proxy.getURL",
+                    }
+                    payload = set_post_params(
+                        message="Digital_Api_Proxy.getURL",
+                        params=params,
+                        appid="android_movieplayer_app",
+                        secret_key=secret_key,
+                    )
+                    
+                    
+                    license_response = self.session.post(
+                        "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
+                    ).json()
+                    err_check_data = license_response.get("data")
+                    if isinstance(err_check_data, dict) and "errno" in err_check_data:
+                        return False, None, None
+                else:
+                    return True, license_response, payload
+        
+        else:
+                license_response = self.session.post(
+                    "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
+                ).json()
+                
+                params = {
+                    "android_drm": False,
+                    "bitrate": 0,
+                    "drm": False,
+                    "exploit_id": "uid:" + user_id,
+                    "chrome_cast": False,
+                    "isTablet": False,
+                    "licenseUID": license_uid,
+                    "parent_product_id": get_select_product_info["product_id"],
+                    "part": part_num,
+                    "product_id": get_select_product_info["product_id"],
+                    "secure_url_flag": False,
+                    "service": "digital",
+                    "shop": single["shop_name"],
+                    "smartphone_access": True,
+                    "transfer_type": "stream",
+                    "HTTP_USER_AGENT": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
+                    "device": "iphone",
+                    "HTTP_SMARTPHONE_APP": "DMM-APP",
+                    "message": "Digital_Api_Proxy.getURL",
+                }
+                payload = set_post_params(
+                    message="Digital_Api_Proxy.getURL",
+                    params=params,
+                    appid="android_movieplayer_app",
+                    secret_key=secret_key,
+                )
                 
                 license_response = self.session.post(
                     "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
                 ).json()
                 err_check_data = license_response.get("data")
                 if isinstance(err_check_data, dict) and "errno" in err_check_data:
-                    return False, None, None
-            else:
-                return True, license_response, payload
-    
+                    params = {
+                        "android_drm": False,
+                        "bitrate": 0,
+                        "drm": False,
+                        "exploit_id": "uid:" + user_id,
+                        "chrome_cast": False,
+                        "isTablet": False,
+                        "licenseUID": license_uid,
+                        "parent_product_id": get_select_product_info["product_id"],
+                        "part": part_num,
+                        "product_id": get_select_product_info["content_id"],
+                        "secure_url_flag": False,
+                        "service": "digital",
+                        "shop": single["shop_name"],
+                        "smartphone_access": True,
+                        "transfer_type": "stream",
+                        "HTTP_USER_AGENT": "DMMPLAY movie_player (94, 4.1.0) API Level:35 PORTALAPP Android",
+                        "device": "iphone",
+                        "HTTP_SMARTPHONE_APP": "DMM-APP",
+                        "message": "Digital_Api_Proxy.getURL",
+                    }
+                    payload = set_post_params(
+                        message="Digital_Api_Proxy.getURL",
+                        params=params,
+                        appid="android_movieplayer_app",
+                        secret_key=secret_key,
+                    )
+                    
+                    
+                    license_response = self.session.post(
+                        "https://www.dmm.com/service/digitalapi/-/json/=/method=AndroidApp", data=payload
+                    ).json()
+                    err_check_data = license_response.get("data")
+                    if isinstance(err_check_data, dict) and "errno" in err_check_data:
+                        return False, None, None
+                else:
+                    return True, license_response, payload
+        
     def get_resolution(self, shop_name, product_id, secret_key):
         def get_json(params: dict) -> str:
             return json.dumps(params, separators=(",", ":"), ensure_ascii=False)

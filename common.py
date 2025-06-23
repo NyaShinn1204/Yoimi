@@ -42,7 +42,7 @@ def get_parser(url):
     valid_telasa = r'^["\']?http(?:s)?://(?:www\.)?telasa\.jp/(?:videos|play|series)/\d+["\']?$'
     valid_videomarket = r'^["\']?https?://(?:www\.)?videomarket\.jp/(?:title|player)/[0-9A-Z]+(?:/[0-9A-Z]+)?["\']?$'
     valid_hulu_jp = r'^["\']?https?://(?:www\.)?hulu\.jp/(?:watch/)?[^"\']+["\']?$'
-    valid_fanza = r'^["\']?https?://www\.dmm\.co\.jp/digital/-/player/=/.*["\']?$'
+    valid_fanza = r'^["\']?https?://www\.dmm\.(?:com|co\.jp)/digital/-/(?:player)/=/.*["\']?$'
     valid_dmm_gravure = r'^["\']?https?://tv\.dmm\.com/vod/restrict(?:/(?:list|detail))?/\?(?:[^&]*&)*season=(?P<season>[^&]+)(?:&|$)'
     valid_hiyahtv = r'^["\']?https?://(?:www\.)?hiyahtv\.com(?:/[\w\-]+)+(?:/videos/[\w\-]+)?["\']?$' 
     
@@ -116,7 +116,7 @@ def get_parser(url):
     elif re.match(valid_fanza, url):
         from ext import fanza as Fanza
         return Fanza.Fanza, "Fanza"
-    elif "dmmvrplayerstreaming" in url:
+    elif ("dmmvrplayerstreaming" in url) or ("vr-sample-player" in url):
         from ext import fanza as Fanza
         return Fanza.Fanza_VR, "Fanza-VR"
     elif (m := re.match(valid_dmm_gravure, url)):

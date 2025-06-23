@@ -274,6 +274,114 @@ class Fanza:
                     logger.error("No matches found. Here is a list of contents", extra={"service_name": Fanza.__service_name__})
                     for single in bought_list:
                         logger.info(f" + ID: {single["product_id"]} TITLE: {single["title"]}", extra={"service_name": Fanza.__service_name__})
+            
+            elif "cid=" in url:
+                cid_match = re.search(r"cid=([a-z0-9]+)", url, re.IGNORECASE)
+                if cid_match:
+                    cid_value = cid_match.group(1)
+                    
+                    part_match = re.search(r"part=([^/]+)", url)
+                    if part_match:
+                        part = str(part_match.group(1))
+                    else:
+                        part = "1"
+                                                
+                    for single in bought_list:
+                        if cid_value in single["product_id"]:
+                            logger.info("Download 1 Content", extra={"service_name": Fanza.__service_name__})
+                            logger.info(" + " + single["title"], extra={"service_name": Fanza.__service_name__})
+                            logger.info(" + " + single["quality_name"], extra={"service_name": Fanza.__service_name__})
+                            logger.info(" + " + single["viewing_text"], extra={"service_name": Fanza.__service_name__})
+                            logger.info(" + " + single["product_id"], extra={"service_name": Fanza.__service_name__})
+                            logger.info(" + " + str(single["mylibrary_id"]), extra={"service_name": Fanza.__service_name__})
+                            
+                            logger.info("Get License ID", extra={"service_name": Fanza.__service_name__})
+                            status, license_uid = fanza_downloader.get_license_uid(fanza_userid)
+                            if status == False:
+                                logger.info("Failed to get License UID", extra={"service_name": Fanza.__service_name__})
+                            logger.info(" + "+license_uid, extra={"service_name": Fanza.__service_name__})
+                            
+                            logger.info("Send License Request", extra={"service_name": Fanza.__service_name__})
+                            status, license, license_payload = fanza_downloader.get_license(fanza_userid, single, license_uid, fanza_secret_key, part)
+                            logger.info(" + KEY: "+license["data"]["cookie"][0]["value"], extra={"service_name": Fanza.__service_name__})
+                            logger.info(" + UID: "+license_payload["authkey"], extra={"service_name": Fanza.__service_name__})
+                            
+                            logger.info("Get Streaming m3u8", extra={"service_name": Fanza.__service_name__})
+                            logger.info(" + "+license["data"]["redirect"][:20], extra={"service_name": Fanza.__service_name__})
+                            
+                            status, resolution_list = fanza_downloader.get_resolution(single["shop_name"], single["product_id"], fanza_secret_key)
+                            
+                            m3u8_1 = session.get(license["data"]["redirect"], allow_redirects=False)
+                            m3u8_2 = session.get(m3u8_1.headers["Location"])
+                            
+                            global_parser = parser.global_parser()
+                            tracks = global_parser.hls_parser(m3u8_2.text)
+                            p_to_resolution = {
+                                "240p": "426x240",
+                                "360p": "640x360",
+                                "480p": "854x480",
+                                "720p": "1280x720",
+                                "1080p": "1920x1080"
+                            }
+                            bitrate_to_resolution = {}
+                            
+                            for item in resolution_list["data"]["result2"]:
+                                bitrate = int(item["bitrate"])
+                                match = re.search(r"\((\d+p)\)", item["quality_display_name"])
+                                if match:
+                                    p_quality = match.group(1)
+                                    resolution = p_to_resolution.get(p_quality)
+                                    if resolution:
+                                        bitrate_to_resolution[bitrate] = resolution
+                            
+                            for track in tracks["video_track"]:
+                                bitrate = track["bitrate"]
+                                if bitrate in bitrate_to_resolution:
+                                    track["resolution"] = bitrate_to_resolution[bitrate]
+                            track_data = global_parser.print_tracks(tracks)
+                            print(track_data)
+                                                    
+                            get_best_track = global_parser.select_best_tracks(tracks)
+                            
+                            logger.info("Selected Best Track:", extra={"service_name": Fanza.__service_name__})
+                            logger.info(f" + Video: [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": Fanza.__service_name__})
+                            
+                            content_link = m3u8_1.headers["Location"].replace(
+                                "playlist.m3u8", "chunklist_b" + str(get_best_track["video"]["bandwidth"]) + ".m3u8"
+                            )
+                            base_link = content_link.rsplit("/", 1)[0] + "/"
+                            
+                            logger.debug(content_link, extra={"service_name": Fanza.__service_name__})
+                            logger.debug(base_link, extra={"service_name": Fanza.__service_name__})
+                            
+                            files, iv, key = fanza.Fanza_util.parse_m3u8(content_link, base_link, license_uid, Fanza.__service_name__)
+                            
+                            dl_list = fanza.Fanza_util.download_chunk(files, iv, key, unixtime, config, Fanza.__service_name__)
+                            
+                            unixtime_temp = str(int(time.time()))
+                            output_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, unixtime_temp+"_nomux_"+".mp4")
+                            fanza.Fanza_util.merge_video(dl_list, output_path, Fanza.__service_name__)
+                            
+                            real_output = os.path.join(config["directorys"]["Downloads"], single["title"]+"_part"+str(part)+".mp4")
+                            fanza.Fanza_util.mux_video(output_path, real_output, Fanza.__service_name__, config)
+                            dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                            if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                               for filename in os.listdir(dir_path):
+                                   file_path = os.path.join(dir_path, filename)
+                                   try:
+                                       if os.path.isfile(file_path):
+                                           os.remove(file_path)
+                                       elif os.path.isdir(file_path):
+                                           shutil.rmtree(file_path)
+                                   except Exception as e:
+                                       print(f"削除エラー: {e}")
+                            else:
+                                print(f"指定されたディレクトリは存在しません: {dir_path}")
+                            logger.info('Finished download: {}'.format(single["title"]), extra={"service_name": Fanza.__service_name__})
+                    else:
+                        pass
+                else:
+                    pass            
             else:
                 # download all title
                 part = "1"
@@ -304,6 +412,9 @@ class Fanza:
                         logger.info(" + "+license["data"]["redirect"][:20], extra={"service_name": Fanza.__service_name__})
                         
                         status, resolution_list = fanza_downloader.get_resolution(single["shop_name"], single["product_id"], fanza_secret_key)
+                        
+                        m3u8_1 = session.get(license["data"]["redirect"], allow_redirects=False)
+                        m3u8_2 = session.get(m3u8_1.headers["Location"])
                         
                         global_parser = parser.global_parser()
                         tracks = global_parser.hls_parser(m3u8_2.text)
