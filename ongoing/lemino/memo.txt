@@ -1,0 +1,8 @@
+get X-Service-Token
+
+URL: https://if.lemino.docomo.ne.jp/v1/session/init
+METHOD: POST
+PAYLOAD: {terminal_type: 3}
+
+response.headers["X-Service-Token]
+response.headers["X-Service-Token-Updateddate]
