@@ -42,7 +42,7 @@ class global_parser:
                 total_segments += 1
                 
         return total_segments
-    def _extract_track_info_from_representation(self, representation, adaptation_set, current_period_base_url, total_duration_sec, ns, debug=False):
+    def _extract_track_info_from_representation(self, representation, adaptation_set, current_period_base_url, total_duration_sec, ns, debug=False, real_bitrate=False):
         """
         Representation要素からトラック情報を抽出する。
         total_duration_sec: MPD全体の再生時間（秒）。SegmentTimelineがない場合の計算に使用。
@@ -209,8 +209,11 @@ class global_parser:
         codec = representation.attrib.get("codecs", "")
 
         try:
-            bitrate_kbps = int(bandwidth_str or 0) / 1000
-            track_info["bitrate"] = str(int(bitrate_kbps)) # Store as integer string
+            if real_bitrate:
+                track_info["bitrate"] = bandwidth_str
+            else:
+                bitrate_kbps = int(bandwidth_str or 0) / 1000
+                track_info["bitrate"] = str(int(bitrate_kbps))
             track_info["codec"] = codec
         except ValueError as e:
             print(f"ValueError: Invalid bandwidth value: '{bandwidth_str}' for Rep ID {rep_id} - {e}")
@@ -254,7 +257,7 @@ class global_parser:
             # Let's return the info, downstream code can filter later if needed
             track_info["type"] = "unknown"
             return track_info
-    def mpd_parser(self, mpd_content, mpd_url="", debug=False):
+    def mpd_parser(self, mpd_content, mpd_url="", debug=False, real_bitrate=False):
         """MPDコンテンツを解析し、トラック情報やPSSHなどを抽出する (元の形式に近いPSSHリスト)"""
         try:
             if mpd_content.startswith('\ufeff'): mpd_content = mpd_content[1:]
@@ -334,7 +337,7 @@ class global_parser:
                 for representation in adaptation_set.findall("mpd:Representation", ns):
                     # ★引数に total_duration_sec を渡す
                     track_info = self._extract_track_info_from_representation(
-                        representation, adaptation_set, current_period_base_url, total_duration_sec, ns, debug=debug
+                        representation, adaptation_set, current_period_base_url, total_duration_sec, ns, debug=debug, real_bitrate=real_bitrate
                     )
 
                     if track_info:
@@ -406,7 +409,7 @@ class global_parser:
                  attributes[local_name] = value
             return attributes
         except ET.ParseError: return {}
-    def print_tracks(self, tracks_json):
+    def print_tracks(self, tracks_json, real_bitrate=False):
         """解析結果を元のシンプルな形式で表示する文字列を生成"""
         # --- Reverted to the original print_tracks code ---
         if not tracks_json or not isinstance(tracks_json, dict):
@@ -424,6 +427,8 @@ class global_parser:
                  codec = video.get('codec', 'N/A')
                  resolution = video.get('resolution', 'N/A')
                  bitrate = video.get('bitrate', 'N/A')
+                 if bitrate != 'N/A' and real_bitrate:
+                     bitrate = int(int(bitrate) / 1000)
                  output += f"{prefix} VID | [{codec}] [{resolution}] | {bitrate} kbps\n" # Original format
         else:
              output += "  No video tracks found.\n" # Indentation for consistency if needed
@@ -437,6 +442,8 @@ class global_parser:
                  prefix = prefixes[i]
                  codec = audio.get('codec', 'N/A')
                  bitrate = audio.get('bitrate', 'N/A')
+                 if bitrate != 'N/A' and real_bitrate:
+                     bitrate = int(int(bitrate) / 1000)
                  # Original format didn't explicitly show language, but it's useful. Keeping it simple.
                  # lang = audio.get('language', 'und')
                  # output += f"{prefix} AUD | [{codec}] [{lang}] | {bitrate} kbps\n"
