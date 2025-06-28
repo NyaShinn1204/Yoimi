@@ -14,7 +14,8 @@ from rich.console import Console
 from urllib.parse import urlparse, parse_qs, unquote
 
 from ext.utils import lemino
-from ext.global_func.session_util import session_util
+from ext.global_func.util.session_util import session_util
+from ext.global_func.util.license_util import license_util
 
 console = Console()
 
@@ -170,6 +171,38 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
             title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_list, title_name, None, content_info["meta_list"][0]["title_sub"])
             logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+            
+            logger.info("Getting information from MPD", extra={"service_name": __service_name__})
+            
+            cid = content_info["meta_list"][0]["cid_obj"][0]["cid"]
+            lid = content_info["meta_list"][0]["license_list"][0]["license_id"]
+            play_token, content_list = lemino_downloader.get_mpd_info(cid=cid, lid=lid, crid=content_info["meta_list"][0]["crid"])
+            mpd_link = content_list[0]["play_url"]
+            Tracks = parser.global_parser()
+            transformed_data = Tracks.mpd_parser(session.get(mpd_link).text)
+            duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+                    
+            logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
+            widevine_headers = {
+                "acquirelicenseassertion": content_list[0]["custom_data"],
+                "user-agent": "inidrmagent/2.0 (Android 10; jp.ne.docomo.lemino.androidtv)",
+                "content-type": "application/octet-stream",
+                "host": "drm.lemino.docomo.ne.jp",
+                "connection": "Keep-Alive",
+                "accept-encoding": "gzip"
+            }
+            license_key = license_util.widevine_license(transformed_data["pssh_list"]["widevine"], content_list[0]["la_url"], widevine_headers, session, config)
+            
+            lemino_downloader.send_stop_signal(play_token, content_info["meta_list"][0]["duration_sec"])
+            
+            logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
+            logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})        
+            
+            logger.info("Get Video, Audio Tracks:", extra={"service_name": __service_name__})
+            logger.debug(" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
+            track_data = Tracks.print_tracks(transformed_data)
+            
+            print(track_data) 
             
             pass
         

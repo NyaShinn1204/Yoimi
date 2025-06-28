@@ -11,7 +11,7 @@ from urllib.parse import urlparse, parse_qs
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import ext.global_func.decrypt_subtitle as sub_decrypt
+import ext.global_func.util.decrypt_subtitle as sub_decrypt
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"

@@ -124,6 +124,20 @@ class Lemino_downloader:
         else:
             return False, None
         
+    def send_stop_signal(play_token, duratation):
+        payload = {
+            "play_token": play_token,
+            "dur": str(duratation),
+            "stop_position": "0"
+        }
+        
+        signal_result = requests.post("https://if.lemino.docomo.ne.jp/v1/delivery/watch/stop", json=payload)
+        signal_result.raise_for_status()
+        
+        if signal_result.json()["result"] == "0":
+            return True
+        else:
+            return False
         
     def get_content_info(self, crid):
         url = "https://if.lemino.docomo.ne.jp/v1/meta/contents"
@@ -280,5 +294,10 @@ class Lemino_downloader:
             play_token = play_list_json["play_token"]
             content_list = play_list_json["play_list"]
             return play_token, content_list
+        elif play_list_result.status_code == 400:
+            play_list_json = play_list_result.json()
+            result_code = play_list_json["result_code"]
+            result_message = play_list_json["message"]
+            raise Exception("Message: "+result_message+" ERR_CODE: "+result_code)
         else:
             raise Exception("FAILED TO GET CONTENT INFO")
