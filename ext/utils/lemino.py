@@ -124,7 +124,7 @@ class Lemino_downloader:
         else:
             return False, None
         
-    def send_stop_signal(play_token, duratation):
+    def send_stop_signal(self, play_token, duratation):
         payload = {
             "play_token": play_token,
             "dur": str(duratation),

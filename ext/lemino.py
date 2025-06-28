@@ -178,8 +178,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             lid = content_info["meta_list"][0]["license_list"][0]["license_id"]
             play_token, content_list = lemino_downloader.get_mpd_info(cid=cid, lid=lid, crid=content_info["meta_list"][0]["crid"])
             mpd_link = content_list[0]["play_url"]
+            mpd_text = session.get(mpd_link).text
             Tracks = parser.global_parser()
-            transformed_data = Tracks.mpd_parser(session.get(mpd_link).text)
+            transformed_data = Tracks.mpd_parser(mpd_text)
             duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
                     
             logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
@@ -204,7 +205,29 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             print(track_data) 
             
-            pass
+            get_best_track = Tracks.select_best_tracks(transformed_data)
+            
+            print("Selected Best Track:")
+            print(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps")
+            print(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps")      
+                          
+            duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+            print(" + Episode Duration: "+str(int(duration)))                    
+            
+            print("Video, Audio Content Segment Link")
+            video_segment_list = Tracks.calculate_segments(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
+            print(" + Video Segments: "+str(int(video_segment_list)))                 
+            audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
+            print(" + Audio Segments: "+str(int(audio_segment_list)))
+            
+            parsed = urlparse(mpd_link)
+            base_path = parsed.path.rsplit('/', 1)[0] + '/'
+            base_url = f"{parsed.scheme}://{parsed.netloc}{base_path}"
+            
+            video_segments = Tracks.get_segment_link_list(mpd_text, get_best_track["video"]["id"], base_url)
+            video_segment_links = [item.replace("$Bandwidth$", get_best_track["video"]["bitrate"]) for item in video_segments["all"]]
+            audio_segments = Tracks.get_segment_link_list(mpd_text, get_best_track["audio"]["id"], base_url)
+            audio_segment_links = [item.replace("$Bandwidth$", get_best_track["audio"]["bitrate"]) for item in audio_segments["all"]]
         
         def season_download_logic():
             pass
