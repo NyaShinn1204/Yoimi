@@ -15,6 +15,7 @@ from urllib.parse import urlparse, parse_qs, unquote
 
 from ext.utils import lemino
 
+from ext.global_func.util.mux_util import main_mux
 from ext.global_func.util.download_util import segment_downloader
 from ext.global_func.util.decrypt_util import main_decrypt
 from ext.global_func.util.session_util import session_util
@@ -215,7 +216,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {str(int(int(get_best_track["audio"]["bitrate"]) /1000))} kbps", extra={"service_name": __service_name__})
                           
             duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
-            logger.debug(" + Episode Duration: "+str(int(duration)))                    
+            logger.debug(" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})           
             
             logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
             video_segment_list = Tracks.calculate_segments(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
@@ -250,6 +251,53 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             audio_decrypt_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
             
             decryptor.decrypt(license_keys=license_key, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=config, service_name=__service_name__)
+                        
+            def sanitize_filename(filename: str) -> str:
+                """
+                Fucking idiot Windows filename convert to nice string 
+                """
+                replacements = {
+                    '<': '＜',
+                    '>': '＞',
+                    ':': '：',
+                    '"': '”',
+                    '/': '／',
+                    '\\': '＼',
+                    '|': '｜',
+                    '?': '？',
+                    '*': '＊'
+                }
+                for bad_char, safe_char in replacements.items():
+                    filename = filename.replace(bad_char, safe_char)
+                return filename
+            
+            if title_name != None:
+                if os.name == "nt":
+                    output_path = os.path.join(config["directorys"]["Downloads"], title_name, sanitize_filename(os.path.join(title_name_logger+".mp4")))
+                else:
+                    output_path = os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4")
+            else:
+                if os.name == "nt":
+                    output_path = os.path.join(config["directorys"]["Downloads"], sanitize_filename(os.path.join(title_name_logger+".mp4")))
+                else:
+                    output_path = os.path.join(config["directorys"]["Downloads"], title_name_logger+".mp4")
+            
+            logger.info("Muxing Episode...", extra={"service_name": __service_name__})
+            
+            muxer = main_mux(logger)
+            
+            muxer.mux_content(video_input=video_decrypt_output, audio_input=audio_decrypt_output, output_path=output_path, duration=int(duration), service_name=__service_name__)
+            
+            dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+            try:
+                if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                    shutil.rmtree(dir_path)
+                else:
+                    print(f"Folder is not found: {dir_path}")
+            except Exception as e:
+                print(f"Delete folder errro: {e}")
+            
+            logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
             
         def season_download_logic():
             pass
