@@ -9,6 +9,7 @@ import subprocess
 
 from tqdm import tqdm
 from datetime import datetime
+from collections import defaultdict
 from urllib.parse import urlparse, urljoin
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -137,7 +138,50 @@ class Lemino_downloader:
             return contentinfo_result.json()
         else:
             raise Exception("FAILED TO GET CONTENT INFO")
+    def get_content_list(self, group_id):
+        url = "https://if.lemino.docomo.ne.jp/v1/meta/member"
+        
+        querystring = {
+            "parent_filter": "{\"crid\":[\""+group_id+"\"],\"pit_git_type\":[\"SERIES\"],\"avail_status\":[\"1\"]}",
+            "filter": "{\"avail_status\":[\"1\"]}",
+            "child_sort": "{\"content_num\": \"asc\"}"
+        }
+        serieslist_result = self.session.get(url, params=querystring)
+        if serieslist_result.status_code == 200:
+            return len(serieslist_result.json()["parent_list"][0]["child_license_list"])
+        else:
+            raise Exception("FAILED TO GET CONTENT INFO")
     
+    def create_titlename_logger(self, id_type, episode_count, title_name, episode_num, episode_name):
+        def safe_format(format_string, raw_values):
+            keys_in_format = set(re.findall(r"{(\w+)}", format_string))
+            values = {k: raw_values.get(k, "") for k in keys_in_format if raw_values.get(k)}
+            
+            for k in keys_in_format:
+                if not raw_values.get(k):
+                    format_string = re.sub(rf"_?{{{k}}}", "", format_string)
+    
+            return format_string.format_map(defaultdict(str, values))
+    
+        raw_values = {
+            "seriesname": title_name,
+            "titlename": episode_num,
+            "episodename": episode_name
+        }
+    
+        if id_type["top_genre_name"] in ("アニメ", "国内ドラマ", "海外ドラマ"):
+            format_string = self.config["format"]["anime"]
+            title_name_logger = safe_format(format_string, raw_values)
+        elif id_type["top_genre_name"] in ("洋画", "邦画"):
+            if episode_count == 1:
+                title_name_logger = title_name
+            else:
+                format_string = self.config["format"]["movie"]
+                title_name_logger = safe_format(format_string, raw_values)
+        else:
+            format_string = self.config["format"]["anime"]
+            title_name_logger = safe_format(format_string, raw_values) 
+        return title_name_logger
     
     def analyze_genre(self, search_ids):        
         def _recursive_search_in_genre(current_genre, target_id):

@@ -158,6 +158,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             result_genre, print_genre = lemino_downloader.analyze_genre(genre_list)
             logger.info(f" + Video Type: {print_genre}", extra={"service_name": __service_name__})
             
+            content_list = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])
+            
+            lemino_downloader.create_titlename_logger(result_genre, content_list, )
+            
             pass
         
         def season_download_logic():
