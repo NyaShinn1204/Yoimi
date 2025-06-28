@@ -62,7 +62,7 @@ class Lemino_downloader:
                     else:
                         print("Login Accept")
                         
-                        update_token = self.session.post("https://if.lemino.docomo.ne.jp/v1/session/update")
+                        update_token = self.session.post("https://if.lemino.docomo.ne.jp/v1/session/update").headers["x-service-token"]
                         
                         self.session.headers.update({"x-service-token": update_token})
                       
