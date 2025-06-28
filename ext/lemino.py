@@ -151,7 +151,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         
         # DOWNLOAD LOGIC
-        def single_download_logic(content_crid):
+        def single_download_logic(content_crid, from_mutli=False, title_name_logger=None, title_name=None):
             content_info = lemino_downloader.get_content_info(crid=content_crid)
             
             logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
@@ -167,13 +167,19 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 content_list = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])
             except:
                 content_list = 1
-            title_name = content_info["meta_list"][0]["title"].replace(content_info["meta_list"][0]["title_sub"], "")
+            if from_mutli:
+                title_name = title_name
+            else:
+                title_name = content_info["meta_list"][0]["title"].replace(content_info["meta_list"][0]["title_sub"], "")
             episode_num = 1
             match = re.search(r'(\d+)', content_info["meta_list"][0]["play_button_name"])
             if match:
                 episode_num = int(match.group(1))
                     
-            title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_list, title_name, None, content_info["meta_list"][0]["title_sub"])
+            if from_mutli:
+                title_name_logger = title_name_logger
+            else:
+                title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_list, title_name, None, content_info["meta_list"][0]["title_sub"])
             logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
             
             logger.info("Getting information from MPD", extra={"service_name": __service_name__})
@@ -329,6 +335,24 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 episode_number = single["play_button_name"]
                 title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_count, season_title, episode_number, subtitle)
                 logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+                
+            for single in season_info["child_list"]:
+                title = single["title"].strip()
+                title_sub = single["title_sub"].strip()
+                
+                if title_sub.startswith(title):
+                    subtitle = title_sub[len(title):].strip()
+                else:
+                    subtitle = title_sub
+                    for part in title.split():
+                        if part and part in subtitle:
+                            subtitle = subtitle.replace(part, "").strip()
+                            
+                episode_number = single["play_button_name"]
+                title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_count, season_title, episode_number, subtitle)
+                single_download_logic(single["crid"], from_mutli=True, title_name_logger=title_name_logger, title_name=season_title)
+                
+            logger.info("Finished download Season: {}".format(season_title), extra={"service_name": __service_name__})
         # URL LOGIC HERE
         def safe_b64decode(data: str) -> str:
             # nice decode base64 to crid :)
