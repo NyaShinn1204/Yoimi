@@ -1,8 +1,13 @@
 import re
 import os
+import time
+import requests
+import threading
 import subprocess
+from tqdm import tqdm
 from datetime import datetime
 from typing import Optional, Tuple, List, Dict, Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 COLOR_GREEN = "\033[92m"
@@ -164,8 +169,98 @@ class aria2c_downloader:
 
         return True, os.path.join(output_temp_directory, output_file_name)
 
+class segment_downloader:
+    def download(self, segment_links: list, output_file_name: str, config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool]:
+        """
+        セグメントのURLリストから並列でダウンロードを行い、結合して1つのファイルに出力する。
 
+        Args:
+            segment_links (list): ダウンロード対象の.tsセグメントのURLリスト。
+            output_file_name (str): 出力ファイル名（結合後のファイル名）。
+            config (Dict): 各種ディレクトリ設定などを含む辞書。
+            unixtime (str): 一時作業用ディレクトリ名として使用するUnixタイム。
+            service_name (str): ログ表示用のサービス名。
 
+        Returns:
+            Tuple[bool]: 正常終了時はTrue、失敗または割り込み時は例外を送出。
+        """
+        output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+        os.makedirs(output_temp_directory, exist_ok=True)
+        
+        stop_flag = threading.Event()
+
+        def fetch_and_save(index_url):
+            """
+            セグメントを1つずつダウンロードして一時ファイルとして保存する内部関数。
+
+            Args:
+                index_url (tuple): (インデックス, URL) のタプル。
+
+            Returns:
+                int: 成功時はインデックスを返す。
+
+            Raises:
+                Exception: 3回のリトライでも失敗した場合に例外を送出。
+            """
+            index, url = index_url
+            retry = 0
+            while retry < 3 and not stop_flag.is_set():
+                try:
+                    response = requests.get(url.strip(), timeout=10)
+                    response.raise_for_status()
+                    temp_path = os.path.join(output_temp_directory, f"{index:05d}.ts")
+                    with open(temp_path, 'wb') as f:
+                        f.write(response.content)
+                    return index
+                except requests.exceptions.RequestException:
+                    retry += 1
+                    time.sleep(2)
+
+            if not stop_flag.is_set():
+                raise Exception(f"Failed to download segment {index}: {url}")
+
+        futures = []
+        try:
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                futures = [executor.submit(fetch_and_save, (i, url)) for i, url in enumerate(segment_links)]
+                
+                with tqdm(
+                    total=len(segment_links),
+                    desc=f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ",
+                    unit="file"
+                ) as pbar:
+                    for future in as_completed(futures):
+                        try:
+                            future.result()
+                        except Exception as e:
+                            print(f"Error: {e}")
+                        pbar.update(1)
+
+            output_path = os.path.join(output_temp_directory, output_file_name)
+            with open(output_path, 'wb') as out_file:
+                for i in range(len(segment_links)):
+                    temp_path = os.path.join(output_temp_directory, f"{i:05d}.ts")
+                    with open(temp_path, 'rb') as f:
+                        out_file.write(f.read())
+                    os.remove(temp_path)
+                    
+            return True, output_path
+        
+        except KeyboardInterrupt:
+            stop_flag.set()
+            for future in futures:
+                future.cancel()
+
+            for i in range(len(segment_links)):
+                temp_path = os.path.join(output_temp_directory, f"{i:05d}.ts")
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except:
+                        pass
+            return False, "Download interrupted by user."
+        except Exception as e:
+            return False, f"Unexpected error: {str(e)}"
 ########## TEST SCRIPT HERE ##########
 
 if __name__ == '__main__':
@@ -199,3 +294,43 @@ if __name__ == '__main__':
         print(f"\nDownload successful! File saved at: {result}")
     else:
         print(f"\nDownload failed:\n{result}")
+        
+if __name__ == '__main__':
+    
+    if os.name == 'nt':
+        os.system('') ## Bypass Fucking Idiot Windows Color Issue
+    
+    dummy_config = {
+        "directorys": {
+            "Temp": "temp_dir",
+            "Binaries": "."
+        }
+    }
+    dummy_unixtime = str(int(datetime.now().timestamp()))
+    
+    test_segments = [
+      "https://test-streams.mux.dev/x36xhzz/url_8/url_590/193039199_mp4_h264_aac_fhd_7.ts",
+      "https://test-streams.mux.dev/x36xhzz/url_8/url_591/193039199_mp4_h264_aac_fhd_7.ts",
+      "https://test-streams.mux.dev/x36xhzz/url_8/url_592/193039199_mp4_h264_aac_fhd_7.ts",
+      "https://test-streams.mux.dev/x36xhzz/url_8/url_593/193039199_mp4_h264_aac_fhd_7.ts",
+      "https://test-streams.mux.dev/x36xhzz/url_8/url_594/193039199_mp4_h264_aac_fhd_7.ts",
+      "https://test-streams.mux.dev/x36xhzz/url_8/url_595/193039199_mp4_h264_aac_fhd_7.ts",
+      "https://test-streams.mux.dev/x36xhzz/url_8/url_596/193039199_mp4_h264_aac_fhd_7.ts",
+    ]
+    test_filename = "sample_m3u8.mp4"
+
+    downloader = segment_downloader()
+
+    print("Download starting...")
+    success, result = downloader.download(
+        segment_links=test_segments,
+        output_file_name=test_filename,
+        config=dummy_config,
+        unixtime=dummy_unixtime,
+        service_name="Yoimi-Test"
+    )
+
+    if success:
+        print(f"\nDownload successful! File saved at: {test_filename}")
+    else:
+        print(f"\nDownload failed:\n{success}")
