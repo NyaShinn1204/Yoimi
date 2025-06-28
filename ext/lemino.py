@@ -14,6 +14,9 @@ from rich.console import Console
 from urllib.parse import urlparse, parse_qs, unquote
 
 from ext.utils import lemino
+
+from ext.global_func.util.download_util import segment_downloader
+from ext.global_func.util.decrypt_util import main_decrypt
 from ext.global_func.util.session_util import session_util
 from ext.global_func.util.license_util import license_util
 
@@ -180,7 +183,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             mpd_link = content_list[0]["play_url"]
             mpd_text = session.get(mpd_link).text
             Tracks = parser.global_parser()
-            transformed_data = Tracks.mpd_parser(mpd_text)
+            transformed_data = Tracks.mpd_parser(mpd_text, real_bitrate=True)
             duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
                     
             logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
@@ -201,24 +204,24 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             logger.info("Get Video, Audio Tracks:", extra={"service_name": __service_name__})
             logger.debug(" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
-            track_data = Tracks.print_tracks(transformed_data)
+            track_data = Tracks.print_tracks(transformed_data, real_bitrate=True)
             
             print(track_data) 
             
             get_best_track = Tracks.select_best_tracks(transformed_data)
             
-            print("Selected Best Track:")
-            print(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps")
-            print(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps")      
+            logger.info("Selected Best Track:", extra={"service_name": __service_name__})
+            logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {str(int(int(get_best_track["video"]["bitrate"]) /1000))} kbps", extra={"service_name": __service_name__})
+            logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {str(int(int(get_best_track["audio"]["bitrate"]) /1000))} kbps", extra={"service_name": __service_name__})
                           
             duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
-            print(" + Episode Duration: "+str(int(duration)))                    
+            logger.debug(" + Episode Duration: "+str(int(duration)))                    
             
-            print("Video, Audio Content Segment Link")
+            logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
             video_segment_list = Tracks.calculate_segments(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
-            print(" + Video Segments: "+str(int(video_segment_list)))                 
+            logger.info(" + Video Segments: "+str(int(video_segment_list)), extra={"service_name": __service_name__})               
             audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
-            print(" + Audio Segments: "+str(int(audio_segment_list)))
+            logger.info(" + Audio Segments: "+str(int(audio_segment_list)), extra={"service_name": __service_name__})
             
             parsed = urlparse(mpd_link)
             base_path = parsed.path.rsplit('/', 1)[0] + '/'
@@ -229,7 +232,24 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             audio_segments = Tracks.get_segment_link_list(mpd_text, get_best_track["audio"]["id"], base_url)
             audio_segment_links = [item.replace("$Bandwidth$", get_best_track["audio"]["bitrate"]) for item in audio_segments["all"]]
             
-            logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": __service_name__})
+            logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+            
+            video_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4")
+            audio_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4")
+            
+            downloader = segment_downloader()
+            
+            status, result = downloader.download(video_segment_links, "download_encrypt_video.mp4", config, unixtime, __service_name__)
+            status, result = downloader.download(audio_segment_links, "download_encrypt_audio.mp4", config, unixtime, __service_name__)
+            
+            logger.info("Decrypting Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+            
+            decryptor = main_decrypt(logger)
+            
+            video_decrypt_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_video.mp4")
+            audio_decrypt_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
+            
+            decryptor.decrypt(license_keys=license_key, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=config, service_name=__service_name__)
             
         def season_download_logic():
             pass
