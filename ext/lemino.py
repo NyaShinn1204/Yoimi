@@ -160,7 +160,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             content_list = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])
             
-            lemino_downloader.create_titlename_logger(result_genre, content_list, )
+            title_name = content_info["meta_list"][0]["title"].replace(content_info["meta_list"][0]["title_sub"], "")
+            episode_num = 1
+            match = re.search(r'(\d+)', content_info["meta_list"][0]["play_button_name"])
+            if match:
+                episode_num = int(match.group(1))
+        
+            title_name_logger = lemino_downloader.create_titlename_logger(result_genre, content_list, title_name, None, content_info["meta_list"][0]["title_sub"])
+            logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
             
             pass
         
