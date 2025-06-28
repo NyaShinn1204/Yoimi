@@ -146,7 +146,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         
         # DOWNLOAD LOGIC
-        def single_download_logic():
+        def single_download_logic(content_crid):
+            content_info = lemino_downloader.get_content_info(crid=content_crid)
             pass
         
         def season_download_logic():
@@ -167,7 +168,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             crid_encoded = query.get("crid", [None])[0]
             if crid_encoded:
                 crid_decoded = safe_b64decode(unquote(crid_encoded))
-                print("Decoded CRID:", crid_decoded)
+                single_download_logic(crid_decoded)
                 return
     
         # --- contents URL ---
@@ -177,7 +178,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             crid_decoded = safe_b64decode(unquote(crid_encoded))
     
             if "/vod/" in crid_decoded:
-                print("Type: single")
+                single_download_logic(crid_decoded)
             elif "/group/" in crid_decoded:
                 print("Type: batch")
                 print("Running loop for batch items:")

@@ -122,3 +122,45 @@ class Lemino_downloader:
             return True, response.json()
         else:
             return False, None
+        
+        
+    def get_content_info(self, crid):
+        url = "https://if.lemino.docomo.ne.jp/v1/meta/contents"
+        
+        querystring = {
+            #"crid": "crid://plala.iptvf.jp/vod/0000000000_00m7wo6mux",
+            "crid": crid,
+            "filter": "{\"target_age\":[\"G\",\"R-12\",\"R-15\"],\"avail_status\":[\"1\"]}"
+        }
+        contentinfo_result = self.session.get(url, params=querystring)
+        if contentinfo_result.status_code == 200:
+            return contentinfo_result.json()
+        else:
+            raise Exception("FAILED TO GET CONTENT INFO")
+    
+    def get_mpd_info(self, cid, lid, crid):
+        payload = {
+          "play_type": 1,
+          "avail_status": "1",
+          "terminal_type": 4,
+          "content_list": [
+            {
+              "kind": "main",
+              "cid": cid,
+              "lid": lid,
+              "crid": crid,
+              "auto_play": 1,
+              "trailer": 0,
+              "preview": 0,
+              "stop_position": 0
+            }
+          ]
+        }
+        play_list_result = self.session.post("https://if.lemino.docomo.ne.jp/v1/user/delivery/watch/ready", json=payload)
+        if play_list_result.status_code == 200:
+            play_list_json = play_list_result.json()
+            play_token = play_list_json["play_token"]
+            content_list = play_list_json["play_list"]
+            return play_token, content_list
+        else:
+            raise Exception("FAILED TO GET CONTENT INFO")

@@ -142,7 +142,7 @@ def get_parser(url):
         return Hi_YAH, "Hi-YAH!"
     elif re.match(valid_lemino, url):
         from ext import lemino as Lemino
-        return lemino, "Lemino"
+        return Lemino, "Lemino"
     return None, None
 
 
