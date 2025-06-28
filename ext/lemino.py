@@ -18,7 +18,7 @@ from ext.global_func.session_util import session_util
 
 console = Console()
 
-__service_name__ = "Hi-YAH!"
+__service_name__ = "Lemino"
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
@@ -155,18 +155,20 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             for genre_s in content_info["meta_list"][0]["genre_list"]["vod"]:
                 genre_list.append(genre_s["id"])
             
-            result_genre, print_genre = lemino_downloader.analyze_genre(genre_list)
+            result_genre, print_genre, only_genre_id_list = lemino_downloader.analyze_genre(genre_list)
             logger.info(f" + Video Type: {print_genre}", extra={"service_name": __service_name__})
             
-            content_list = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])
-            
+            try:
+                content_list = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])
+            except:
+                content_list = 1
             title_name = content_info["meta_list"][0]["title"].replace(content_info["meta_list"][0]["title_sub"], "")
             episode_num = 1
             match = re.search(r'(\d+)', content_info["meta_list"][0]["play_button_name"])
             if match:
                 episode_num = int(match.group(1))
-        
-            title_name_logger = lemino_downloader.create_titlename_logger(result_genre, content_list, title_name, None, content_info["meta_list"][0]["title_sub"])
+                    
+            title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_list, title_name, None, content_info["meta_list"][0]["title_sub"])
             logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
             
             pass

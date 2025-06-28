@@ -142,9 +142,17 @@ class Lemino_downloader:
         url = "https://if.lemino.docomo.ne.jp/v1/meta/member"
         
         querystring = {
-            "parent_filter": "{\"crid\":[\""+group_id+"\"],\"pit_git_type\":[\"SERIES\"],\"avail_status\":[\"1\"]}",
-            "filter": "{\"avail_status\":[\"1\"]}",
-            "child_sort": "{\"content_num\": \"asc\"}"
+            "parent_filter": json.dumps({
+                "crid": [group_id],
+                "pit_git_type": ["SERIES"],
+                "avail_status": ["1"]
+            }),
+            "filter": json.dumps({
+                "avail_status": ["1"]
+            }),
+            "child_sort": json.dumps({
+                "content_num": "asc"
+            })
         }
         serieslist_result = self.session.get(url, params=querystring)
         if serieslist_result.status_code == 200:
@@ -169,10 +177,10 @@ class Lemino_downloader:
             "episodename": episode_name
         }
     
-        if id_type["top_genre_name"] in ("アニメ", "国内ドラマ", "海外ドラマ"):
+        if id_type in ("アニメ", "国内ドラマ", "海外ドラマ"):
             format_string = self.config["format"]["anime"]
             title_name_logger = safe_format(format_string, raw_values)
-        elif id_type["top_genre_name"] in ("洋画", "邦画"):
+        elif id_type in ("洋画", "邦画"):
             if episode_count == 1:
                 title_name_logger = title_name
             else:
@@ -232,19 +240,21 @@ class Lemino_downloader:
         
         found_list = []
         print_list = []
+        only_genre_id_list = []
         
         for genre_id in search_ids:
             result = _find_genre_by_id_with_toplevel_name(genre_list_server, genre_id)
     
             if result:
-                print_list.append(result["genre_info"]["genre_id"])
+                print_list.append(result["genre_info"]["genre_name"])
+                only_genre_id_list.append(result["top_genre_name"])
                 found_list.append({
                     'top_genre_name': result['top_genre_name'],
                     'genre_name': result['genre_info']['genre_name'],
                     'genre_id': result['genre_info']['genre_id']
                 })
                 
-        return found_list, print_list
+        return found_list, print_list, only_genre_id_list
         
     def get_mpd_info(self, cid, lid, crid):
         payload = {
