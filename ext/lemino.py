@@ -148,6 +148,16 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         # DOWNLOAD LOGIC
         def single_download_logic(content_crid):
             content_info = lemino_downloader.get_content_info(crid=content_crid)
+            
+            logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
+            
+            genre_list = []
+            for genre_s in content_info["meta_list"][0]["genre_list"]["vod"]:
+                genre_list.append(genre_s["id"])
+            
+            result_genre, print_genre = lemino_downloader.analyze_genre(genre_list)
+            logger.info(f" + Video Type: {print_genre}", extra={"service_name": __service_name__})
+            
             pass
         
         def season_download_logic():

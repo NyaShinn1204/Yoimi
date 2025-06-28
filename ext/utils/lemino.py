@@ -138,6 +138,70 @@ class Lemino_downloader:
         else:
             raise Exception("FAILED TO GET CONTENT INFO")
     
+    
+    def analyze_genre(self, search_ids):        
+        def _recursive_search_in_genre(current_genre, target_id):
+            """
+            特定のジャンルオブジェクトの配下（サブジャンル）のみを再帰的に探索する。
+            """
+            sub_genre_keys = ['sub', 'ttb_top_genre', 'ttb_top_sub_genre']
+            for key in sub_genre_keys:
+                if key in current_genre and isinstance(current_genre.get(key), list):
+                    sub_list = current_genre[key]
+                    for sub_genre in sub_list:
+                        if sub_genre.get('genre_id') == target_id:
+                            return sub_genre
+                        
+                        found_genre = _recursive_search_in_genre(sub_genre, target_id)
+                        if found_genre:
+                            return found_genre
+            return None
+    
+        def _find_genre_by_id_with_toplevel_name(genre_data, target_id):
+            """
+            JSONデータ全体から指定されたgenre_idを持つジャンル情報を検索し、
+            そのジャンルが属する最上位のジャンル名も併せて返す。
+            """
+            vod_genres = genre_data.get('genre_master', {}).get('VOD', [])
+            if not vod_genres:
+                return None
+    
+            for top_genre in vod_genres:
+                top_genre_name = top_genre.get('genre_name')
+    
+                if top_genre.get('genre_id') == target_id:
+                    return {
+                        'genre_info': top_genre,
+                        'top_genre_name': top_genre_name
+                    }
+    
+                found_sub_genre = _recursive_search_in_genre(top_genre, target_id)
+                if found_sub_genre:
+                    return {
+                        'genre_info': found_sub_genre,
+                        'top_genre_name': top_genre_name
+                    }
+                    
+            return None
+            
+        genre_list_server = self.session.get("https://conf.lemino.docomo.ne.jp/genre/genre_search.json").json()
+        
+        found_list = []
+        print_list = []
+        
+        for genre_id in search_ids:
+            result = _find_genre_by_id_with_toplevel_name(genre_list_server, genre_id)
+    
+            if result:
+                print_list.append(result["genre_info"]["genre_id"])
+                found_list.append({
+                    'top_genre_name': result['top_genre_name'],
+                    'genre_name': result['genre_info']['genre_name'],
+                    'genre_id': result['genre_info']['genre_id']
+                })
+                
+        return found_list, print_list
+        
     def get_mpd_info(self, cid, lid, crid):
         payload = {
           "play_type": 1,
