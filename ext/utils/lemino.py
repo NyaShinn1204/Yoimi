@@ -54,15 +54,17 @@ class Lemino_downloader:
                 if time.time() - start_time >= 900: # Expire: 15 minitus 
                     print("Code Expired. Please Re-try")
                     break
-                send_checkping = self.session.get(f"https://if.lemino.docomo.ne.jp/v1/user/loginkey/userinfo/profile", json={"member": True, "profile": True})         
+                send_checkping = self.session.post(f"https://if.lemino.docomo.ne.jp/v1/user/loginkey/userinfo/profile", json={"member": True, "profile": True})         
                 if send_checkping.status_code == 200:
                     if send_checkping.json()["member"]["account_type"] == None:
                         print("Waiting Login...")
                         time.sleep(5)
                     else:
                         print("Login Accept")
-                        login_success_json = send_checkping.json()
-                        self.session.headers.update({"authorization": "Bearer "+login_success_json["access_token"]})
+                        
+                        update_token = self.session.post("https://if.lemino.docomo.ne.jp/v1/session/update")
+                        
+                        self.session.headers.update({"x-service-token": update_token})
                       
                         status, message = self.get_userinfo()
                         
@@ -70,7 +72,7 @@ class Lemino_downloader:
                             "method": "QR_LOGIN",
                             "email": None,
                             "password": None,
-                            "access_token": login_success_json["access_token"],
+                            "access_token": update_token,
                             "refresh_token": None
                         }
                         
