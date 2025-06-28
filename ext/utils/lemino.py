@@ -170,7 +170,7 @@ class Lemino_downloader:
         }
         serieslist_result = self.session.get(url, params=querystring)
         if serieslist_result.status_code == 200:
-            return len(serieslist_result.json()["parent_list"][0]["child_license_list"])
+            return serieslist_result.json()["parent_list"][0]["title"], len(serieslist_result.json()["parent_list"][0]["child_list"]), serieslist_result.json()["parent_list"][0]
         else:
             raise Exception("FAILED TO GET CONTENT INFO")
     

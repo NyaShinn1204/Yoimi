@@ -299,10 +299,36 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
             
-        def season_download_logic():
-            pass
-        
-        
+        def season_download_logic(content_crid):
+            season_title, content_count, season_info = lemino_downloader.get_content_list(content_crid)            
+            logger.info("Get Info for Season", extra={"service_name": __service_name__})
+            logger.info(f" + Title: {season_title}", extra={"service_name": __service_name__})
+            logger.info(f" + Episode Count: {content_count}", extra={"service_name": __service_name__})
+
+            genre_list = []
+            for genre_s in season_info["genre_list"]["vod"]:
+                genre_list.append(genre_s["id"])
+            
+            result_genre, print_genre, only_genre_id_list = lemino_downloader.analyze_genre(genre_list)
+            logger.info(f" + Video Type: {print_genre}", extra={"service_name": __service_name__})
+            
+            logger.info("Get Title for Season", extra={"service_name": __service_name__})
+            
+            for single in season_info["child_list"]:
+                title = single["title"].strip()
+                title_sub = single["title_sub"].strip()
+                
+                if title_sub.startswith(title):
+                    subtitle = title_sub[len(title):].strip()
+                else:
+                    subtitle = title_sub
+                    for part in title.split():
+                        if part and part in subtitle:
+                            subtitle = subtitle.replace(part, "").strip()
+                            
+                episode_number = single["play_button_name"]
+                title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_count, season_title, episode_number, subtitle)
+                logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
         # URL LOGIC HERE
         def safe_b64decode(data: str) -> str:
             # nice decode base64 to crid :)
@@ -329,10 +355,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             if "/vod/" in crid_decoded:
                 single_download_logic(crid_decoded)
             elif "/group/" in crid_decoded:
-                print("Type: batch")
-                print("Running loop for batch items:")
-                for i in range(3):
-                    print(f"- Batch item {i+1}")
+                season_download_logic(crid_decoded)
             else:
                 logger.error("Unknown contetn strcuture", extra={"service_name": __service_name__})
             return
