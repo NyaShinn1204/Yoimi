@@ -228,7 +228,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             video_segment_links = [item.replace("$Bandwidth$", get_best_track["video"]["bitrate"]) for item in video_segments["all"]]
             audio_segments = Tracks.get_segment_link_list(mpd_text, get_best_track["audio"]["id"], base_url)
             audio_segment_links = [item.replace("$Bandwidth$", get_best_track["audio"]["bitrate"]) for item in audio_segments["all"]]
-        
+            
+            logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": __service_name__})
+            
         def season_download_logic():
             pass
         
