@@ -53,29 +53,41 @@ class Lemino_downloader:
                 if time.time() - start_time >= 900: # Expire: 15 minitus 
                     print("Code Expired. Please Re-try")
                     break
-                send_checkping = self.session.get(f"https://api.vhx.tv/oauth/codes/{request_login_json["code"]}", params={"client_id": "27ef31d7c3817dfdcb9db4d47fbf9ce92144f361c34fe45e5cd80baab2f258b6","client_secret": "4bc905f4faa17b9e379bbcf0547d7cad710603e316b0a35dc0f3e3568d797bfd"})                        
-                if send_checkping.status_code == 404:
-                    print("Waiting Login...")
-                    time.sleep(5)
-                elif send_checkping.status_code == 200:
-                    print("Login Accept")
-                    login_success_json = send_checkping.json()
-                    self.session.headers.update({"authorization": "Bearer "+login_success_json["access_token"]})
-                  
-                    status, message = self.get_userinfo()
-                    
-                    session_json = {
-                        "method": "QR_LOGIN",
-                        "email": None,
-                        "password": None,
-                        "access_token": login_success_json["access_token"],
-                        "refresh_token": login_success_json["refresh_token"]
-                    }
-                    
-                    self.login_status = True
-                    
-                    return True, message, self.login_status, session_json
-                    
+                send_checkping = self.session.get(f"https://if.lemino.docomo.ne.jp/v1/user/loginkey/userinfo/profile", json={"member": True, "profile": True})         
+                if send_checkping.status_code == 200:
+                    if send_checkping.json()["member"]["account_type"] == None:
+                        print("Waiting Login...")
+                        time.sleep(5)
+                    else:
+                        print("Login Accept")
+                        login_success_json = send_checkping.json()
+                        self.session.headers.update({"authorization": "Bearer "+login_success_json["access_token"]})
+                      
+                        status, message = self.get_userinfo()
+                        
+                        session_json = {
+                            "method": "QR_LOGIN",
+                            "email": None,
+                            "password": None,
+                            "access_token": login_success_json["access_token"],
+                            "refresh_token": None
+                        }
+                        
+                        self.login_status = True
+                        
+                        return True, message, self.login_status, session_json
+    
+    def use_temptoken_flug(self):
+        status, token = self.get_temp_token()
+        self.session.headers.update({
+            "user-agent": "Lemino/7.2.2(71) A7S;AndroidTV;10",
+            "accept-encoding": "gzip",
+            "charset": "UTF-8",
+            "content-type": "application/json",
+            "x-service-token": token
+        })
+        return True
+          
     def get_temp_token(self):
         self.session.headers.update({
             "user-agent": "Lemino/7.2.2(71) A7S;AndroidTV;10",
@@ -110,37 +122,3 @@ class Lemino_downloader:
             return True, response.json()
         else:
             return False, None
-    def refresh_token(self, refresh_token, old_session_json):
-        status, temp_token = self.get_temp_token()
-        self.session.headers.update({"authorization": "Bearer "+ temp_token["access_token"]})
-        payload = {
-          "client_id": "27ef31d7c3817dfdcb9db4d47fbf9ce92144f361c34fe45e5cd80baab2f258b6",      # From Android TV
-          "client_secret": "4bc905f4faa17b9e379bbcf0547d7cad710603e316b0a35dc0f3e3568d797bfd",  # From Android TV
-          "grant_type": "refresh_token",
-          "refresh_token": refresh_token
-        }
-        refresh_return = self.session.post("https://api.vhx.tv/oauth/token/", json=payload)
-        if refresh_return.status_code == 200:
-            self.session.headers.update({"authorization": "Bearer " + refresh_return.json()["access_token"]})
-            session_json = {
-                "method": "NORMAL",
-                "email": old_session_json["email"],
-                "password": old_session_json["password"],
-                "access_token": refresh_return.json()["access_token"],
-                "refresh_token": refresh_return.json()["refresh_token"]
-            }
-            return True, refresh_return.json(), session_json
-        else:
-            return False, None, None
-        
-    def revoke_token(self, token):
-        payload = {
-          "client_id": "27ef31d7c3817dfdcb9db4d47fbf9ce92144f361c34fe45e5cd80baab2f258b6",      # From Android TV
-          "client_secret": "4bc905f4faa17b9e379bbcf0547d7cad710603e316b0a35dc0f3e3568d797bfd",  # From Android TV
-          "token": token,
-        }
-        revoke_status = self.session.post("https://api.vhx.tv/oauth/revoke", json=payload)
-        if revoke_status.status_code == 200:
-            return True
-        else:
-            return False

@@ -121,41 +121,24 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         if status:
             session_data = load_session(status)
             if session_data:
-                if email and password:
-                    if session_logic.validate_normal_login(session_data, email, password):
-                        token_status, message = hi_yah_downloader.check_token(session_data["access_token"])
-                        if not token_status:
-                            session_status, message = session_logic.refresh_session(session_data)
-                        else:
-                            session_status = True
-    
-                    elif session_logic.validate_qr_login(session_data, email):
-                        token_status, message = hi_yah_downloader.check_token(session_data["access_token"])
-                        if not token_status:
-                            session_status, message = session_logic.refresh_session(session_data)
-                        else:
-                            session_status = True
-    
-                    else:
-                        logger.info("Email and password do not match. Re-login required.", extra={"service_name": __service_name__})
-                        session_status, message, session_data = session_logic.login_with_credentials(email, password, login_method="qr")
+                token_status, message = lemino_downloader.check_token(session_data["access_token"])
+                if not token_status:
+                    logger.info("Session is Invalid. Please re-login.", extra={"service_name": __service_name__})
+                    session_status, message, session_data = session_logic.login_with_credentials(email, password, login_method="qr")
                 else:
-                    token_status, message = hi_yah_downloader.check_token(session_data["access_token"])
-                    if not token_status:
-                        session_status, message = session_logic.refresh_session(session_data)
-                    else:
-                        session_status = True
+                    session_status = True
             
         if not session_status and email and password:
             session_status, message, session_data = session_logic.login_with_credentials(email, password, login_method="qr")
     
         if session_status:
             account_logined = True
-            account_id = str(message["id"])
+            profile_id = message["profile"]["profile_id"]
             logger.info("Logged-in Account", extra={"service_name": __service_name__})
-            logger.info(" + id: " + account_id, extra={"service_name": __service_name__})
+            logger.info(" + id: " + profile_id, extra={"service_name": __service_name__})
         else:
             account_logined = False
+            lemino_downloader.use_temptoken_flug()
             logger.info("Using Temp Account", extra={"service_name": __service_name__})
 
             
