@@ -77,7 +77,7 @@ class Lemino_downloader:
                         
                         return True, message, self.login_status, session_json
     
-    def use_temptoken_flug(self):
+    def use_temptoken_flag(self):
         status, token = self.get_temp_token()
         self.session.headers.update({
             "user-agent": "Lemino/7.2.2(71) A7S;AndroidTV;10",

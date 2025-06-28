@@ -4,13 +4,14 @@ import yaml
 import json
 import time
 import shutil
+import base64
 import hashlib
 import logging
 
 import ext.global_func.parser as parser
 
 from rich.console import Console
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, unquote
 
 from ext.utils import lemino
 from ext.global_func.session_util import session_util
@@ -138,9 +139,59 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info(" + id: " + profile_id, extra={"service_name": __service_name__})
         else:
             account_logined = False
-            lemino_downloader.use_temptoken_flug()
+            lemino_downloader.use_temptoken_flag()
             logger.info("Using Temp Account", extra={"service_name": __service_name__})
-
+            
+        logger.info("Analyzing URL", extra={"service_name": __service_name__})
+        
+        
+        # DOWNLOAD LOGIC
+        def single_download_logic():
+            pass
+        
+        def season_download_logic():
+            pass
+        
+        
+        # URL LOGIC HERE
+        def safe_b64decode(data: str) -> str:
+            # nice decode base64 to crid :)
+            data += '=' * (-len(data) % 4)
+            return base64.b64decode(data).decode('utf-8')
+    
+        parsed = urlparse(url)
+        
+        # --- search URL ---
+        if "search/word" in url:
+            query = parse_qs(parsed.query)
+            crid_encoded = query.get("crid", [None])[0]
+            if crid_encoded:
+                crid_decoded = safe_b64decode(unquote(crid_encoded))
+                print("Decoded CRID:", crid_decoded)
+                return
+    
+        # --- contents URL ---
+        match = re.search(r'/contents/([^/?#]+)', parsed.path)
+        if match:
+            crid_encoded = match.group(1)
+            crid_decoded = safe_b64decode(unquote(crid_encoded))
+    
+            if "/vod/" in crid_decoded:
+                print("Type: single")
+            elif "/group/" in crid_decoded:
+                print("Type: batch")
+                print("Running loop for batch items:")
+                for i in range(3):
+                    print(f"- Batch item {i+1}")
+            else:
+                logger.error("Unknown contetn strcuture", extra={"service_name": __service_name__})
+            return
+    
+        logger.error("Unsupported Type URL", extra={"service_name": __service_name__})
+        logger.error("Now support:", extra={"service_name": __service_name__})
+        logger.error("https://lemino.docomo.ne.jp/contents/xxx... (single)", extra={"service_name": __service_name__})
+        logger.error("https://lemino.docomo.ne.jp/search/word/xxx...?crid=xxx... (single)", extra={"service_name": __service_name__})
+        logger.error("https://lemino.docomo.ne.jp/contents/xxx... (batch)", extra={"service_name": __service_name__})
             
     except Exception:
         logger.error("Traceback has occurred", extra={"service_name": __service_name__})
