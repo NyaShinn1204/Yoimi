@@ -163,25 +163,48 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             result_genre, print_genre, only_genre_id_list = lemino_downloader.analyze_genre(genre_list)
             logger.info(f" + Video Type: {print_genre}", extra={"service_name": __service_name__})
             
-            try:
-                content_list = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])
-            except:
-                content_list = 1
-            if from_mutli:
-                title_name = title_name
-            else:
-                title_name = content_info["meta_list"][0]["title"].replace(content_info["meta_list"][0]["title_sub"], "")
-            episode_num = 1
-            match = re.search(r'(\d+)', content_info["meta_list"][0]["play_button_name"])
-            if match:
-                episode_num = int(match.group(1))
+            # try:
+            #     content_list = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])
+            # except:
+            #     content_list = 1
+            # if from_mutli:
+            #     title_name = title_name
+            # else:
+            #     title_name = content_info["meta_list"][0]["title"].replace(content_info["meta_list"][0]["title_sub"], "")
+            # episode_num = 1
+            # match = re.search(r'(\d+)', content_info["meta_list"][0]["play_button_name"])
+            # if match:
+            #     episode_num = int(match.group(1))
                     
-            if from_mutli:
-                title_name_logger = title_name_logger
-            else:
-                title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_list, title_name, None, content_info["meta_list"][0]["title_sub"])
-            logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+            # if from_mutli:
+            #     title_name_logger = title_name_logger
+            # else:
+            #     title = content_info["meta_list"][0]["title"].strip()
+            #     title_sub = content_info["meta_list"][0]["title_sub"].strip()
+            #     subtitle = title_sub 
+            #     for part in title.split():
+            #         if part and part in subtitle:
+            #             subtitle = subtitle.replace(part, "").strip()
+            #     episode_number = content_info["meta_list"][0]["play_button_name"]
+            #     title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_list, title_name, episode_number, subtitle)
+            # logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+            season_title, content_count, season_info = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])        
+            single = content_info["meta_list"][0]
+            title = single["title"].strip()
+            title_sub = single["title_sub"].strip()
             
+            if title_sub.startswith(title):
+                subtitle = title_sub[len(title):].strip()
+            else:
+                subtitle = title_sub
+                for part in title.split():
+                    if part and part in subtitle:
+                        subtitle = subtitle.replace(part, "").strip()
+                        
+            episode_number = single["play_button_name"]
+            title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_count, season_title, episode_number, subtitle)
+            logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+
             logger.info("Getting information from MPD", extra={"service_name": __service_name__})
             
             cid = content_info["meta_list"][0]["cid_obj"][0]["cid"]
@@ -294,14 +317,15 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             muxer.mux_content(video_input=video_decrypt_output, audio_input=audio_decrypt_output, output_path=output_path, duration=int(duration), service_name=__service_name__)
             
-            dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
-            try:
-                if os.path.exists(dir_path) and os.path.isdir(dir_path):
-                    shutil.rmtree(dir_path)
-                else:
-                    print(f"Folder is not found: {dir_path}")
-            except Exception as e:
-                print(f"Delete folder errro: {e}")
+            if LOG_LEVEL != "DEBUG":
+                dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+                try:
+                    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                        shutil.rmtree(dir_path)
+                    else:
+                        print(f"Folder is not found: {dir_path}")
+                except Exception as e:
+                    print(f"Delete folder errro: {e}")
             
             logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
             
