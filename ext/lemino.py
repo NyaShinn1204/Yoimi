@@ -188,21 +188,47 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             #     episode_number = content_info["meta_list"][0]["play_button_name"]
             #     title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_list, title_name, episode_number, subtitle)
             # logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
-            season_title, content_count, season_info = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])        
-            single = content_info["meta_list"][0]
-            title = single["title"].strip()
-            title_sub = single["title_sub"].strip()
-            
-            if title_sub.startswith(title):
-                subtitle = title_sub[len(title):].strip()
+            if content_info["meta_list"][0]["member_of"] != []:
+                season_title, content_count, season_info = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])        
+                single = content_info["meta_list"][0]
+                title = single["title"].strip()
+                title_sub = single["title_sub"].strip()
+                
+                if title_sub.startswith(title):
+                    subtitle = title_sub[len(title):].strip()
+                else:
+                    subtitle = title_sub
+                    for part in title.split():
+                        if part and part in subtitle:
+                            subtitle = subtitle.replace(part, "").strip()
+                            
+                episode_number = single["play_button_name"]
+                title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_count, season_title, episode_number, subtitle)
             else:
-                subtitle = title_sub
-                for part in title.split():
-                    if part and part in subtitle:
-                        subtitle = subtitle.replace(part, "").strip()
+                try:
+                    content_list = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])
+                except:
+                    content_list = 1
+                if from_mutli:
+                    title_name = title_name
+                else:
+                    title_name = content_info["meta_list"][0]["title"].replace(content_info["meta_list"][0]["title_sub"], "")
+                episode_num = 1
+                match = re.search(r'(\d+)', content_info["meta_list"][0]["play_button_name"])
+                if match:
+                    episode_num = int(match.group(1))
                         
-            episode_number = single["play_button_name"]
-            title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_count, season_title, episode_number, subtitle)
+                if from_mutli:
+                    title_name_logger = title_name_logger
+                else:
+                    title = content_info["meta_list"][0]["title"].strip()
+                    title_sub = content_info["meta_list"][0]["title_sub"].strip()
+                    subtitle = title_sub 
+                    for part in title.split():
+                        if part and part in subtitle:
+                            subtitle = subtitle.replace(part, "").strip()
+                    episode_number = content_info["meta_list"][0]["play_button_name"]
+                    title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_list, title_name, episode_number, subtitle)
             logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
 
             
@@ -223,7 +249,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     if sale_end > now:
                         lid = license["license_id"]
                         break
-            
+            # if sale_type == free, and sale_end_date is not invalid
+            for license in license_list:
+                if license.get("sale_type") == "free":
+                    logger.debug(" + Found Free", extra={"service_name": __service_name__})
+                    sale_end = datetime.fromisoformat(license["sale_end_date"])
+                    if sale_end > now:
+                        lid = license["license_id"]
+                        break
             # if not found, juse use first svod lid
             if lid is None:
                 for license in license_list:
@@ -418,7 +451,10 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             crid_encoded = query.get("crid", [None])[0]
             if crid_encoded:
                 crid_decoded = safe_b64decode(unquote(crid_encoded))
-                single_download_logic(crid_decoded)
+                if "group" in crid_decoded:
+                    season_download_logic(crid_decoded)
+                else:
+                    single_download_logic(crid_decoded)
                 return
     
         # --- contents URL ---

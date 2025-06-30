@@ -144,6 +144,7 @@ Completed: ✅ | In Progress: 🔄️ | Cancelled: ❌ | Not Available: N/A
 | Hulu JP            | ✅(4K)  | N/A   | N/A                        | ❌            |  WV  |
 | Fanza              | ✅      | N/A    | N/A                       | ✅            |  HLS |
 | Fanza VR           | ✅(4K)  | N/A    | N/A                       | ✅            |  HLS |
+| Lemino             | ✅      | ✅    | N/A                       | ✅            |  WV  |
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.
 
