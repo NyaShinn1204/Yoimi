@@ -5,12 +5,12 @@ import json
 import time
 import shutil
 import base64
-import hashlib
 import logging
 
 import ext.global_func.parser as parser
 
 from rich.console import Console
+from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse, parse_qs, unquote
 
 from ext.utils import lemino
@@ -136,7 +136,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
         if not session_status and email and password:
             session_status, message, session_data = session_logic.login_with_credentials(email, password, login_method="qr")
-    
+        
         if session_status:
             account_logined = True
             profile_id = message["profile"]["profile_id"]
@@ -205,10 +205,37 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_count, season_title, episode_number, subtitle)
             logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
 
-            logger.info("Getting information from MPD", extra={"service_name": __service_name__})
             
             cid = content_info["meta_list"][0]["cid_obj"][0]["cid"]
-            lid = content_info["meta_list"][0]["license_list"][0]["license_id"]
+            
+            
+            license_list = content_info["meta_list"][0]["license_list"]
+            now = datetime.now(timezone(timedelta(hours=9)))  # JST (UTC+9)
+            lid = None
+            
+            logger.debug("Fetching VOD Type", extra={"service_name": __service_name__})
+            
+            # if sale_type == avod, and sale_end_date is not invalid
+            for license in license_list:
+                if license.get("sale_type") == "avod":
+                    logger.debug(" + Found AVOD(Ad Video Ondemand)", extra={"service_name": __service_name__})
+                    sale_end = datetime.fromisoformat(license["sale_end_date"])
+                    if sale_end > now:
+                        lid = license["license_id"]
+                        break
+            
+            # if not found, juse use first svod lid
+            if lid is None:
+                for license in license_list:
+                    if license.get("sale_type") == "svod":
+                        logger.debug(" + Found SVOD(Subscribe Video Ondemand)", extra={"service_name": __service_name__})
+                        lid = license["license_id"]
+                        break
+            
+            
+            
+            logger.info("Getting information from MPD", extra={"service_name": __service_name__})
+            
             play_token, content_list = lemino_downloader.get_mpd_info(cid=cid, lid=lid, crid=content_info["meta_list"][0]["crid"])
             mpd_link = content_list[0]["play_url"]
             mpd_text = session.get(mpd_link).text
