@@ -35,9 +35,9 @@ class Hi_YAH_decrypt:
         return mp4decrypt_command
     def shaka_packager(keys, config):
         if os.name == 'nt':
-            shaka_decrypt_command = [os.path.join(config["directorys"]["Binaries"], "3.4.2_packager-win-x64.exe")]
+            shaka_decrypt_command = [os.path.join(config["directorys"]["Binaries"], "shaka_packager_win.exe")]
         else:
-            shaka_decrypt_command = [os.path.join(config["directorys"]["Binaries"], "3.4.2_packager-linux-arm64")]
+            shaka_decrypt_command = [os.path.join(config["directorys"]["Binaries"], "shaka_packager_linux_arm64")]
         for key in keys:
             if key["type"] == "CONTENT":
                 shaka_decrypt_command.extend(
