@@ -245,18 +245,27 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             for license in license_list:
                 if license.get("sale_type") == "avod":
                     logger.debug(" + Found AVOD(Ad Video Ondemand)", extra={"service_name": __service_name__})
+                    sale_start = datetime.fromisoformat(license["sale_start_date"])
                     sale_end = datetime.fromisoformat(license["sale_end_date"])
-                    if sale_end > now:
+                    if sale_start <= now < sale_end:
+                        logger.debug(" + AVOD is Valid. juse use AVOD", extra={"service_name": __service_name__})
                         lid = license["license_id"]
                         break
-            # if sale_type == free, and sale_end_date is not invalid
+                    else:
+                        logger.debug(" + AVOD is not start, or expired. just use another", extra={"service_name": __service_name__})
+            # if sale_type == free, and sale_start_date <= now < sale_end_date
             for license in license_list:
                 if license.get("sale_type") == "free":
                     logger.debug(" + Found Free", extra={"service_name": __service_name__})
+                    sale_start = datetime.fromisoformat(license["sale_start_date"])
                     sale_end = datetime.fromisoformat(license["sale_end_date"])
-                    if sale_end > now:
+                    if sale_start <= now < sale_end:
+                        logger.debug(" + Free is Valid. jsue use Free", extra={"service_name": __service_name__})
                         lid = license["license_id"]
                         break
+                    else:
+                        logger.debug(" + Free is not start, or expired. just use another", extra={"service_name": __service_name__})
+                    
             # if not found, juse use first svod lid
             if lid is None:
                 for license in license_list:
