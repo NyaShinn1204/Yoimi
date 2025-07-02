@@ -8,7 +8,7 @@ from urllib.parse import urlparse, parse_qs
 
 from tqdm import tqdm
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 
 def path_check(input_path):
     # Windows Input Check

@@ -38,7 +38,7 @@ Require: python3, ffmpeg(path)          (If you use abema, Require node js)
 Install Requirement
 
 ```
-python install -r python_requirements.txt
+python install -r requirements.txt
 ```
 
 
@@ -53,7 +53,7 @@ Note: you will need layer3 widevine cdm if downloading from git.
 If you are able to prepare it, please use this option if at all possible!
 
 
-### Downlaod with Release
+### Download with Release
 
 Download the latest version of Yoimi from [here](https://github.com/NyaShinn1204/Yoimi/releases/latest).
 
@@ -144,6 +144,7 @@ Completed: ✅ | In Progress: 🔄️ | Cancelled: ❌ | Not Available: N/A
 | Hulu JP            | ✅(4K)  | N/A   | N/A                        | ❌            |  WV  |
 | Fanza              | ✅      | N/A    | N/A                       | ✅            |  HLS |
 | Fanza VR           | ✅(4K)  | N/A    | N/A                       | ✅            |  HLS |
+| Hi-YAH!            | ✅      | N/A    | N/A                       | ✅            |  WV |
 | Lemino             | ✅      | ✅    | N/A                       | ✅            |  WV  |
 
 If you have problems with Abema, try adding “-v1” to the end of the url, and the downloader will work in v1 mode.

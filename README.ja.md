@@ -38,7 +38,7 @@
 パッケージをインストールするコマンド
 
 ```
-python install -r python_requirements.txt
+python install -r requirements.txt
 ```
 
 
@@ -144,7 +144,9 @@ Options:
 | Hulu JP              | ✅(4K)  | N/A   | N/A                      | ❌            |
 | Fanza                | ✅      | N/A    | N/A                     | ✅            |
 | Fanza VR             | ✅(4K)  | N/A    | N/A                     | ✅            |
-| Lemino             | ✅      | ✅      | N/A                       | ✅          |
+| Hi-YAH!              | ✅      | N/A    | N/A                     | ✅            |
+| Lemino               | ✅      | ✅    | N/A                     | ✅            |
+
 Abemaで問題が発生したら、urlの最後に"-v1"をつけてみてください。v1のモードでダウンローダーが動きます。
 
 ## 既存の問題

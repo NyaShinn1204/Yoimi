@@ -1,5 +1,0 @@
-{
-	"version": "1.1.2",
-	"changelog_ja": "主な変更点 - 1.1.2\n- [Add] 新しくCREDITS.mdを追加しました\n- [Add] Telasaをサポートしました\n- [Add] Abemaの字幕ダウンロードを追加しました\n- [Add] FODで無料コンテンツダウンロードを追加しました\n- [Fix] FODでHD ダウンロードをできるように修正しました\n- [Fix] グローバルパーサーの対応幅を修正し増やしました\n- [Fix] Amazon(dev)のタイトル取得エラーを修正しました\n- [Fix] U-Nextのタイトル取得幅を100から1000に増やしました\n- [Fix] dアニメ(dev)のエラーハンドリングを修正しました\n- [Fix] Fanza(dev)のログインスクリプトを修正しました\n- [Fix] Fanza(dev)のトークンログインを修正しました",
-	"changelog_en": "What's New? - 1.1.2\n- [Add] Newly added CREDITS.md\n- [Add] Added Telasa support\n- [Add] Added Abema subtitle download\n- [Add] Added free content download for FOD\n- [Fix] Fixed HD downloads on FOD.\n- [Fix] Fixed and increased global parser support width\n- [Fix] Fixed an error in Amazon(dev) title acquisition.\n- [Fix] Increased U-Next title acquisition width from 100 to 1000.\n- [Fix] Fixed error handling of d-Anime(dev).\n- [Fix] Fixed Fanza(dev) account login.\n- [Fix] Fixed Fanza(dev) token login."
-}
