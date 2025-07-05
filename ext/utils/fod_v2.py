@@ -397,32 +397,35 @@ class FOD_downloader:
             fod_user_id = response.json().get("member_id")
             return True, response.json(), response.cookies.get("uuid")
         elif response.status_code == 401:
-            return False, response.json["code"], None
+            return False, response.json()["code"], None
         
     def gen_temptoken(self):
-        secret_key = "II1pq1aFylVZNASr0mea7zXFOhrAPZURZp6Ru3LuqqsUVZ4lyJj2R4kufetQN9mx"
-        device_type = "androidTV"
-        device_id = "google_google_aosp tv on x86_13"
-        
-        payload = {
-            "iss": "FOD",
-            "dv_type": device_type,
-            "dv_id": device_id,
-        }
-        
-        jwt_token = jwt.encode(payload, secret_key, algorithm='HS256')
-        headers_xauth = {
-            "content-type": "application/json",
-           # "host": "id.fod.fujitv.co.jp",
-            "connection": "Keep-Alive",
-            "accept-encoding": "gzip",
-            "user-agent": "okhttp/4.12.0",
-            "x-authorization": "Bearer "+jwt_token,
-        }
-        self.session.headers.update({'X-Authorization': 'Bearer ' + jwt_token})
-        self.logined_headers = headers_xauth
-        self.login_status = [True, True]
-        return True, None, self.login_status
+        try:
+            secret_key = "II1pq1aFylVZNASr0mea7zXFOhrAPZURZp6Ru3LuqqsUVZ4lyJj2R4kufetQN9mx"
+            device_type = "androidTV"
+            device_id = "google_google_aosp tv on x86_13"
+            
+            payload = {
+                "iss": "FOD",
+                "dv_type": device_type,
+                "dv_id": device_id,
+            }
+            
+            jwt_token = jwt.encode(payload, secret_key, algorithm='HS256')
+            headers_xauth = {
+                "content-type": "application/json",
+               # "host": "id.fod.fujitv.co.jp",
+                "connection": "Keep-Alive",
+                "accept-encoding": "gzip",
+                "user-agent": "okhttp/4.12.0",
+                "x-authorization": "Bearer "+jwt_token,
+            }
+            self.session.headers.update({'X-Authorization': 'Bearer ' + jwt_token})
+            self.logined_headers = headers_xauth
+            self.login_status = [True, True]
+            return True, None, self.login_status
+        except:
+            return False, None, None
 
     def has_active_courses(self, user_status):
         """

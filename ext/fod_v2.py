@@ -9,6 +9,7 @@ import hashlib
 import logging
 
 import ext.global_func.parser as parser
+from ext.global_func.util.other_util import sanitize_filename
 
 from rich.console import Console
 
@@ -121,7 +122,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         if not status == False:
             session_data = load_session(status)
             if session_data != False:
-                if email and password != None:
+                if email != None and password != None:
                     if (session_data["email"] == hashlib.sha256(email.encode()).hexdigest()) and (session_data["password"] == hashlib.sha256(password.encode()).hexdigest() and session_data["method"] == "NORMAL"):
                         token_status, message = fod_downloader.check_token(session_data["access_token"], session_data["method"])
                         if token_status == False:
@@ -151,7 +152,7 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     else:
                         session_status = True
             
-        if session_status == False and (email and password != None):
+        if session_status == False and (email != None and password != None):
             status, message, uuid_cookie, login_status, session_data = fod_downloader.authorize(email, password)
             if status == False:
                 logger.error(message, extra={"service_name": __service_name__})
@@ -160,7 +161,9 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 with open(os.path.join("cache", "session", __service_name__.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
                     json.dump(session_data, f, ensure_ascii=False, indent=4)      
         
-        if session_status == False and (email and password != None):
+        print(session_status, email, password)
+        
+        if session_status == False and (email != None and password != None):
             account_logined = True
             account_coin = str(message["user_coin"])
             account_point = str(message["user_point"])
@@ -174,11 +177,15 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             else:
                 plan_status = False
                 logger.info(" + Plan Status: Not found", extra={"service_name": __service_name__})
-        elif session_status == False and (email and password == None):
+        elif session_status == False and (email == None and password == None):
             account_point = 0
             plan_status = True
             account_logined = False
             logger.info("Using Temp Account", extra={"service_name": __service_name__})
+            status, message, login_status = fod_downloader.gen_temptoken()
+            if status == False:
+                logger.error(message, extra={"service_name": __service_name__})
+                exit(1)
         elif session_status == True:
             account_logined = True
             account_coin = str(message["user_coin"])
@@ -200,11 +207,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         
         if "アニメ" in title_detail["attribute"]:
             id_type = "ノーマルアニメ"
-        if "ドラマ" in title_detail["attribute"]:
+        elif "ドラマ" in title_detail["attribute"]:
             id_type = "ノーマルドラマ"
-        if "映画" in title_detail["attribute"]:
+        elif "映画" in title_detail["attribute"]:
             id_type = "映画"
-            
+        else:
+            id_type = "映画"
+        
+                    
         season_title = title_detail["lu_title"]
         
         
@@ -280,17 +290,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                     
-                    def sanitize_filename(filename):
-                        filename = filename.replace(":", "：").replace("?", "？")
-                        return re.sub(r'[<>"/\\|*]', "_", filename)
-                    
                     if additional_info[1]:
                         random_string = str(int(time.time() * 1000))
                         title_name_logger_video = random_string+"_video_encrypted.mp4"
                         title_name_logger_audio = random_string+"_audio_encrypted.mp4"
                     else:
-                        title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
-                        title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
+                        title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4", True)
+                        title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4", True)
                     
                     logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": __service_name__})
                     
@@ -314,7 +320,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     fod_v2.FOD_decrypt.decrypt_all_content(license_key["key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
                     
                     logger.info("Muxing Episode...", extra={"service_name": __service_name__})
-                                     
+                    season_title = sanitize_filename(season_title, False)
+                    title_name_logger = sanitize_filename(title_name_logger, False)             
                     result = fod_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], season_title, title_name_logger+".mp4"), config, unixtime, season_title, int(duration))
                         
                     dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -359,6 +366,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     output_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, unixtime_temp+"_nomux_"+".mp4")
                     fod_v2.FOD_utils.merge_video(dl_list, output_path, __service_name__)
                     
+                    season_title = sanitize_filename(season_title, False)
+                    title_name_logger = sanitize_filename(title_name_logger, False)
                     real_output = os.path.join(config["directorys"]["Downloads"], season_title, title_name_logger+".mp4")
                     fod_v2.FOD_utils.mux_video(output_path, season_title, real_output, duration, __service_name__, config)
                     dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -450,17 +459,13 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                 logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps", extra={"service_name": __service_name__})
                 
-                def sanitize_filename(filename):
-                    filename = filename.replace(":", "：").replace("?", "？")
-                    return re.sub(r'[<>"/\\|*]', "_", filename)
-                
                 if additional_info[1]:
                     random_string = str(int(time.time() * 1000))
                     title_name_logger_video = random_string+"_video_encrypted.mp4"
                     title_name_logger_audio = random_string+"_audio_encrypted.mp4"
                 else:
-                    title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4")
-                    title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4")
+                    title_name_logger_video = sanitize_filename(title_name_logger+"_video_encrypted.mp4", True)
+                    title_name_logger_audio = sanitize_filename(title_name_logger+"_audio_encrypted.mp4", True)
                 
                 logger.info("Downloading Encrypted Video, Audio Files...", extra={"service_name": __service_name__})
                 
@@ -485,7 +490,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 fod_v2.FOD_decrypt.decrypt_all_content(license_key["key"], video_downloaded, video_downloaded.replace("_encrypted", ""), license_key["key"], audio_downloaded, audio_downloaded.replace("_encrypted", ""), config)
                 
                 logger.info("Muxing Episode...", extra={"service_name": __service_name__})
-                                 
+                season_title = sanitize_filename(season_title, False)
+                title_name_logger = sanitize_filename(title_name_logger, False)           
                 result = fod_downloader.mux_episode(title_name_logger_video.replace("_encrypted",""), title_name_logger_audio.replace("_encrypted",""), os.path.join(config["directorys"]["Downloads"], season_title, title_name_logger+".mp4"), config, unixtime, season_title, int(duration))
                     
                 dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
@@ -529,7 +535,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                 unixtime_temp = str(int(time.time()))
                 output_path = os.path.join(config["directorys"]["Temp"], "content", unixtime, unixtime_temp+"_nomux_"+".mp4")
                 fod_v2.FOD_utils.merge_video(dl_list, output_path, __service_name__)
-                
+                season_title = sanitize_filename(season_title, False)
+                title_name_logger = sanitize_filename(title_name_logger, False)
                 real_output = os.path.join(config["directorys"]["Downloads"], season_title, title_name_logger+".mp4")
                 fod_v2.FOD_utils.mux_video(output_path, season_title, real_output, duration, __service_name__, config)
                 dir_path = os.path.join(config["directorys"]["Temp"], "content", unixtime)
