@@ -58,7 +58,7 @@ class comamnd_util:
             mp4decrypt_ok = True
         except subprocess.CalledProcessError:
             mp4decrypt_ok = True
-        except Exception:
+        except Exception as e:
             pass
     
         try:
@@ -75,7 +75,7 @@ class comamnd_util:
             status = "mp4decrypt"
         else:
             status = "none"
-    
+            
         return status
     
 class main_decrypt:
@@ -93,7 +93,7 @@ class main_decrypt:
                 command.extend([f"input={input_path},stream=video,output={output_path}"])
             if "audio" in output_path:
                 command.extend([f"input={input_path},stream=audio,output={output_path}"])
-        elif status == "mp4decrpyt":
+        elif status == "mp4decrypt":
             command = comamnd_util.create_mp4decrypt(license_keys, config)
             command.extend([input_path, output_path])
         elif status == "all":
@@ -109,7 +109,7 @@ class main_decrypt:
         
         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
             with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
-                if status == "mp4decrpyt":
+                if status == "mp4decrypt":
                     for line in process.stdout:
                         match = re.search(r"(ｲ+)", line)
                         if match:
