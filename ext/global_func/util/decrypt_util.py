@@ -42,7 +42,7 @@ class comamnd_util:
                 )
         return shaka_decrypt_command
     
-    def check_command(config):
+    def check_command(config, second_status=None):
         if os.name == "nt": # Windows
             mp4decrypt_path = os.path.join(config["directorys"]["Binaries"], "mp4decrypt.exe")
             shaka_path = os.path.join(config["directorys"]["Binaries"], "shaka_packager_win.exe")
@@ -52,13 +52,53 @@ class comamnd_util:
     
         mp4decrypt_ok = False
         shaka_ok = False
-    
+        
+                
+        if second_status == "all":
+            try:
+                subprocess.run([mp4decrypt_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                mp4decrypt_ok = True
+            except subprocess.CalledProcessError:
+                mp4decrypt_ok = True
+            except Exception:
+                pass
+            if mp4decrypt_ok:
+                status = "mp4decrypt"
+            else:
+                status = "none"
+            return status
+        elif second_status == "mp4decrypt":
+            try:
+                subprocess.run([shaka_path, "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                shaka_ok = True
+            except:
+                pass
+            if shaka_ok:
+                status = "shaka"
+            else:
+                status = "none"
+            return status
+        elif second_status == "shaka":
+            try:
+                subprocess.run([mp4decrypt_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                mp4decrypt_ok = True
+            except subprocess.CalledProcessError:
+                mp4decrypt_ok = True
+            except Exception:
+                pass
+            if mp4decrypt_ok:
+                status = "mp4decrypt"
+            else:
+                status = "none"
+            return status
+        
+        
         try:
             subprocess.run([mp4decrypt_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             mp4decrypt_ok = True
         except subprocess.CalledProcessError:
             mp4decrypt_ok = True
-        except Exception as e:
+        except Exception:
             pass
     
         try:
@@ -81,7 +121,6 @@ class comamnd_util:
 class main_decrypt:
     def __init__(self, logger):
         self.logger = logger
-    
     
     def _decrypt_single(self, license_keys, input_path, output_path, config, service_name):
         self.logger.debug(f"[Single] input: {input_path}, output: {output_path}", extra={"service_name": service_name})
@@ -120,6 +159,45 @@ class main_decrypt:
                 if process.returncode == 0:
                     inner_pbar.n = 100
                     inner_pbar.refresh()
+                elif process.returncode != 0:
+                    inner_pbar.close()
+                    second_status = comamnd_util.check_command(config, second_status=status)
+                    if second_status == "none":
+                        self.logger.error("Failed decrpyt. Exiting...", extra={"service_name": service_name})
+                        exit(1)
+                    else:
+                        self.logger.debug("Failed decrypt. Changing command...", extra={"service_name": service_name})
+                        if status == "shaka":
+                            command = comamnd_util.create_mp4decrypt(license_keys, config)
+                            command.extend([input_path, output_path])
+                        elif status == "mp4decrypt":
+                            command = comamnd_util.create_shaka_packager(license_keys, config)
+                            if "video" in output_path:
+                                command.extend([f"input={input_path},stream=video,output={output_path}"])
+                            if "audio" in output_path:
+                                command.extend([f"input={input_path},stream=audio,output={output_path}"])
+                        elif status == "all":
+                            command = comamnd_util.create_mp4decrypt(license_keys, config)
+                            command.extend([input_path, output_path])
+                        
+                        self.logger.debug(f"[COMMAND] command: {command}", extra={"service_name": service_name})
+                        with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
+                            with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
+                                if status == "mp4decrypt":
+                                    for line in process.stdout:
+                                        match = re.search(r"(ｲ+)", line)
+                                        if match:
+                                            progress_count = len(match.group(1))
+                                            inner_pbar.n = progress_count
+                                            inner_pbar.refresh()
+                                process.wait()
+                                if process.returncode == 0:
+                                    inner_pbar.n = 100
+                                    inner_pbar.refresh()
+                                elif process.returncode != 0:
+                                    inner_pbar.close()
+                                    self.logger.error("Failed decrpyt. Exiting...", extra={"service_name": service_name})
+                                    exit(1)
     def _decrypt_multi(self, license_keys, input_paths, output_paths, config, service_name):
         self.logger.debug(f"[Multi] input: {input_paths}, output: {output_paths}", extra={"service_name": service_name})
         
