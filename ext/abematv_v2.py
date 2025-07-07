@@ -10,6 +10,8 @@ import datetime
 from datetime import datetime
 from rich.console import Console
 
+from ext.global_func.util.other_util import sanitize_filename
+
 from ext.utils import abema
 
 console = Console()
@@ -436,6 +438,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     
                 if decrypt_type == "hls":
                     downloaded_files = abema_downloader.download_chunk(files, key, iv, decrypt_type, output_temp_directory)
+                    title_name = sanitize_filename(title_name, False)
+                    title_name_logger = sanitize_filename(title_name_logger, False)
                     abema_downloader.merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), os.path.join(config["directorys"]["Downloads"], title_name))
                     
                 logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
@@ -703,6 +707,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                 print(f"指定されたディレクトリは存在しません: {dir_path}")
                             
                         if decrypt_type == "hls":
+                            title_name = sanitize_filename(title_name, False)
+                            title_name_logger = sanitize_filename(title_name_logger, False)
                             downloaded_files = abema_downloader.download_chunk(files, key, iv, decrypt_type, output_temp_directory)
                             abema_downloader.merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), os.path.join(config["directorys"]["Downloads"], title_name))
                         
@@ -987,6 +993,8 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                                 print(f"指定されたディレクトリは存在しません: {dir_path}")
                             
                         if decrypt_type == "hls":
+                            title_name = sanitize_filename(title_name, False)
+                            title_name_logger = sanitize_filename(title_name_logger, False)
                             downloaded_files = abema_downloader.download_chunk(files, key, iv, decrypt_type, output_temp_directory)
                             abema_downloader.merge_video(downloaded_files, os.path.join(config["directorys"]["Downloads"], title_name, title_name_logger+".mp4"), os.path.join(config["directorys"]["Downloads"], title_name))
                         

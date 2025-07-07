@@ -390,7 +390,7 @@ class global_parser:
             return 0
     def calculate_segments(self, media_duration, segment_duration, timescale):
         """セグメント数を計算"""
-        segment_seconds = segment_duration / timescale
+        segment_seconds = int(segment_duration) / int(timescale)
         return round(media_duration / segment_seconds)  
     def extract_mpd_attributes(self, mpd_content):
         """
