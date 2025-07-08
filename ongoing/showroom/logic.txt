@@ -1,0 +1,7 @@
+response = https://www.showroom-live.com/api/live/streaming_url?room_id=494035&abr_available=1
+
+for single in response.json()["streaming_url_list"]:
+   single["type"] == "lhls" # low latency hls
+   single["type"] == "hls"  # normal hls
+
+https://hls-ull.showroom-cdn.com/06db72da8dd071fd1cdb134a5aff5612cd9b25b38170a92e802857228e3b1ccf/source/chunklist.m3u8
