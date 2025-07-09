@@ -31,7 +31,7 @@ def cli(version=False):
 @click.option("--resolution", "-r", "res", required=False, default="best", help="Resolution to be downloaded (Default: best)")
 @click.option("--resolutions", "-R", "resR", is_flag=True, help="Show available resolutions")
 @click.option("--output", "-o", required=False, default=None, help="Output filename")
-@click.option("--output-dir", "-od", required=False, default=None, help="Output directory")
+@click.option("--directory", "--d", "--path", required=False, default=None, help="Output directory")
 @click.option('--verbose', '-v', is_flag=True, help="Enable verbosity")
 @click.option('--random-directory', '-rd', 'use_rd', is_flag=True, default=True, help="Make temp a random directory")
 
