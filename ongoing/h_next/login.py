@@ -1,3 +1,4 @@
+import re
 import requests
 
 email = ""
@@ -27,3 +28,42 @@ headers = {
 }
 
 login_response = session.post("https://tvh.unext.jp/api/1/login", json=payload, headers=headers)
+
+
+# Sample download link:
+# https://video.hnext.jp/title/AID0257926
+
+url = "https://video.hnext.jp/title/AID0257926"
+
+match = re.search(r"(AID\d+)", url)
+if match:
+    av_id = match.group(1)
+
+def get_content_info(aid):
+    try:
+        url = "https://tvh.unext.jp/api/1/adult/titleDetail"
+        queryparams = {"title_code": aid}
+        
+        content_info = session.get(url, params=queryparams)
+        content_json = content_info.json()["data"]["title"]
+        return content_json
+    except:
+        return None
+    
+content_info = get_content_info(av_id)
+
+titlename = content_info["title_name"]
+catch_comment = content_info["title_comment"]
+release_date = content_info["release_month"]
+vod_type = content_info["payment_badge_code"]
+
+print("[+] Title:", titlename)
+print("[+] Catch:", catch_comment)
+print("[+] Release Date:", release_date)
+print("[+] Vod Type:", vod_type)
+
+if vod_type == "SVOD":
+    pass
+else:
+    print("[-] OH THIS CONTENT IS REQUIRE coin/point")
+    
