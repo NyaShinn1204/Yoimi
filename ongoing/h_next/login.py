@@ -31,9 +31,9 @@ login_response = session.post("https://tvh.unext.jp/api/1/login", json=payload, 
 
 
 # Sample download link:
-# https://video.hnext.jp/title/AID0257926
+# https://video.hnext.jp/title/AID0274183
 
-url = "https://video.hnext.jp/title/AID0257926"
+url = "https://video.hnext.jp/title/AID0274183"
 
 match = re.search(r"(AID\d+)", url)
 if match:
@@ -49,7 +49,16 @@ def get_content_info(aid):
         return content_json
     except:
         return None
-    
+def get_mainepisode_info(aid):
+    try:
+        url = "https://tvh.unext.jp/api/1/adult/episodelist"
+        queryparams = {"title_code": aid}
+        
+        content_info = session.get(url, params=queryparams)
+        content_json = content_info.json()["data"]
+        return content_json
+    except:
+        return None
 content_info = get_content_info(av_id)
 
 titlename = content_info["title_name"]
@@ -67,3 +76,44 @@ if vod_type == "SVOD":
 else:
     print("[-] OH THIS CONTENT IS REQUIRE coin/point")
     
+mainepisode_info = get_mainepisode_info(av_id)
+
+if mainepisode_info["sample_episode"]["duration"] == 0:
+    availiable_sample = False
+else:
+    availiable_sample = True
+
+print(availiable_sample)
+print("Max Resolution:",mainepisode_info["main_episode"]["max_resolution_code"])
+
+print("Sending Play Request")
+querystring = {
+    "code": mainepisode_info["main_episode"]["episode_code"],
+    "keyonly_flg": "0",
+    "play_mode": "caption",
+    "media_type": "ADULT"
+}
+get_data_here = session.get("https://tvh.unext.jp/api/1/playlisturl", params=querystring)
+
+playlist_data_json = get_data_here.json()
+if playlist_data_json["data"]["result_status"] == 475:
+    print("Require subscription (H-Next)")
+    exit(1)
+elif playlist_data_json["data"]["result_status"] == 200:
+    pass
+
+play_token = playlist_data_json["data"]["play_token"]
+
+url_info = playlist_data_json["data"]["url_info"][0]
+media_code = url_info["code"]
+
+dash_profile = url_info["movie_profile"].get("dash")
+mpd_url = dash_profile["playlist_url"]
+print(mpd_url)
+widevine_url = dash_profile["license_url_list"]["widevine"]
+playready_url = dash_profile["license_url_list"]["playready"]
+print("License URL")
+print(widevine_url, playready_url)
+
+session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/0/?play_token={play_token}&last_viewing_flg=0")
+print("Send Stop Request")
