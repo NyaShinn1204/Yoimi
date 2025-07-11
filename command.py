@@ -119,7 +119,7 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
         if not yuuParser:
             print('Unknown url format')
             exit(1)
-            
+        
         sesi = requests.Session()
         
         version_check(sesi)
@@ -158,6 +158,11 @@ def main_downloader(input, username, password, proxy, res, resR, mux, muxfile, k
                     LOG_LEVEL = "DEBUG"
                 else:
                     LOG_LEVEL = "INFO"
+                    
+                if site_text == "Crunchyroll":
+                    import tls_client
+                    sesi = tls_client.Session(client_identifier="chrome139",random_tls_extension_order=True)
+                    
                 yuuParser.main_command(sesi, input, username, password, LOG_LEVEL, [__version__, use_rd, use_gnc, use_odc, write_thumbnail, embed_thumbnail, embed_metadata, embed_sub, get_sub, embed_chapters])
             except Exception as error:
                 print(error)

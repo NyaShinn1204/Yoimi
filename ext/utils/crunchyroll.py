@@ -229,8 +229,7 @@ class Crunchyroll_license:
             "x-cr-content-id": id
         }
         response = session.post(f"{_WVPROXY}", data=bytes(challenge), headers=headers)
-        response.raise_for_status()
-    
+
         cdm.parse_license(session_id, base64.b64decode(response.json()["license"]))
         keys = [
             {"type": key.type, "kid_hex": key.kid.hex, "key_hex": key.key.hex()}
@@ -294,12 +293,13 @@ class Crunchyroll_downloader:
         while retries < 3:
             try:
                 self.session.headers = {
+                    "Accept-Encoding": "identity",
                     "Connection": "Keep-Alive",
                     "Content-Type": "application/x-www-form-urlencoded",
                     "ETP-Anonymous-ID": str(uuid.uuid4()),
                     "Host": "www.crunchyroll.com",
                     "User-Agent": "Crunchyroll/deviceType: ANDROIDTV; appVersion: defaultUserAgent; osVersion: 16; model: AOSP TV on x86; manufacturer: Google; brand: google",
-                    "X-Datadog-Sampling-Priority": "0",
+                    "X-Datadog-Sampling-Priority": "0"
                 }
                 payload = {
                     "username": email,
@@ -325,6 +325,10 @@ class Crunchyroll_downloader:
                     return None
                 if response.status_code == 500:
                     print(f"Internal server error. {response.text}")
+                    return None
+                
+                if response.status_code == 403 and "Just a moment..." in response.text:
+                    print("Cloudflare flagged.")
                     return None
                 
                 if response.status_code == 403:
@@ -389,7 +393,6 @@ class Crunchyroll_downloader:
                     while retry < 3:
                         try:
                             response = requests.get(url.strip(), timeout=10)
-                            response.raise_for_status()
                             out_file.write(response.content)
                             progress_bar.update(1)
                             break
