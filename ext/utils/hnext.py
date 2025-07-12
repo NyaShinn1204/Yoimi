@@ -42,9 +42,9 @@ class Hnext_downloader:
             }
             return True, user_response["common"]["userInfo"], True, session_json
         elif user_response["common"]["result"]["errorCode"] == "GUN8030006":
-            return False, 'Require Japan VPN, Proxy', False, None
-        elif user_response["common"]["result"]["errorCode"] == "GAW0500003":
             return False, 'Wrong Email or password', False, None
+        elif user_response["common"]["result"]["errorCode"] == "GAW0500003":
+            return False, 'Require Japan VPN, Proxy', False, None
     def authorize_qr(self):
         _ENDPOINT_CC = "https://cc.unext.jp/"
         _ENDPOINT_LOGIN = "https://tvh.unext.jp/api/1/login"
@@ -134,6 +134,8 @@ class Hnext_downloader:
         }
         
         response = self.session.get("https://tvh.unext.jp/api/1/playlisturl", params=querystring).json()
+        if response["data"]["result_status"] == 476:
+            raise Exception("Require rental/buy")
         if response["data"]["result_status"] == 475:
             raise Exception("Require subscription (H-Next)")
         elif response["data"]["result_status"] == 200:
