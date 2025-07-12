@@ -1,5 +1,5 @@
 import uuid
-
+import time
 class Hnext_downloader:
     def __init__(self, session, config):
         self.session = session
@@ -32,23 +32,23 @@ class Hnext_downloader:
         
         user_response = response.json()
         
-        session_json = {
-            "method": "LOGIN",
-            "email": email_or_id,
-            "password": password,
-            "access_token": response.cookies["_ut"],
-            "refresh_token": None
-        }
-        
         if user_response["common"]["result"]["errorCode"] == "":
+            session_json = {
+                "method": "LOGIN",
+                "email": email_or_id,
+                "password": password,
+                "access_token": response.cookies["_ut"],
+                "refresh_token": None
+            }
             return True, user_response["common"]["userInfo"], True, session_json
         elif user_response["common"]["result"]["errorCode"] == "GUN8030006":
             return False, 'Require Japan VPN, Proxy', False, None
         elif user_response["common"]["result"]["errorCode"] == "GAW0500003":
             return False, 'Wrong Email or password', False, None
-    
     def authorize_qr(self):
         _ENDPOINT_CC = "https://cc.unext.jp/"
+        _ENDPOINT_LOGIN = "https://tvh.unext.jp/api/1/login"
+        
         payload = {
             "operationName": "tvh_loginDelegationCreateSession",
             "query": "mutation tvh_loginDelegationCreateSession($appVersion: String!, $deviceName: String!, $deviceType: String!, $deviceUuid: String!, $location: String!) {\n  loginDelegationCreateSession(\n    appVersion: $appVersion\n    deviceName: $deviceName\n    deviceType: $deviceType\n    deviceUuid: $deviceUuid\n    location: $location\n  ) {\n    code\n    authPageUrlTemplate\n    sessionId\n    __typename\n  }\n}",
@@ -64,6 +64,87 @@ class Hnext_downloader:
         response = self.session.post(_ENDPOINT_CC, json=payload)
         get_qr_link = response.json()
         
-        get_qr_link["data"]["loginDelegationCreateSession"]["authPageUrlTemplate"]
-        get_qr_link["data"]["loginDelegationCreateSession"]["code"]
-        get_qr_link["data"]["loginDelegationCreateSession"]["sessionId"]
+        session_check_data = {
+            "operationName": "tvh_loginDelegationPollSession",
+            "query": "query tvh_loginDelegationPollSession($code: String!, $sessionId: String!) {\n  loginDelegationPollSession(code: $code, sessionId: $sessionId) {\n    oneTimeToken\n    __typename\n  }\n}",
+            "variables": {
+              "code": get_qr_link["data"]["loginDelegationCreateSession"]["code"],
+              "sessionId": get_qr_link["data"]["loginDelegationCreateSession"]["sessionId"]
+            }
+        }
+        
+        print("Login URL:", get_qr_link["data"]["loginDelegationCreateSession"]["authPageUrlTemplate"])
+        print("Code:", get_qr_link["data"]["loginDelegationCreateSession"]["code"])
+        
+        while True:
+            send_checkping = self.session.post(f"https://cc.unext.jp/", json=session_check_data)
+            if send_checkping.json()["data"]["loginDelegationPollSession"] == None:
+                print("Waiting Login...")
+                time.sleep(5)
+            else:
+                print("Login Accept")
+                
+                one_time_token = send_checkping.json()["data"]["loginDelegationPollSession"]["oneTimeToken"]
+                
+                payload = {
+                    "oneTimeToken": one_time_token,
+                }
+                
+                response = self.session.post(_ENDPOINT_LOGIN, json=payload)
+                
+                user_response = response.json()
+                
+                session_json = {
+                    "method": "QR_LOGIN",
+                    "email": None,
+                    "password": None,
+                    "access_token": response.cookies["_ut"],
+                    "refresh_token": None
+                }
+                
+                return True, user_response["common"]["userInfo"], True, session_json
+            
+    def check_token(self, token):
+        self.session.cookies.set('_ut', token)
+        
+        token_check = self.session.get("https://tvh.unext.jp/api/1/adult/mylist/list?page_number=1").json()
+        
+        if token_check["common"]["result"]["errorCode"] == "GAN9900010":
+            return False, None
+        else:
+            return True, token_check["common"]["userInfo"]
+        
+        
+    def get_content_info(self, aid):
+        try:
+            url = "https://tvh.unext.jp/api/1/adult/titleDetail"
+            queryparams = {"title_code": aid}
+            
+            content_info = self.session.get(url, params=queryparams)
+            content_json = content_info.json()["data"]["title"]
+            return content_json
+        except:
+            return None
+    def get_mpd_info(self, aed_id):
+        querystring = {
+            "code": aed_id,
+            "keyonly_flg": "0",
+            "play_mode": "caption",
+            "media_type": "ADULT"
+        }
+        
+        response = self.session.get("https://tvh.unext.jp/api/1/playlisturl", params=querystring).json()
+        if response["data"]["result_status"] == 475:
+            raise Exception("Require subscription (H-Next)")
+        elif response["data"]["result_status"] == 200:
+            play_token = response["data"]["play_token"]
+            url_info = response["data"]["url_info"][0]
+            return play_token, url_info
+        
+    def send_stop_signal(self, media_code, play_token):
+        signal_result = self.session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/0/?play_token={play_token}&last_viewing_flg=0")
+        
+        if signal_result.status_code == 200:
+            return True
+        else:
+            return False

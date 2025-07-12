@@ -33,6 +33,7 @@ def get_parser(url):
     valid_gyao = r'(?isx)^["\']?http(?:|s)://gyao.yahoo.co.jp/(?:player|p|title[\w])/(?P<p1>[\w]*.*)["\']?$'
     valid_aniplus = r'^["\']?http(?:|s)://(?:www\.|)aniplus-asia\.com/episode/(?P<video_id>[\w]*.*)["\']?$'
     valid_unext = r'^https?://(?:video|video-share)\.unext\.jp/(?:play|title|freeword)/.*(?:SID[0-9]+|ED[0-9]+)' #    r'^https?://(?:video(?:-share)?\.(?:unext|hnext)\.jp)/(?:play|title|freeword)/.*(?:SID\d+|ED\d+|AID\d+)'
+    valid_hnext = r'^https?://video\.hnext\.jp/(?:play|title)/.*(?:AID\d+|AED\d+)'
     valid_dmm_tv = r'^["\']?https?://tv\.dmm\.com/(?:vod(?:/playback(?:/[^?]*)?)?|shorts)/\?.*season=(?P<season>[^&?]+)(?:&.*content=(?P<content>[^&?]+)|)["\']?$'
     valid_brainshark = r'^["\']?https?://www\.brainshark\.com/brainshark/brainshark\.services\.player/api/v1\.0/Presentation\?([^&]*&)*pi=(?P<pi>[^&]+)(&|$)'
     valid_fod = r'^["\']?https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+/?)?(?:\?.*)?["\']?$'
@@ -62,6 +63,9 @@ def get_parser(url):
     elif re.match(valid_unext, url):
         from ext import unext_v2 as Unext_v2
         return Unext_v2, "unext"
+    elif re.match(valid_hnext, url):
+        from ext import hnext as Hnext
+        return Hnext, "H-Next"
     elif re.match(valid_dmm_tv, url):
         if "restrict" in url:
             # CHECK VR OR REGULAR TYPE

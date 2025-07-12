@@ -16,14 +16,14 @@ from urllib.parse import urlparse, parse_qs, unquote
 from ext.utils import hnext
 
 from ext.global_func.util.mux_util import main_mux
-from ext.global_func.util.download_util import segment_downloader
+from ext.global_func.util.download_util import aria2c_downloader
 from ext.global_func.util.decrypt_util import main_decrypt
 from ext.global_func.util.session_util import session_util
 from ext.global_func.util.license_util import license_util
 
 console = Console()
 
-__service_name__ = "Lemino"
+__service_name__ = "H-Next"
 
 COLOR_GREEN = "\033[92m"
 COLOR_GRAY = "\033[90m"
@@ -114,167 +114,90 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
         set_variable(session, LOG_LEVEL)
         logger.info("Decrypt Content for Everyone", extra={"service_name": "Yoimi"})
         
-        lemino_downloader = hnext.Hnext_downloader(session, config)
+        hnext_downloader = hnext.Hnext_downloader(session, config)
         
 
 
         status = check_session(__service_name__)
-        session_logic = session_util(logger=logger, service_name=__service_name__, service_util=lemino_downloader)
+        session_logic = session_util(logger=logger, service_name=__service_name__, service_util=hnext_downloader)
         session_data = None
         session_status = False
         
         if status:
             session_data = load_session(status)
             if session_data:
-                token_status, message = lemino_downloader.check_token(session_data["access_token"])
+                token_status, message = hnext_downloader.check_token(session_data["access_token"])
                 if not token_status:
                     logger.info("Session is Invalid. Please re-login.", extra={"service_name": __service_name__})
-                    session_status, message, session_data = session_logic.login_with_credentials(email, password, login_method="normal")
+                    if email == "QR_LOGIN":
+                        method = "qr"
+                    else:
+                        method = "normal"
+                    session_status, message, session_data = session_logic.login_with_credentials(email, password, login_method=method)
                 else:
                     session_status = True
             
         if not session_status and email and password:
-            session_status, message, session_data = session_logic.login_with_credentials(email, password, login_method="normal")
+            if email == "QR_LOGIN":
+                method = "qr"
+            else:
+                method = "normal"
+            session_status, message, session_data = session_logic.login_with_credentials(email, password, login_method=method)
         
         if session_status:
-            profile_id = message["profile"]["profile_id"]
+            profile_id = message["cuid"]
             logger.info("Logged-in Account", extra={"service_name": __service_name__})
             logger.info(" + id: " + profile_id, extra={"service_name": __service_name__})
-        else:
-            logger.info("Using Temp Account", extra={"service_name": __service_name__})
             
         logger.info("Analyzing URL", extra={"service_name": __service_name__})
         
         
         # DOWNLOAD LOGIC
-        def single_download_logic(content_crid, from_mutli=False, title_name_logger=None, title_name=None):
-            content_info = lemino_downloader.get_content_info(crid=content_crid)
+        def single_download_logic(url, from_mutli=False, title_name_logger=None, title_name=None):
+            aid_id = re.search(r"(AID\d+)", url).group(1)
             
-            logger.info("Get Title for 1 Episode", extra={"service_name": __service_name__})
+            if "/title/" in url:
+                aed_id = title_name
+                title_name = None
+            else: 
+                aed_id = re.search(r"(AED\d+)", url).group(1)
             
-            genre_list = []
-            for genre_s in content_info["meta_list"][0]["genre_list"]["vod"]:
-                genre_list.append(genre_s["id"])
+            content_info = hnext_downloader.get_content_info(aid=aid_id)
             
-            result_genre, print_genre, only_genre_id_list = lemino_downloader.analyze_genre(genre_list)
-            logger.info(f" + Video Type: {print_genre}", extra={"service_name": __service_name__})
-            
-            if content_info["meta_list"][0]["member_of"] != []:
-                season_title, content_count, season_info = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])        
-                single = content_info["meta_list"][0]
-                title = single["title"].strip()
-                title_sub = single["title_sub"].strip()
-                
-                if title_sub.startswith(title):
-                    subtitle = title_sub[len(title):].strip()
-                else:
-                    subtitle = title_sub
-                    for part in title.split():
-                        if part and part in subtitle:
-                            subtitle = subtitle.replace(part, "").strip()
-                            
-                episode_number = single["play_button_name"]
-                title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_count, season_title, episode_number, subtitle)
-            else:
-                try:
-                    content_list = lemino_downloader.get_content_list(content_info["meta_list"][0]["member_of"][0])
-                except:
-                    content_list = 1
-                if from_mutli:
-                    title_name = title_name
-                else:
-                    title_name = content_info["meta_list"][0]["title"].replace(content_info["meta_list"][0]["title_sub"], "")
-                episode_num = 1
-                match = re.search(r'(\d+)', content_info["meta_list"][0]["play_button_name"])
-                if match:
-                    episode_num = int(match.group(1))
-                        
-                if from_mutli:
-                    title_name_logger = title_name_logger
-                else:
-                    title = content_info["meta_list"][0]["title"].strip()
-                    title_sub = content_info["meta_list"][0]["title_sub"].strip()
-                    subtitle = title_sub 
-                    for part in title.split():
-                        if part and part in subtitle:
-                            subtitle = subtitle.replace(part, "").strip()
-                    episode_number = content_info["meta_list"][0]["play_button_name"]
-                    title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_list, title_name, episode_number, subtitle)
-            logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+            logger.info("Get Title, Catch for 1 Episode", extra={"service_name": __service_name__})
 
-            
-            cid = content_info["meta_list"][0]["cid_obj"][0]["cid"]
-            
-            
-            license_list = content_info["meta_list"][0]["license_list"]
-            now = datetime.now(timezone(timedelta(hours=9)))  # JST (UTC+9)
-            lid = None
-            
-            logger.debug("Fetching VOD Type", extra={"service_name": __service_name__})
-            
-            # if sale_type == avod, and sale_end_date is not invalid
-            for license in license_list:
-                if license.get("sale_type") == "avod":
-                    logger.debug(" + Found AVOD(Ad Video Ondemand)", extra={"service_name": __service_name__})
-                    sale_start = datetime.fromisoformat(license["sale_start_date"])
-                    sale_end = datetime.fromisoformat(license["sale_end_date"])
-                    if sale_start <= now < sale_end:
-                        logger.debug(" + AVOD is Valid. juse use AVOD", extra={"service_name": __service_name__})
-                        lid = license["license_id"]
-                        break
-                    else:
-                        logger.debug(" + AVOD is not start, or expired. just use another", extra={"service_name": __service_name__})
-            # if sale_type == free, and sale_start_date <= now < sale_end_date
-            for license in license_list:
-                if license.get("sale_type") == "free":
-                    logger.debug(" + Found Free", extra={"service_name": __service_name__})
-                    sale_start = datetime.fromisoformat(license["sale_start_date"])
-                    sale_end = datetime.fromisoformat(license["sale_end_date"])
-                    if sale_start <= now < sale_end:
-                        logger.debug(" + Free is Valid. jsue use Free", extra={"service_name": __service_name__})
-                        lid = license["license_id"]
-                        break
-                    else:
-                        logger.debug(" + Free is not start, or expired. just use another", extra={"service_name": __service_name__})
-                    
-            # if not found, juse use first svod lid
-            if lid is None:
-                for license in license_list:
-                    if license.get("sale_type") == "svod":
-                        logger.debug(" + Found SVOD(Subscribe Video Ondemand)", extra={"service_name": __service_name__})
-                        lid = license["license_id"]
-                        break
-            
-            
+            title_name_logger = content_info["title_name"]
+            logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
+            logger.info(f" + {content_info["title_comment"]}", extra={"service_name": __service_name__})
             
             logger.info("Getting information from MPD", extra={"service_name": __service_name__})
             
-            play_token, content_list = lemino_downloader.get_mpd_info(cid=cid, lid=lid, crid=content_info["meta_list"][0]["crid"])
-            mpd_link = content_list[0]["play_url"]
-            mpd_text = session.get(mpd_link).text
+            play_token, content_list = hnext_downloader.get_mpd_info(aed_id=aed_id)
+            dash_profile = content_list["movie_profile"].get("dash")
+            mpd_link = dash_profile["playlist_url"]
+            mpd_text = session.get(mpd_link+f"&play_token={play_token}").text
             Tracks = parser.global_parser()
-            transformed_data = Tracks.mpd_parser(mpd_text, real_bitrate=True)
+            transformed_data = Tracks.mpd_parser(mpd_text)
             duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
                     
             logger.info(f" + Video, Audio PSSH: {transformed_data["pssh_list"]["widevine"]}", extra={"service_name": __service_name__})
             widevine_headers = {
-                "acquirelicenseassertion": content_list[0]["custom_data"],
-                "user-agent": "inidrmagent/2.0 (Android 10; jp.ne.docomo.lemino.androidtv)",
                 "content-type": "application/octet-stream",
-                "host": "drm.lemino.docomo.ne.jp",
-                "connection": "Keep-Alive",
-                "accept-encoding": "gzip"
+                "user-agent": "Beautiful_Japan_TV_Android/1.0.6 (Linux;Android 10) ExoPlayerLib/2.12.0",
+                "accept-encoding": "gzip",
+                "host": "wvproxy.unext.jp",
+                "connection": "Keep-Alive"
             }
-            license_key = license_util.widevine_license(transformed_data["pssh_list"]["widevine"], content_list[0]["la_url"], widevine_headers, session, config)
+            license_key = license_util.widevine_license(transformed_data["pssh_list"]["widevine"], dash_profile["license_url_list"]["widevine"]+f"?play_token={play_token}", widevine_headers, session, config)
             
-            lemino_downloader.send_stop_signal(play_token, content_info["meta_list"][0]["duration_sec"])
+            hnext_downloader.send_stop_signal(play_token=play_token, media_code=content_list["code"])
             
             logger.info("Decrypt License for 1 Episode", extra={"service_name": __service_name__})
             logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_key["key"] if key['type'] == 'CONTENT']}", extra={"service_name": __service_name__})        
             
             logger.info("Get Video, Audio Tracks:", extra={"service_name": __service_name__})
             logger.debug(" + Meta Info: "+str(transformed_data["info"]), extra={"service_name": __service_name__})
-            track_data = Tracks.print_tracks(transformed_data, real_bitrate=True)
+            track_data = Tracks.print_tracks(transformed_data)
             
             print(track_data) 
             
@@ -287,32 +210,17 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
             logger.debug(" + Episode Duration: "+str(int(duration)), extra={"service_name": __service_name__})           
             
-            logger.info("Video, Audio Content Segment Link", extra={"service_name": __service_name__})
-            video_segment_list = Tracks.calculate_segments(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
-            logger.info(" + Video Segments: "+str(int(video_segment_list)), extra={"service_name": __service_name__})               
-            audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
-            logger.info(" + Audio Segments: "+str(int(audio_segment_list)), extra={"service_name": __service_name__})
-            
-            parsed = urlparse(mpd_link)
-            base_path = parsed.path.rsplit('/', 1)[0] + '/'
-            base_url = f"{parsed.scheme}://{parsed.netloc}{base_path}"
-            
-            video_segments = Tracks.get_segment_link_list(mpd_text, get_best_track["video"]["id"], base_url)
-            video_segment_links = [item.replace("$Bandwidth$", get_best_track["video"]["bitrate"]) for item in video_segments["all"]]
-            audio_segments = Tracks.get_segment_link_list(mpd_text, get_best_track["audio"]["id"], base_url)
-            audio_segment_links = [item.replace("$Bandwidth$", get_best_track["audio"]["bitrate"]) for item in audio_segments["all"]]
-            
-            logger.info("Downloading Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+            logger.info("Downloading Encrypted Video, Audio...", extra={"service_name": __service_name__})
             
             video_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_video.mp4")
             audio_output = os.path.join(config["directorys"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4")
             
-            downloader = segment_downloader()
+            downloader = aria2c_downloader()
             
-            status, result = downloader.download(video_segment_links, "download_encrypt_video.mp4", config, unixtime, __service_name__)
-            status, result = downloader.download(audio_segment_links, "download_encrypt_audio.mp4", config, unixtime, __service_name__)
+            status, result = downloader.download(get_best_track["video"]["url"], "download_encrypt_video.mp4", config, unixtime, __service_name__)
+            status, result = downloader.download(get_best_track["audio"]["url"], "download_encrypt_audio.mp4", config, unixtime, __service_name__)
             
-            logger.info("Decrypting Encrypted Video, Audio Segments...", extra={"service_name": __service_name__})
+            logger.info("Decrypting Encrypted Video, Audio...", extra={"service_name": __service_name__})
             
             decryptor = main_decrypt(logger)
             
@@ -369,87 +277,23 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             
             logger.info('Finished download: {}'.format(title_name_logger), extra={"service_name": __service_name__})
             
-        def season_download_logic(content_crid):
-            season_title, content_count, season_info = lemino_downloader.get_content_list(content_crid)            
+        def season_download_logic(url):
+            aid_id = re.search(r"(AID\d+)", url).group(1)
+            content_json = hnext_downloader.get_content_info(aid_id)            
             logger.info("Get Info for Season", extra={"service_name": __service_name__})
-            logger.info(f" + Title: {season_title}", extra={"service_name": __service_name__})
-            logger.info(f" + Episode Count: {content_count}", extra={"service_name": __service_name__})
-
-            genre_list = []
-            for genre_s in season_info["genre_list"]["vod"]:
-                genre_list.append(genre_s["id"])
+            logger.info(f" + Title: {content_json["title_name"]}", extra={"service_name": __service_name__})
             
-            result_genre, print_genre, only_genre_id_list = lemino_downloader.analyze_genre(genre_list)
-            logger.info(f" + Video Type: {print_genre}", extra={"service_name": __service_name__})
-            
-            logger.info("Get Title for Season", extra={"service_name": __service_name__})
-            
-            for single in season_info["child_list"]:
-                title = single["title"].strip()
-                title_sub = single["title_sub"].strip()
+            single_download_logic(url, from_mutli=True, title_name_logger=content_json["title_name"], title_name=content_json["episode_code"])
                 
-                if title_sub.startswith(title):
-                    subtitle = title_sub[len(title):].strip()
-                else:
-                    subtitle = title_sub
-                    for part in title.split():
-                        if part and part in subtitle:
-                            subtitle = subtitle.replace(part, "").strip()
-                            
-                episode_number = single["play_button_name"]
-                title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_count, season_title, episode_number, subtitle)
-                logger.info(f" + {title_name_logger}", extra={"service_name": __service_name__})
-                
-            for single in season_info["child_list"]:
-                title = single["title"].strip()
-                title_sub = single["title_sub"].strip()
-                
-                if title_sub.startswith(title):
-                    subtitle = title_sub[len(title):].strip()
-                else:
-                    subtitle = title_sub
-                    for part in title.split():
-                        if part and part in subtitle:
-                            subtitle = subtitle.replace(part, "").strip()
-                            
-                episode_number = single["play_button_name"]
-                title_name_logger = lemino_downloader.create_titlename_logger(only_genre_id_list, content_count, season_title, episode_number, subtitle)
-                single_download_logic(single["crid"], from_mutli=True, title_name_logger=title_name_logger, title_name=season_title)
-                
-            logger.info("Finished download Season: {}".format(season_title), extra={"service_name": __service_name__})
-        # URL LOGIC HERE
-        def safe_b64decode(data: str) -> str:
-            # nice decode base64 to crid :)
-            data += '=' * (-len(data) % 4)
-            return base64.b64decode(data).decode('utf-8')
-    
-        parsed = urlparse(url)
+            logger.info("Finished download Season: {}".format(content_json["title_name"]), extra={"service_name": __service_name__})
         
-        # --- search URL ---
-        if "search/word" in url:
-            query = parse_qs(parsed.query)
-            crid_encoded = query.get("crid", [None])[0]
-            if crid_encoded:
-                crid_decoded = safe_b64decode(unquote(crid_encoded))
-                if "group" in crid_decoded:
-                    season_download_logic(crid_decoded)
-                else:
-                    single_download_logic(crid_decoded)
-                return
-    
-        # --- contents URL ---
-        match = re.search(r'/contents/([^/?#]+)', parsed.path)
-        if match:
-            crid_encoded = match.group(1)
-            crid_decoded = safe_b64decode(unquote(crid_encoded))
-    
-            if "/vod/" in crid_decoded:
-                single_download_logic(crid_decoded)
-            elif "/group/" in crid_decoded:
-                season_download_logic(crid_decoded)
-            else:
-                logger.error("Unknown contetn strcuture", extra={"service_name": __service_name__})
-            return
+        if "/title/" in url:
+            season_download_logic(url)
+        elif "/play/" in url:
+            single_download_logic(url)
+        else:
+            logger.error("Unknown contetn strcuture", extra={"service_name": __service_name__})
+        return
     
         logger.error("Unsupported Type URL", extra={"service_name": __service_name__})
             
