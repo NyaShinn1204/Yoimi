@@ -14,3 +14,9 @@ Yoimi is created by the following people (repositories):
 | Syut9             | Test Telasa(dev module)                                                                                                                                                 |
 | shellcmd          | Help with fod hd                                                                                                                                                        |
 | elinaldosoft      | Calculate duration ideas (code: [link](https://github.com/globocom/m3u8/issues/136#issuecomment-1045634906))                                                            |
+| rex               | Hulu-jp account sharing                                                                                                                                                 |
+| Bil 21            | Fanza account sharing                                                                                                                                                   |
+| huhan             | Fanza account sharing                                                                                                                                                   |                
+| tanjiro           | Crunchyroll account sharing                                                                                                                                             |
+| OrinHonosu46      | Hulu-jp, Lemino, FOD account sharing, and Help with decrypt logic                                                                                                       |
+| FantaVR Project   | Inspiration for creating the Fanza downloader [group link](https://6jM56fCrEm)                                                                                                                           |
