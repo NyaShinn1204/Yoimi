@@ -68,4 +68,6 @@ class Logger:
         return logger
 
 def download_command(input: str, command_list: Iterator):
+    
+    ## serivce.main_command(command_list["email"], command_list["password"], input, command_list)
     pass
