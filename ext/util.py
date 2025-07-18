@@ -2,10 +2,14 @@ import re
 import os
 import logging
 import requests
+import tls_client
 
-from urllib.parse import urlparse, parse_qs
-from importlib import import_module
 from typing import Iterator
+from importlib import import_module
+from urllib.parse import urlparse, parse_qs
+
+
+from ext.utils.session_util import session_logic
 
 
 def path_check(input_path):
@@ -134,6 +138,25 @@ class Logger:
 
 def download_command(input: str, command_list: Iterator):
     module_service, module_label = get_parser(input)
-    module_service.main_command(command_list["email"], command_list["password"], input, module_label, command_list)
+    service_config = module_service.__service_config__
+    service_label = service_config["service_name"]
+    service_logger = Logger.create_logger(service_label, LOG_LEVEL=command_list["verbose"])
     
-    pass
+    email, password = command_list["email"], command_list["password"]
+    
+    if (not email or not password) and service_config["require_account"]:
+        service_logger.error(f"{service_label} is require account login.")
+        exit(1)
+    
+    ### define, init service
+    if service_config["use_tls"]:
+        session = tls_client.Session(client_identifier="chrome139",random_tls_extension_order=True)
+    else:
+        session = requests.Session()
+    service_downloader = module_service.downloader(session=session)
+    
+    ### check session
+    if service_config["require_account"]:
+        session_manager = session_logic(logger=service_logger, service_name=service_label, service_util=service_downloader)
+        
+        session_manager.check_session(service_label)
