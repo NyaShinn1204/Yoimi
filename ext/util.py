@@ -44,27 +44,27 @@ def check_dmm_content_type(season_id):
 def get_parser(url):
     patterns = [
         # パターン, 条件, モジュール名, ラベル名
-        (re.compile(r'^https?://abema\.tv/.+'), lambda u: "-v1" in u, 'ext.abematv', 'abemav1'),
-        (re.compile(r'^https?://abema\.tv/.+'), None, 'ext.abematv_v2', 'abema'),
-        (re.compile(r'^https?://gyao\.yahoo\.co\.jp/.+'), None, 'ext.gyao', 'gyao'),
-        (re.compile(r'^https?://(?:www\.)?aniplus-asia\.com/episode/.+'), None, 'ext.aniplus', 'aniplus'),
-        (re.compile(r'^https?://(?:video|video-share)\.unext\.jp/.+(SID\d+|ED\d+)'), None, 'ext.unext_v2', 'unext'),
-        (re.compile(r'^https?://video\.hnext\.jp/(?:play|title)/.+(AID\d+|AED\d+)'), None, 'ext.hnext', 'H-Next'),
-        (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+).*(content=([^&]+))?'), lambda u: check_dmm_content_type(parse_qs(urlparse(u).query).get("season", [None])[0]) == "VOD_VR", 'ext.fanza', 'Fanza-VR'),
-        (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+)'), None, 'ext.dmm_tv', 'dmm_tv'),
-        (re.compile(r'^https?://www\.brainshark\.com/.+pi=([^&]+)'), None, 'ext.brainshark', 'brainshark'),
-        (re.compile(r'^https?://fod\.fujitv\.co\.jp/title/[0-9a-z]+'), None, 'ext.fod_v2', 'fod'),
-        (re.compile(r'^https?://anime3rb\.com/.+'), None, 'ext.anime3rb', 'anime3rb'),
-        (re.compile(r'^https?://www\.crunchyroll\.com/(series|watch)/.+'), None, 'ext.crunchyroll', 'Crunchyroll'),
-        (re.compile(r'^https?://www\.b-ch\.com/titles/\d+'), None, 'ext.bandai_ch', 'Bandai-Ch'),
-        (re.compile(r'^https?://(?:www\.)?telasa\.jp/.+'), None, 'ext.telasa', 'Telasa'),
-        (re.compile(r'^https?://(?:www\.)?videomarket\.jp/.+'), None, 'ext.videomarket', 'VideoMarket'),
-        (re.compile(r'^https?://(?:www\.)?hulu\.jp/.+'), None, 'ext.hulu_jp', 'Hulu-jp'),
-        (re.compile(r'^https?://www\.dmm\.(?:com|co\.jp)/digital/-/player/=/.+'), None, 'ext.fanza', 'Fanza'),
-        (re.compile(r'^https?://tv\.dmm\.com/vod/restrict/.+season=([^&]+)'), lambda u: check_dmm_content_type(re.match(r'.*season=([^&]+)', u).group(1)) == "VOD_VR", 'ext.fanza', 'Fanza-VR'),
-        (re.compile(r'^https?://tv\.dmm\.com/vod/restrict/.+season=([^&]+)'), lambda u: check_dmm_content_type(re.match(r'.*season=([^&]+)', u).group(1)) == "VOD_2D", 'ext.fanza', 'Fanza'),
-        (re.compile(r'^https?://(?:www\.)?hiyahtv\.com/.+'), None, 'ext.hiyahtv', 'Hi-YAH!'),
-        (re.compile(r'^https?://lemino\.docomo\.ne\.jp/.+'), None, 'ext.lemino', 'Lemino'),
+        (re.compile(r'^https?://abema\.tv/.+'), lambda u: "-v1" in u, 'ext.services.abematv', 'abemav1'),
+        (re.compile(r'^https?://abema\.tv/.+'), None, 'ext.services.abematv_v2', 'abema'),
+        (re.compile(r'^https?://gyao\.yahoo\.co\.jp/.+'), None, 'ext.services.gyao', 'gyao'),
+        (re.compile(r'^https?://(?:www\.)?aniplus-asia\.com/episode/.+'), None, 'ext.services.aniplus', 'aniplus'),
+        (re.compile(r'^https?://(?:video|video-share)\.unext\.jp/.+(SID\d+|ED\d+)'), None, 'ext.services.unext_v2', 'unext'),
+        (re.compile(r'^https?://video\.hnext\.jp/(?:play|title)/.+(AID\d+|AED\d+)'), None, 'ext.services.hnext', 'H-Next'),
+        (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+).*(content=([^&]+))?'), lambda u: check_dmm_content_type(parse_qs(urlparse(u).query).get("season", [None])[0]) == "VOD_VR", 'ext.services.fanza', 'Fanza-VR'),
+        (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+)'), None, 'ext.services.dmm_tv', 'dmm_tv'),
+        (re.compile(r'^https?://www\.brainshark\.com/.+pi=([^&]+)'), None, 'ext.services.brainshark', 'brainshark'),
+        (re.compile(r'^https?://fod\.fujitv\.co\.jp/title/[0-9a-z]+'), None, 'ext.services.fod_v2', 'fod'),
+        (re.compile(r'^https?://anime3rb\.com/.+'), None, 'ext.services.anime3rb', 'anime3rb'),
+        (re.compile(r'^https?://www\.crunchyroll\.com/(series|watch)/.+'), None, 'ext.services.crunchyroll', 'Crunchyroll'),
+        (re.compile(r'^https?://www\.b-ch\.com/titles/\d+'), None, 'ext.services.bandai_ch', 'Bandai-Ch'),
+        (re.compile(r'^https?://(?:www\.)?telasa\.jp/.+'), None, 'ext.services.telasa', 'Telasa'),
+        (re.compile(r'^https?://(?:www\.)?videomarket\.jp/.+'), None, 'ext.services.videomarket', 'VideoMarket'),
+        (re.compile(r'^https?://(?:www\.)?hulu\.jp/.+'), None, 'ext.services.hulu_jp', 'Hulu-jp'),
+        (re.compile(r'^https?://www\.dmm\.(?:com|co\.jp)/digital/-/player/=/.+'), None, 'ext.services.fanza', 'Fanza'),
+        (re.compile(r'^https?://tv\.dmm\.com/vod/restrict/.+season=([^&]+)'), lambda u: check_dmm_content_type(re.match(r'.*season=([^&]+)', u).group(1)) == "VOD_VR", 'ext.services.fanza', 'Fanza-VR'),
+        (re.compile(r'^https?://tv\.dmm\.com/vod/restrict/.+season=([^&]+)'), lambda u: check_dmm_content_type(re.match(r'.*season=([^&]+)', u).group(1)) == "VOD_2D", 'ext.services.fanza', 'Fanza'),
+        (re.compile(r'^https?://(?:www\.)?hiyahtv\.com/.+'), None, 'ext.services.hiyahtv', 'Hi-YAH!'),
+        (re.compile(r'^https?://lemino\.docomo\.ne\.jp/.+'), None, 'ext.services.lemino', 'Lemino'),
     ]
 
     for pattern, condition, module_name, label in patterns:
@@ -159,4 +159,4 @@ def download_command(input: str, command_list: Iterator):
     if service_config["require_account"]:
         session_manager = session_logic(logger=service_logger, service_name=service_label, service_util=service_downloader)
         
-        session_manager.check_session(service_label)
+        session_status = session_manager.check_session(service_label)
