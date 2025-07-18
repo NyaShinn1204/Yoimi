@@ -560,34 +560,38 @@ class Hulu_jp_downloader:
         except:
             return None
     def playback_auth(self, episode_id, uhd=False, media_id=None):
-        if uhd:
-            payload = {
+        def make_payload(meta_prefix):
+            base = {
                 "service": "hulu",
-                "meta_id": "asset:"+episode_id,
-                "media_id": str(media_id),
+                "meta_id": f"{meta_prefix}{episode_id}",
                 "device_code": 7,
-                "with_resume_point": False,
-                "vuid": str(uuid.uuid4()).replace("-",""),
-                "user_id": self.web_headers["x-user-id"],
-                "app_id": 4
-            }
-        else:
-            payload = {
-                "service": "hulu",
-                "meta_id": "asset:"+episode_id,
-                "device_code": 7,
-                "vuid": str(uuid.uuid4()).replace("-",""),
+                "vuid": str(uuid.uuid4()).replace("-", ""),
                 "with_resume_point": False,
                 "user_id": self.web_headers["x-user-id"],
                 "app_id": 4
             }
-        meta_response = self.session.post("https://papi.prod.hjholdings.tv/api/v1/playback/auth", json=payload, headers=self.web_headers)
-        try:
+            if uhd:
+                base["media_id"] = str(media_id)
+            return base
+    
+        for meta_prefix in ["asset:", "tvod_asset:"]:
+            payload = make_payload(meta_prefix)
+            meta_response = self.session.post(
+                "https://papi.prod.hjholdings.tv/api/v1/playback/auth",
+                json=payload,
+                headers=self.web_headers
+            )
             if meta_response.status_code == 201:
-                episode_metadata = meta_response.json()
-                return True, episode_metadata
-        except:
-            return False, "Failed to auth playback"
+                try:
+                    episode_metadata = meta_response.json()
+                    return True, episode_metadata
+                except Exception:
+                    return False, "Failed to parse JSON from response"
+            elif meta_response.status_code != 400:
+                break  # 400以外のエラーなら再試行しない
+    
+        return False, "Failed to auth playback"
+    
     def open_playback_session(self, ovp_video_id, session_id, episode_id):
         payload = {
             "device_code": 7,
