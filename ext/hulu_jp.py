@@ -5,6 +5,7 @@ import yaml
 import shutil
 import logging
 import ext.global_func.parser as parser
+from ext.global_func.util.other_util import sanitize_filename
 
 from urllib.parse import urlparse, parse_qs
 from rich.console import Console
@@ -295,8 +296,11 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
             logger.info("Muxing Episode...", extra={"service_name": __service_name__})
             
             if season_title != None:
+                season_title = sanitize_filename(season_title, False)
+                title_name_logger = sanitize_filename(title_name_logger, False)
                 output_path = os.path.join(config["directorys"]["Downloads"], season_title, title_name_logger+".mp4")
             else:
+                title_name_logger = sanitize_filename(title_name_logger, False)
                 output_path = os.path.join(config["directorys"]["Downloads"], title_name_logger+".mp4")
             
             result = hulu_jp_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", output_path, config, unixtime, season_title, int(duration))
@@ -560,9 +564,14 @@ def main_command(session, url, email, password, LOG_LEVEL, additional_info):
                     logger.info("Muxing Episode...", extra={"service_name": __service_name__})
                     
                     if series_title != None:
+                        season_title = sanitize_filename(season_title, False)
+                        series_title = sanitize_filename(series_title, False)
+                        title_name_logger = sanitize_filename(title_name_logger, False)
                         os.makedirs(os.path.join(config["directorys"]["Downloads"], season_title, series_title), exist_ok=True)
                         output_path = os.path.join(config["directorys"]["Downloads"], season_title, series_title, title_name_logger+".mp4")
                     else:
+                        season_title = sanitize_filename(season_title, False)
+                        title_name_logger = sanitize_filename(title_name_logger, False)
                         os.makedirs(os.path.join(config["directorys"]["Downloads"], season_title), exist_ok=True)
                         output_path = os.path.join(config["directorys"]["Downloads"], season_title, title_name_logger+".mp4")
                     result = hulu_jp_downloader.mux_episode("download_decrypt_video.mp4", "download_decrypt_audio.mp4", output_path, config, unixtime, season_title, int(duration))
