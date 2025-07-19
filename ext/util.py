@@ -151,7 +151,7 @@ def download_command(input: str, command_list: Iterator):
         session = tls_client.Session(client_identifier="chrome139",random_tls_extension_order=True)
     else:
         session = requests.Session()
-    service_downloader = module_service.downloader(session=session)
+    service_downloader = module_service.downloader(session=session, logger=service_logger)
     
     ### check session
     if service_config["cache_session"]:
@@ -192,3 +192,5 @@ def download_command(input: str, command_list: Iterator):
             exit(1)
         else:
             login_status, user_info = service_downloader.authorize(email, password)
+            
+    service_downloader.show_userinfo(user_info)

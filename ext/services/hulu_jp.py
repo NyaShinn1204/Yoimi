@@ -24,8 +24,9 @@ __service_config__ = {
 }
 
 class downloader:
-    def __init__(self, session):
+    def __init__(self, session, logger):
         self.session = session
+        self.logger = logger
     
     def authorize(self, email, password):
         pass
@@ -58,3 +59,25 @@ class downloader:
         }
         profile_resposne = self.session.get(_USER_INFO_API, params=payload_query).json()
         return True, profile_resposne
+    
+    def show_userinfo(self, user_data):
+        self.logger.info("Get Profile list")
+        for idx, one_profile in enumerate(user_data, 1):
+            self.logger.info(f" + {str(idx)}: Has pin: {one_profile[1]} | {one_profile[0]} ")
+            
+        profile_num = int(input("Please enter the number of the profile you want to use >> ")) -1
+        
+        select_profile_uuid = user_data[profile_num][2]
+        if user_data[profile_num][1] == "Yes":
+            pin = input("Profile PIN >> ")
+        else:
+            pin = ""
+        
+        status, user_data = self.select_profile(select_profile_uuid, pin=pin)
+        
+        if status != True:
+            self.logger.error(user_data)
+        
+        self.logger.info("Success change profile")
+        self.logger.info(" + Nickname: "+user_data["profile"]["nickname"])
+            
