@@ -1,8 +1,8 @@
 import random
 import secrets
 
-from ext.utils.hulu_jp_util.pymazda.sensordata.android_builds import AndroidBuilds
-from ext.utils.hulu_jp_util.pymazda.sensordata.sensor_data_util import percent_encode, sum_char_codes
+from ext.utils.pymazda.sensordata.android_builds import AndroidBuilds
+from ext.utils.pymazda.sensordata.sensor_data_util import percent_encode, sum_char_codes
 
 SCREEN_SIZES = [[1280, 720], [1920, 1080], [2560, 1440]]
 

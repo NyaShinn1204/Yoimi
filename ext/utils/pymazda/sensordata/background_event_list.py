@@ -1,7 +1,7 @@
 import datetime
 import random
 
-from ext.utils.hulu_jp_util.pymazda.sensordata.sensor_data_util import timestamp_to_millis
+from ext.utils.pymazda.sensordata.sensor_data_util import timestamp_to_millis
 
 class BackgroundEvent:
     def __init__(self, type, timestamp):

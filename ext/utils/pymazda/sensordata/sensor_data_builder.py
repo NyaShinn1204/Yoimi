@@ -1,13 +1,13 @@
 import datetime
-from ext.utils.hulu_jp_util.pymazda.sensordata.sensor_data_encryptor import SensorDataEncryptor
+from ext.utils.pymazda.sensordata.sensor_data_encryptor import SensorDataEncryptor
 import random
 
-from ext.utils.hulu_jp_util.pymazda.sensordata.background_event_list import BackgroundEventList
-from ext.utils.hulu_jp_util.pymazda.sensordata.key_event_list import KeyEventList
-from ext.utils.hulu_jp_util.pymazda.sensordata.performance_test_results import PerformanceTestResults
-from ext.utils.hulu_jp_util.pymazda.sensordata.sensor_data_util import feistel_cipher, timestamp_to_millis
-from ext.utils.hulu_jp_util.pymazda.sensordata.system_info import SystemInfo
-from ext.utils.hulu_jp_util.pymazda.sensordata.touch_event_list import TouchEventList
+from ext.utils.pymazda.sensordata.background_event_list import BackgroundEventList
+from ext.utils.pymazda.sensordata.key_event_list import KeyEventList
+from ext.utils.pymazda.sensordata.performance_test_results import PerformanceTestResults
+from ext.utils.pymazda.sensordata.sensor_data_util import feistel_cipher, timestamp_to_millis
+from ext.utils.pymazda.sensordata.system_info import SystemInfo
+from ext.utils.pymazda.sensordata.touch_event_list import TouchEventList
 
 SDK_VERSION = "2.2.3"
 
