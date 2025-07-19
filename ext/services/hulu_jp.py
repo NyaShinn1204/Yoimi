@@ -13,8 +13,9 @@ support_url:
    https://www.hulu.jp/store/watch/xxx
 """
 
-__user_agent__ = "jp.happyon.android/3.24.0 (Linux; Android 8.0.0; BRAVIA 4K GB Build/OPR2.170623.027.S32) AndroidTV"
+from ext.utils.pymazda.sensordata.sensor_data_builder import SensorDataBuilder
 
+__user_agent__ = "jp.happyon.android/3.24.0 (Linux; Android 8.0.0; BRAVIA 4K GB Build/OPR2.170623.027.S32) AndroidTV"
 __service_config__ = {
     "service_name": "Hulu-jp",
     "require_account": True,
@@ -29,7 +30,85 @@ class downloader:
         self.logger = logger
     
     def authorize(self, email, password):
-        pass
+        #global user_info_res
+        global test_temp_token
+        _SESSION_CREATE = "https://mapi.prod.hjholdings.tv/api/v1/sessions/create"
+        _LOGIN_API = "https://mapi.prod.hjholdings.tv/api/v1/users/auth"
+        _USER_INFO_API = "https://mapi.prod.hjholdings.tv/api/v1/users/me"
+        
+        default_headers = {
+            "user-agent": "Mozilla/5.0 (Linux; Android 9; 22081212C Build/PQ3B.190801.10101846; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.82 Safari/537.36",
+            "accept-language": "ja",
+            "host": "mapi.prod.hjholdings.tv",
+            "connection": "Keep-Alive",
+            "accept-encoding": "gzip"
+        }
+            
+        ## generate temp session
+        
+        payload_query = {
+            "app_version": "3.24.0",
+            "system_version": "9",
+            "device_code": "8",
+            "manufacturer": "Sony",
+            "is_mobile": "true",
+            "os_version": "9",
+            "os_build_id": "24",
+            "device_manufacturer": "Sony",
+            "device_model": "BRAVIA 4K GB",
+            "device_name": "BRAVIA_ATV2",
+            "user_agent": "",
+            "device_higher_category": "android_tv",
+            "device_lower_category": "android_tv"
+        }
+        
+        session_response = self.session.get(_SESSION_CREATE, params=payload_query, headers=default_headers).json()
+        gaia_token_1 = session_response["gaia_token"]
+        session_token_1 = session_response["session_token"]
+        
+        
+        ## send login request    
+        payload = {
+            "mail_address": email,
+            "password": password,
+            "app_id": 5,
+            "device_code": 8
+        }   
+        sensor_data_builder = SensorDataBuilder()
+        default_headers.update({
+            "x-gaia-authorization": "extra " + gaia_token_1,
+            "x-session-token": session_token_1,
+            "x-acf-sensor-data": sensor_data_builder.generate_sensor_data(),
+            "user-agent": "jp.happyon.android/3.24.0 (Linux; Android 8.0.0; BRAVIA 4K GB Build/OPR2.170623.027.S32) AndroidTV",
+        })
+        
+        login_response = self.session.post(_LOGIN_API, json=payload, headers=default_headers)
+        login_response = login_response.json()
+        
+        default_headers.update({
+            "x-user-id": str(login_response["id"])
+        })
+                
+        ## get profile list
+        payload_query = {
+            "with_profiles": "true",
+            "app_id": 5,
+            "device_code": 8
+        }
+        
+        test_temp_token = "Bearer " + login_response["access_token"]
+        
+        default_headers.update({
+            "authorization": "Bearer " + login_response["access_token"],
+            "x-session-token": login_response["session_token"],
+            "x-gaia-authorization": "extra " + login_response["gaia_token"]
+        })
+        
+        profile_resposne = self.session.get(_USER_INFO_API, params=payload_query, headers=default_headers).json()
+        
+        self.web_headers = default_headers
+            
+        return True, profile_resposne
     def refresh_token(self, refresh_token, session_data):
         payload = {
             "refresh_token": refresh_token,
