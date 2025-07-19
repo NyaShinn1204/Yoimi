@@ -49,10 +49,10 @@ class session_logic:
 
     def refresh_session(self, session_data):
         self.logger.info("Session is Expired. Refreshing...", extra={"service_name": self.service_name})
-        self.service_util.refresh_token(session_data["refresh_token"], session_data)
+        session_json = self.service_util.refresh_token(session_data["refresh_token"], session_data)
         status, message = self.service_util.get_userinfo()
         if status:
-            self.save_session_data(session_data)
+            self.save_session_data(session_json)
             return True, message
         else:
             self.logger.error("Refresh failed. Please re-login", extra={"service_name": self.service_name})
