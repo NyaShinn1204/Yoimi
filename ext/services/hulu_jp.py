@@ -24,3 +24,6 @@ __service_config__ = {
 class downloader:
     def __init__(self, session):
         self.session = session
+    
+    def authorize(self, email, password):
+        pass

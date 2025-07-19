@@ -144,10 +144,6 @@ def download_command(input: str, command_list: Iterator):
     
     email, password = command_list["email"], command_list["password"]
     
-    if (not email or not password) and service_config["require_account"]:
-        service_logger.error(f"{service_label} is require account login.")
-        exit(1)
-    
     ### define, init service
     if service_config["use_tls"]:
         session = tls_client.Session(client_identifier="chrome139",random_tls_extension_order=True)
@@ -156,7 +152,19 @@ def download_command(input: str, command_list: Iterator):
     service_downloader = module_service.downloader(session=session)
     
     ### check session
-    if service_config["require_account"]:
+    if service_config["cache_session"]:
         session_manager = session_logic(logger=service_logger, service_name=service_label, service_util=service_downloader)
         
-        session_status = session_manager.check_session(service_label)
+        availiable_cache = session_manager.check_session(service_label)
+        
+        # init cache session
+        session_data, session_status = None
+        
+        if availiable_cache:
+            session_data = session_manager.load_session(availiable_cache)
+    elif service_config["require_account"]:
+        if (not email or not password):
+            service_logger.error(f"{service_label} is require account login.")
+            exit(1)
+        else:
+            login_status, user_info = service_downloader.authorize(email, password)
