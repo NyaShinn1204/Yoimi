@@ -48,7 +48,7 @@ class session_logic:
     
 
     def refresh_session(self, session_data):
-        self.logger.info("Session is Invalid. Refreshing...", extra={"service_name": self.service_name})
+        self.logger.info("Session is Expired. Refreshing...", extra={"service_name": self.service_name})
         self.service_util.refresh_token(session_data["refresh_token"], session_data)
         status, message = self.service_util.get_userinfo()
         if status:

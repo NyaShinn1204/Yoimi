@@ -4,7 +4,9 @@ SERVICE INFO
 
 name: Hulu-jp
 require_account: Yes
+enable_refresh: Yes
 cache_session: Yes
+use_tlsclient: No
 support_url: 
    https://www.hulu.jp/xxx
    https://www.hulu.jp/watch/xxx
@@ -26,4 +28,8 @@ class downloader:
         self.session = session
     
     def authorize(self, email, password):
+        pass
+    def refresh_token(self, refresh_token, session_data):
+        pass
+    def get_userinfo(self):
         pass

@@ -4,7 +4,9 @@ SERVICE INFO
 
 name: H-Next
 require_account: Yes
+enable_refresh: No
 cache_session: Yes
+use_tlsclient: No
 support_url: 
    https://video.hnext.jp/title/xxx
    https://video.hnext.jp/play/xxx/xxx

@@ -1,5 +1,7 @@
 import re
 import os
+import json
+import time
 import logging
 import requests
 import tls_client
@@ -158,10 +160,32 @@ def download_command(input: str, command_list: Iterator):
         availiable_cache = session_manager.check_session(service_label)
         
         # init cache session
-        session_data, session_status = None
+        session_data, session_status = None, False
         
         if availiable_cache:
             session_data = session_manager.load_session(availiable_cache)
+            if session_data:
+                token_status, user_info = service_downloader.check_token(session_data["access_token"])
+                if token_status:
+                    session_status = True
+                else:
+                    service_logger.info("Session is Expired.")
+                    if service_config["enable_refresh"]:
+                        refresh_status, user_info = session_manager.refresh_session(session_data["refresh_token"], session_data)
+                    else:
+                        service_logger.info("Please re-login.")
+                        if email == "QR_LOGIN":
+                            method = "qr"
+                        else:
+                            method = "normal"
+                        login_status, user_info, session_data = session_manager.login_with_credentials(email, password, login_method=method)
+                        if login_status == False:
+                            service_logger.error(user_info)
+                            exit(1)
+                        else:
+                            session_status = True
+                            with open(os.path.join("cache", "session", service_label.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
+                                json.dump(session_data, f, ensure_ascii=False, indent=4)      
     elif service_config["require_account"]:
         if (not email or not password):
             service_logger.error(f"{service_label} is require account login.")
