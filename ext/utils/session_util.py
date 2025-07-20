@@ -9,7 +9,7 @@ class session_logic:
         self.service_name = service_name
         self.service_util = service_util
     
-    def check_session(service_name):
+    def check_session(self, service_name):
         service_name = service_name.lower()
         session_path = os.path.join("cache", "session", service_name)
         if not os.path.exists(session_path):
@@ -34,7 +34,7 @@ class session_logic:
             return os.path.join(session_path, closest_file)
         else:
             return False
-    def load_session(json_path):
+    def load_session(self, json_path):
         with open(json_path, 'r', encoding='utf-8-sig') as f:
             data = f.read()
             if data.strip() == "":

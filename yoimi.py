@@ -44,16 +44,16 @@ def cli(version=False):
 @click.option('--embed-thumbnail', '-ebthumb', 'embed_thumbnail', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-metadata', '-ebmeta', 'embed_metadata', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-chapters', '-ebchap', 'embed_chapters', is_flag=True, default=False, help="Coming soon")
-def main_downloader(input, username, password, proxy, resolution, resolutions, output, otuput_dir, verbose, use_rd, get_sub, embed_sub, write_thumbnail, embed_thumbnail, embed_metadata, embed_chapters):
+def main_downloader(input, username, password, proxy, res, resR, output, directory, verbose, use_rd, get_sub, embed_sub, write_thumbnail, embed_thumbnail, embed_metadata, embed_chapters):
     
     command = {
-        "username": username, 
+        "email": username, 
         "password": password,
         "proxy": proxy,
-        "resolution": resolution,
-        "show_resolution": resolutions,
+        "resolution": res,
+        "show_resolution": resR,
         "output_filename": output,
-        "output_directory": otuput_dir,
+        "output_directory": directory,
         "verbose": verbose,
         "random_directory": use_rd,
         "get_subtitle": get_sub,
