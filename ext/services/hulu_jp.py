@@ -5,6 +5,7 @@ SERVICE INFO
 name: Hulu-jp
 require_account: Yes
 enable_refresh: Yes
+support_qr: No
 cache_session: Yes
 use_tlsclient: No
 support_url: 
@@ -22,6 +23,7 @@ __service_config__ = {
     "cache_session": True,
     "enable_refresh": False,
     "use_tls": False,
+    "support_qr": False
 }
 
 class downloader:

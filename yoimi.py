@@ -47,6 +47,7 @@ def cli(version=False):
 def main_downloader(input, username, password, proxy, res, resR, output, directory, verbose, use_rd, get_sub, embed_sub, write_thumbnail, embed_thumbnail, embed_metadata, embed_chapters):
     
     command = {
+        "version": __version__,
         "email": username, 
         "password": password,
         "proxy": proxy,
