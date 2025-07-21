@@ -33,12 +33,16 @@ class downloader:
         self.session = session
         self.logger = logger
         
+        self.use_cache = True
+        
         self.x_user_id = None
+        self.x_session_token = None
+        self.x_gaia_authorization = None
         
         self.auth_headers = {}
 
     def authorize(self, email, password):
-        #global user_info_res
+        self.use_cache = False
         global test_temp_token
         _SESSION_CREATE = "https://mapi.prod.hjholdings.tv/api/v1/sessions/create"
         _LOGIN_API = "https://mapi.prod.hjholdings.tv/api/v1/users/auth"
@@ -114,7 +118,7 @@ class downloader:
         
         profile_resposne = self.session.get(_USER_INFO_API, params=payload_query, headers=default_headers).json()
         
-        self.auth_headers = default_headers
+        self.auth_headers = default_headers.copy()
         
         session_json = {
             "method": "LOGIN",
@@ -123,7 +127,9 @@ class downloader:
             "access_token": login_response["access_token"],
             "refresh_token": login_response["refresh_token"],
             "additional_info": {
-                "x_user_id": str(login_response["id"])
+                "x_user_id": str(login_response["id"]),
+                "x_session_token": login_response["session_token"],
+                "x_gaia_authorization": "extra " + login_response["gaia_token"]
             }
         }
         return True, profile_resposne, True, session_json
@@ -191,7 +197,7 @@ class downloader:
             pin = input("Profile PIN >> ")
         else:
             pin = ""
-        
+                
         status, user_data = self.select_profile(select_profile_uuid, pin=pin)
         
         if status != True:
@@ -206,9 +212,13 @@ class downloader:
             "profile_id": uuid
         }
         headers = self.auth_headers.copy()
-        headers["x-user-id"] = None
-        headers["authorization"] = None
-        headers["x-acf-sensor-data"] = None
+        if self.use_cache:
+            sensor_data_builder = SensorDataBuilder()
+            headers.update({
+                "x-session-token": self.x_session_token,
+                "x-gaia-authorization": self.x_gaia_authorization,
+                "x-acf-sensor-data": sensor_data_builder.generate_sensor_data()
+            })
         meta_response = self.session.put("https://mapi.prod.hjholdings.tv/api/v1/gaia/auth/profile", json=payload, headers=headers)
         try:
             if meta_response.status_code == 200:

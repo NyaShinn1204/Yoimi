@@ -215,7 +215,7 @@ def download_command(input: str, command_list: Iterator):
         service_logger.error("Traceback has occurred")
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")
-        console.print_exception(show_locals=True)
+        console.print_exception(show_locals=False)
         print("Service: "+service_label)
         print("Version: "+command_list["version"])
         print("----END ERROR LOG----")
