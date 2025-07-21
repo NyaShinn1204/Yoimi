@@ -219,5 +219,3 @@ def download_command(input: str, command_list: Iterator):
         print("Service: "+service_label)
         print("Version: "+command_list["version"])
         print("----END ERROR LOG----")
-        #session.get(f"https://beacon.unext.jp/beacon/interruption/{media_code}/1/?play_token={playtoken}")
-        #session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/1/?play_token={playtoken}&last_viewing_flg=0")
