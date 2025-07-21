@@ -39,7 +39,12 @@ class downloader:
         self.x_session_token = None
         self.x_gaia_authorization = None
         
-        self.auth_headers = {}
+        self.auth_headers = {
+            "user-agent": "jp.happyon.android/3.24.0 (Android 9; 22081212C Build/PQ3B.190801.10101846)",
+            "connection": "Keep-Alive",
+            "accept-encoding": "gzip",
+            "accept-language": "ja",
+        }
 
     def authorize(self, email, password):
         self.use_cache = False
@@ -213,11 +218,9 @@ class downloader:
         }
         headers = self.auth_headers.copy()
         if self.use_cache:
-            sensor_data_builder = SensorDataBuilder()
             headers.update({
                 "x-session-token": self.x_session_token,
                 "x-gaia-authorization": self.x_gaia_authorization,
-                "x-acf-sensor-data": sensor_data_builder.generate_sensor_data()
             })
         meta_response = self.session.put("https://mapi.prod.hjholdings.tv/api/v1/gaia/auth/profile", json=payload, headers=headers)
         try:
