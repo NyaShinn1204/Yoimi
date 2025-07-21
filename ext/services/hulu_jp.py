@@ -14,6 +14,8 @@ support_url:
    https://www.hulu.jp/store/watch/xxx
 """
 
+import hashlib
+
 from ext.utils.pymazda.sensordata.sensor_data_builder import SensorDataBuilder
 
 __user_agent__ = "jp.happyon.android/3.24.0 (Linux; Android 8.0.0; BRAVIA 4K GB Build/OPR2.170623.027.S32) AndroidTV"
@@ -30,7 +32,9 @@ class downloader:
     def __init__(self, session, logger):
         self.session = session
         self.logger = logger
-    
+        
+        self.x_user_id = None
+
     def authorize(self, email, password):
         #global user_info_res
         global test_temp_token
@@ -112,12 +116,22 @@ class downloader:
         
         session_json = {
             "method": "LOGIN",
-            "email": email,
-            "password": password,
+            "email": hashlib.sha256(email.encode()).hexdigest(),
+            "password": hashlib.sha256(password.encode()).hexdigest(),
             "access_token": login_response["access_token"],
-            "refresh_token": login_response["refresh_token"]
+            "refresh_token": login_response["refresh_token"],
+            "additional_info": {
+                "x_user_id": str(login_response["id"])
+            }
         }
         return True, profile_resposne, True, session_json
+    def check_token(self, token):
+        self.session.headers.update({
+            "authorization": "Bearer " + token,
+            "x-user-id": self.x_user_id
+        })
+        status, profile = self.get_userinfo()
+        return status, profile
     def refresh_token(self, refresh_token, session_data):
         payload = {
             "refresh_token": refresh_token,
@@ -145,18 +159,33 @@ class downloader:
             "app_id": 5,
             "device_code": 8
         }
-        profile_resposne = self.session.get(_USER_INFO_API, params=payload_query).json()
-        return True, profile_resposne
+        profile_resposne = self.session.get(_USER_INFO_API, params=payload_query)
+        if profile_resposne.status_code == 401:
+            return False, None
+        return True, profile_resposne.json()
     
     def show_userinfo(self, user_data):
+        profile_list = []
+        for single_profile in user_data["profiles"]:
+            if single_profile["values"]["has_pin"]:
+                pin_status = "Yes"
+            else:
+                pin_status = "No "
+            profile_list.append([single_profile["display_name"], pin_status, single_profile["uuid_in_schema"]])
+
         self.logger.info("Get Profile list")
-        for idx, one_profile in enumerate(user_data, 1):
+        for idx, one_profile in enumerate(profile_list, 1):
             self.logger.info(f" + {str(idx)}: Has pin: {one_profile[1]} | {one_profile[0]} ")
             
-        profile_num = int(input("Please enter the number of the profile you want to use >> ")) -1
+        input_like = input("Please enter the number of the profile you want to use >> ")
+        try:
+            int(input_like)
+        except ValueError:
+            print("Invalid Input.")
+        profile_num = int(input_like) -1
         
-        select_profile_uuid = user_data[profile_num][2]
-        if user_data[profile_num][1] == "Yes":
+        select_profile_uuid = profile_list[profile_num][2]
+        if profile_list[profile_num][1] == "Yes":
             pin = input("Profile PIN >> ")
         else:
             pin = ""

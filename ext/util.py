@@ -30,7 +30,9 @@ def path_check(input_path):
     looks_like_path = '/' in input_path or '\\' in input_path
 
     return has_extension or looks_like_path
-
+def update_config(obj, config_dict):
+    for key, value in config_dict.items():
+        setattr(obj, key, value)
 def check_dmm_content_type(season_id):
     try:
         res = requests.post("https://api.tv.dmm.com/graphql", json={
@@ -169,6 +171,7 @@ def download_command(input: str, command_list: Iterator):
             if availiable_cache:
                 session_data = session_manager.load_session(availiable_cache)
                 if session_data:
+                    update_config(service_downloader, session_data["additional_info"])
                     token_status, user_info = service_downloader.check_token(session_data["access_token"])
                     if token_status:
                         session_status = True
@@ -204,7 +207,10 @@ def download_command(input: str, command_list: Iterator):
                 service_logger.error(f"{service_label} is require account login.")
                 exit(1)
             else:
-                login_status, user_info = service_downloader.authorize(email, password)
+                if not session_status:
+                    login_status, user_info = service_downloader.authorize(email, password)
+                
+        service_downloader.show_userinfo(user_info)
     except:
         service_logger.error("Traceback has occurred")
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
