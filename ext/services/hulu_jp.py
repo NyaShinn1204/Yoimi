@@ -109,8 +109,15 @@ class downloader:
         profile_resposne = self.session.get(_USER_INFO_API, params=payload_query, headers=default_headers).json()
         
         self.web_headers = default_headers
-            
-        return True, profile_resposne
+        
+        session_json = {
+            "method": "LOGIN",
+            "email": email,
+            "password": password,
+            "access_token": login_response["access_token"],
+            "refresh_token": login_response["refresh_token"]
+        }
+        return True, profile_resposne, True, session_json
     def refresh_token(self, refresh_token, session_data):
         payload = {
             "refresh_token": refresh_token,

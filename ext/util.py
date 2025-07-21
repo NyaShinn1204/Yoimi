@@ -164,7 +164,6 @@ def download_command(input: str, command_list: Iterator):
             
             availiable_cache = session_manager.check_session(service_label)
             
-            # init cache session
             session_data, session_status = None, False
             
             if availiable_cache:
@@ -177,36 +176,40 @@ def download_command(input: str, command_list: Iterator):
                         service_logger.info("Session is Expired.")
                         if service_config["enable_refresh"]:
                             refresh_status, user_info = session_manager.refresh_session(session_data["refresh_token"], session_data)
+                            session_status = refresh_status
                         else:
                             service_logger.info("Please re-login.")
-                            if email == "QR_LOGIN":
-                                if service_config["support_qr"]:
-                                    method = "qr"
-                                else:
-                                    service_logger.error("This service doesn't support qr login")
-                            else:
-                                method = "normal"
-                            login_status, user_info, session_data = session_manager.login_with_credentials(email, password, login_method=method)
-                            if login_status == False:
-                                service_logger.error(user_info)
-                                exit(1)
-                            else:
-                                session_status = True
-                                with open(os.path.join("cache", "session", service_label.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
-                                    json.dump(session_data, f, ensure_ascii=False, indent=4)      
+            
+            # if invalid cache or not found, just re-login
+            if not session_status:
+                if email == "QR_LOGIN":
+                    if service_config["support_qr"]:
+                        method = "qr"
+                    else:
+                        service_logger.error("This service doesn't support qr login")
+                        exit(1)
+                else:
+                    method = "normal"
+                login_status, user_info, session_data = session_manager.login_with_credentials(email, password, login_method=method)
+                if login_status == False:
+                    service_logger.error(user_info)
+                    exit(1)
+                else:
+                    session_status = True
+                    with open(os.path.join("cache", "session", service_label.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
+                        json.dump(session_data, f, ensure_ascii=False, indent=4)
+        
         elif service_config["require_account"]:
-            if (not email or not password):
+            if not email or not password:
                 service_logger.error(f"{service_label} is require account login.")
                 exit(1)
             else:
                 login_status, user_info = service_downloader.authorize(email, password)
-                
-        service_downloader.show_userinfo(user_info)
     except:
         service_logger.error("Traceback has occurred")
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")
-        console.print_exception()
+        console.print_exception(show_locals=True)
         print("Service: "+service_label)
         print("Version: "+command_list["version"])
         print("----END ERROR LOG----")
