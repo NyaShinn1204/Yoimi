@@ -34,6 +34,8 @@ class downloader:
         self.logger = logger
         
         self.x_user_id = None
+        
+        self.auth_headers = {}
 
     def authorize(self, email, password):
         #global user_info_res
@@ -112,7 +114,7 @@ class downloader:
         
         profile_resposne = self.session.get(_USER_INFO_API, params=payload_query, headers=default_headers).json()
         
-        self.web_headers = default_headers
+        self.auth_headers = default_headers
         
         session_json = {
             "method": "LOGIN",
@@ -197,4 +199,23 @@ class downloader:
         
         self.logger.info("Success change profile")
         self.logger.info(" + Nickname: "+user_data["profile"]["nickname"])
-            
+    
+    def select_profile(self, uuid, pin=""):
+        payload = {
+            "pin": pin,
+            "profile_id": uuid
+        }
+        headers = self.auth_headers.copy()
+        headers["x-user-id"] = None
+        headers["authorization"] = None
+        headers["x-acf-sensor-data"] = None
+        meta_response = self.session.put("https://mapi.prod.hjholdings.tv/api/v1/gaia/auth/profile", json=payload, headers=headers)
+        try:
+            if meta_response.status_code == 200:
+                profile_change_response = meta_response.json()
+                self.auth_headers.update({
+                    "x-session-token": profile_change_response["session_token"],
+                })
+                return True, profile_change_response
+        except:
+            return False, "Failed to login profile"
