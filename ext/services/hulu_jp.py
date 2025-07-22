@@ -84,7 +84,7 @@ class downloader:
             "os_build_id": "24",
             "device_manufacturer": "Sony",
             "device_model": "BRAVIA 4K GB",
-            "device_name": "BRAVIA_ATV2",
+            "device_name": "Yoimi V2", # BRAVIA_ATV2
             "user_agent": "",
             "device_higher_category": "android_tv",
             "device_lower_category": "android_tv"
