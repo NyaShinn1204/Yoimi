@@ -57,7 +57,6 @@ class downloader:
         video_id, content_metadata = self.get_info_and_check(assets_name)
 
 
-
     def authorize(self, email, password):
         self.use_cache = False
         global test_temp_token
