@@ -254,9 +254,12 @@ class downloader:
         self.logger.info("Creating Video Sesson...")
         
     
-    
+    # アセッツ名を取得
+    def get_assets_info(self, url):
+        match = re.search(r'/watch/(\d+)', url)
+        
+        episode_id = match.group(1)
     #### 映像のSession関係の処理
-    #
     def playback_auth(self, episode_id, uhd=False, media_id=None):
         def make_payload(meta_prefix):
             base = {
