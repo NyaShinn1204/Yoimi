@@ -219,7 +219,10 @@ def download_command(input: str, command_list: Iterator):
         if watchtype == "single":
             service_logger.info("Fetching 1 Episode")
             
-            assets_name = service_downloader.get_assets_info(url)
+            assets_name = service_downloader.get_assets_info(input)
+            if assets_name == None:
+                service_logger.error("Failed parse Assets info")
+                exit(1)
             
             support_4k, _ = service_downloader.get_info_and_check(input)
             
