@@ -196,6 +196,7 @@ class downloader:
             int(input_like)
         except ValueError:
             print("Invalid Input.")
+            exit()
         profile_num = int(input_like) -1
         
         select_profile_uuid = profile_list[profile_num][2]

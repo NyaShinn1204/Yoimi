@@ -215,6 +215,11 @@ def download_command(input: str, command_list: Iterator):
         service_downloader.show_userinfo(user_info)
         
         watchtype = service_downloader.judgment_watchtype(input)
+        
+        if watchtype == "single":
+            service_logger.info("Analyzing 1 Episode")
+        elif watchtype == "season":
+            service_logger.info("Analyzing Sesaon")
     except:
         service_logger.error("Traceback has occurred")
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
