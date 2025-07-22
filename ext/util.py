@@ -150,6 +150,7 @@ def download_command(input: str, command_list: Iterator):
         service_config = module_service.__service_config__
         service_label = service_config["service_name"]
         service_logger = Logger.create_logger(service_label, LOG_LEVEL=command_list["verbose"])
+        yoimi_logger = Logger.create_logger("Yoimi", LOG_LEVEL=command_list["verbose"])
         
         email, password = command_list["email"], command_list["password"]
         
@@ -169,6 +170,7 @@ def download_command(input: str, command_list: Iterator):
             session_data, session_status = None, False
             
             if availiable_cache:
+                yoimi_logger.info("Load cache")
                 session_data = session_manager.load_session(availiable_cache)
                 if session_data:
                     update_config(service_downloader, session_data["additional_info"])
@@ -211,6 +213,8 @@ def download_command(input: str, command_list: Iterator):
                     login_status, user_info = service_downloader.authorize(email, password)
                 
         service_downloader.show_userinfo(user_info)
+        
+        watchtype = service_downloader.judgment_watchtype(input)
     except:
         service_logger.error("Traceback has occurred")
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")

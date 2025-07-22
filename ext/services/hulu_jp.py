@@ -14,6 +14,7 @@ support_url:
    https://www.hulu.jp/store/watch/xxx
 """
 
+import re
 import hashlib
 
 from ext.utils.pymazda.sensordata.sensor_data_builder import SensorDataBuilder
@@ -232,3 +233,11 @@ class downloader:
                 return True, profile_change_response
         except:
             return False, "Failed to login profile"
+        
+    # 単体かシーズンかをチェック
+    def judgment_watchtype(self, url):
+        match = re.search(r'/watch/(\d+)', url)
+        if match:
+            return "single"
+        else:
+            return "season"
