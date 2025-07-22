@@ -48,6 +48,16 @@ class downloader:
             "accept-language": "ja",
         }
 
+    def single_logic(self, input):
+        assets_name = self.get_assets_info(input)
+        if assets_name == None:
+            self.logger.error("Failed parse Assets info")
+            exit(1)
+        
+        video_id, content_metadata = self.get_info_and_check(assets_name)
+
+
+
     def authorize(self, email, password):
         self.use_cache = False
         global test_temp_token
@@ -248,13 +258,29 @@ class downloader:
         
     # エピソードの詳細取得
     # 4kあるかのcheck
-    def get_info_and_check(self, url):
-        match = re.search(r'/watch/(\d+)', url)
-        
-        episode_id = match.group(1)
-        
+    def get_info_and_check(self, asset_name):
         self.logger.info("Creating Video Sesson...")
+        status, metadata = self.playback_auth(asset_name)
         
+        self.logger.info("Checking Availiable 4K...")
+        
+        found4k = self.find_4k(metadata["log_params"]["meta_id"])
+        if found4k != []:
+            self.logger.info(" + Found 4k, Re-open Session...")
+            status, message = self.close_playback_session(metadata["playback_session_id"])
+            self.logger.info("Close Video Session")
+            ovp_video_id = found4k[0]["ovp_video_id"]
+            media_id = found4k[0]["media_id"]
+            self.logger.info("Creating Video Sesson 4K...")
+            status, metadata = self.playback_auth(asset_name, uhd=True, media_id=media_id)
+            self.logger.info(" + Session Token: "+metadata["playback_session_id"][:10]+"*****")
+        else:
+            self.logger.info(" - Not Found.")
+            ovp_video_id = metadata["media"]["ovp_video_id"]
+        
+        self.logger.info(" + Session Token: "+metadata["playback_session_id"][:10]+"*****")
+        
+        return ovp_video_id, metadata
     
     # アセッツ名を取得
     def get_assets_info(self, url):
@@ -269,12 +295,36 @@ class downloader:
         if match:
             return match.group(1)
         return None
+    def find_4k(self, meta_id):
+        querystring = {
+            "fields": "values",
+            "app_id": 4,
+            "device_code": 7,
+            "datasource": "decorator"
+        }
+        
+        meta_response = self.session.get("https://mapi.prod.hjholdings.tv/api/v1/metas/"+str(meta_id)+"/medias", params=querystring)
+        try:
+            if meta_response.status_code == 200:
+                episode_metadata = meta_response.json()
+                def find_4k_videos(data):
+                    result = []
+                    for media in data.get("medias", []):
+                        values = media.get("values", {})
+                        if values.get("file_type") == "video/4k":
+                            result.append(media)
+                    return result
+                
+                result = find_4k_videos(episode_metadata)
+                return result
+        except:
+            return None
     #### 映像のSession関係の処理
-    def playback_auth(self, episode_id, uhd=False, media_id=None):
+    def playback_auth(self, assets_name, uhd=False, media_id=None):
         if uhd:
             payload = {
                 "service": "hulu",
-                "meta_id": "asset:"+episode_id,
+                "meta_id": assets_name,
                 "media_id": str(media_id),
                 "device_code": 7,
                 "with_resume_point": False,
@@ -285,7 +335,7 @@ class downloader:
         else:
             payload = {
                 "service": "hulu",
-                "meta_id": "asset:"+episode_id,
+                "meta_id": assets_name,
                 "device_code": 7,
                 "vuid": str(uuid.uuid4()).replace("-",""),
                 "with_resume_point": False,
@@ -299,7 +349,6 @@ class downloader:
                 return True, episode_metadata
         except:
             return False, "Failed to auth playback"
-    
     def open_playback_session(self, ovp_video_id, session_id, episode_id):
         payload = {
             "device_code": 7,
@@ -319,7 +368,6 @@ class downloader:
                 return True, episode_playdata
         except:
             return False, "Failed to get episode_playdata"
-    
     def close_playback_session(self, session_id):
         headers = self.web_headers.copy()
         headers["host"] = "playback.prod.hjholdings.tv"
