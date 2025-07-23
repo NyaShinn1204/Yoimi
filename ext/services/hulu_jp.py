@@ -25,7 +25,7 @@ __service_config__ = {
     "service_name": "Hulu-jp",
     "require_account": True,
     "cache_session": True,
-    "enable_refresh": False,
+    "enable_refresh": True,
     "use_tls": False,
     "support_qr": False
 }
@@ -48,7 +48,7 @@ class downloader:
             "accept-language": "ja",
         }
 
-    def single_logic(self, input):
+    def parse_input(self, input):
         assets_name = self.get_assets_info(input)
         if assets_name == None:
             self.logger.error("Failed parse Assets info")

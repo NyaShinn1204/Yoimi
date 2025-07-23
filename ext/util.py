@@ -220,7 +220,7 @@ def download_command(input: str, command_list: Iterator):
         if watchtype == "single":
             service_logger.info("Fetching 1 Episode")
             
-            video_id, video_info = service_downloader.single_logic(input)
+            video_id, video_info = service_downloader.parse_input(input)
             titlename_logic.create_titlename_logger()
             
         elif watchtype == "season":
