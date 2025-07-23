@@ -174,7 +174,7 @@ class Fanza:
                 found_item = False
                 
                 for single in bought_list:
-                    if single["product_id"] == search_content_id:
+                    if search_content_id in single["product_id"] :
                         found_item = True
                         
                         logger.info("Download 1 Content", extra={"service_name": Fanza.__service_name__})
