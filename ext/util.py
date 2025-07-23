@@ -14,6 +14,7 @@ from urllib.parse import urlparse, parse_qs
 
 
 from ext.utils.session_util import session_logic
+from ext.utils.titlename_util import titlename_logic
 
 colorama.init()
 console = Console()
@@ -219,7 +220,8 @@ def download_command(input: str, command_list: Iterator):
         if watchtype == "single":
             service_logger.info("Fetching 1 Episode")
             
-            service_downloader.single_logic(input)
+            video_id, video_info = service_downloader.single_logic(input)
+            titlename_logic.create_titlename_logger()
             
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")

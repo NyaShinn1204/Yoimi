@@ -55,6 +55,8 @@ class downloader:
             exit(1)
         
         video_id, content_metadata = self.get_info_and_check(assets_name)
+        
+        return video_id, content_metadata
 
 
     def authorize(self, email, password):
@@ -73,7 +75,6 @@ class downloader:
         }
             
         ## generate temp session
-        
         payload_query = {
             "app_version": "3.24.0",
             "system_version": "9",
@@ -272,7 +273,6 @@ class downloader:
             media_id = found4k[0]["media_id"]
             self.logger.info("Creating Video Sesson 4K...")
             status, metadata = self.playback_auth(asset_name, uhd=True, media_id=media_id)
-            self.logger.info(" + Session Token: "+metadata["playback_session_id"][:10]+"*****")
         else:
             self.logger.info(" - Not Found.")
             ovp_video_id = metadata["media"]["ovp_video_id"]
