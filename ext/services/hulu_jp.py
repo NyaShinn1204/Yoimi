@@ -160,6 +160,7 @@ class downloader:
         status, profile = self.get_userinfo()
         return status, profile
     def refresh_token(self, refresh_token, session_data):
+        
         payload = {
             "refresh_token": refresh_token,
             "app_id": 5,
@@ -287,7 +288,7 @@ class downloader:
         
         media_id = match.group(1)
         
-        response = self.session.get(url)
+        response = self.session.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"})
         
         pattern = rf'["\']?(asset:{media_id})["\']?'
         match = re.search(pattern, response.text)
@@ -341,7 +342,7 @@ class downloader:
                 "user_id": self.x_user_id,
                 "app_id": 4
             }
-        meta_response = self.session.post("https://papi.prod.hjholdings.tv/api/v1/playback/auth", json=payload, headers=self.web_headers)
+        meta_response = self.session.post("https://papi.prod.hjholdings.tv/api/v1/playback/auth", json=payload, headers=self.auth_headers)
         try:
             if meta_response.status_code == 201:
                 episode_metadata = meta_response.json()
@@ -355,7 +356,7 @@ class downloader:
             "viewing_url": "https://www.hulu.jp/watch/"+episode_id,
             "app_id": 4
         }
-        headers = self.web_headers.copy()
+        headers = self.auth_headers.copy()
         headers["host"] = "playback.prod.hjholdings.tv"
         headers["x-playback-session-id"] = session_id
         headers["x-acf-sensor-data"] = None
@@ -368,7 +369,7 @@ class downloader:
         except:
             return False, "Failed to get episode_playdata"
     def close_playback_session(self, session_id):
-        headers = self.web_headers.copy()
+        headers = self.auth_headers.copy()
         headers["host"] = "playback.prod.hjholdings.tv"
         headers["x-playback-session-id"] = session_id
         close_response = self.session.post("https://playback.prod.hjholdings.tv/session/close", headers=headers)
