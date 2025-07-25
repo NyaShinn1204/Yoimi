@@ -1,17 +1,18 @@
 import re
 from collections import defaultdict
 
+def safe_format(format_string, raw_values):
+    keys_in_format = set(re.findall(r"{(\w+)}", format_string))
+    values = {k: raw_values.get(k, "") for k in keys_in_format if raw_values.get(k)}
+    
+    for k in keys_in_format:
+        if not raw_values.get(k):
+            format_string = re.sub(rf"_?{{{k}}}", "", format_string)
+ 
+    return format_string.format_map(defaultdict(str, values))
+
 class titlename_logic:
     def create_titlename_logger(self, content_type, episode_count, title_name, episode_num, episode_name):
-        def safe_format(format_string, raw_values):
-            keys_in_format = set(re.findall(r"{(\w+)}", format_string))
-            values = {k: raw_values.get(k, "") for k in keys_in_format if raw_values.get(k)}
-            
-            for k in keys_in_format:
-                if not raw_values.get(k):
-                    format_string = re.sub(rf"_?{{{k}}}", "", format_string)
-    
-            return format_string.format_map(defaultdict(str, values))
     
         raw_values = {
             "seriesname": title_name,
