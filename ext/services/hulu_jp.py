@@ -280,7 +280,12 @@ class downloader:
         
         self.logger.info(" + Session Token: "+metadata["playback_session_id"][:10]+"*****")
         
-        return ovp_video_id, metadata
+        video_info = {
+            "raw": metadata,
+            
+        }
+        
+        return ovp_video_id, 
     
     # アセッツ名を取得
     def get_assets_info(self, url):
