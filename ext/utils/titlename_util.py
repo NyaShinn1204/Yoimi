@@ -12,6 +12,8 @@ def safe_format(format_string, raw_values):
     return format_string.format_map(defaultdict(str, values))
 
 class titlename_logic:
+    def __init__(self, config):
+        self.config = config
     def create_titlename_logger(self, content_type, episode_count, title_name, episode_num, episode_name):
         
         # Sample

@@ -15,6 +15,7 @@ from urllib.parse import urlparse, parse_qs
 
 from ext.utils.session_util import session_logic
 from ext.utils.titlename_util import titlename_logic
+from ext.utils.zzz_other_util import other_util
 
 colorama.init()
 console = Console()
@@ -147,19 +148,26 @@ class Logger:
 
 def download_command(input: str, command_list: Iterator):
     try:
+        enable_verbose = command_list["verbose"]
+        
         module_service, module_label = get_parser(input)
         service_config = module_service.__service_config__
         service_label = service_config["service_name"]
-        service_logger = Logger.create_logger(service_label, LOG_LEVEL=command_list["verbose"])
-        yoimi_logger = Logger.create_logger("Yoimi", LOG_LEVEL=command_list["verbose"])
+        service_logger = Logger.create_logger(service_label, LOG_LEVEL=enable_verbose)
+        yoimi_logger = Logger.create_logger("Yoimi", LOG_LEVEL=enable_verbose)
         
         email, password = command_list["email"], command_list["password"]
+        
+        # load config file
+        loaded_config = other_util.load_config()
         
         ### define, init service
         if service_config["use_tls"]:
             session = tls_client.Session(client_identifier="chrome139",random_tls_extension_order=True)
         else:
             session = requests.Session()
+        titlename_manager = titlename_logic(config=loaded_config)
+            
         service_downloader = module_service.downloader(session=session, logger=service_logger)
         
         ### check session
@@ -222,8 +230,13 @@ def download_command(input: str, command_list: Iterator):
             
             video_id, video_info = service_downloader.parse_input(input)
             
+            if video_info == "unexception_type_content":
+                service_logger.error("Please report content url!")
+                service_logger.error("URL: ",input)
+                return None
+            
             yoimi_logger.info("Creating Content filename...") 
-            output_titlename = titlename_logic.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
+            output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
             
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")
@@ -231,7 +244,7 @@ def download_command(input: str, command_list: Iterator):
         service_logger.error("Traceback has occurred")
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")
-        console.print_exception(show_locals=False)
+        console.print_exception(show_locals=enable_verbose)
         print("Service: "+service_label)
         print("Version: "+command_list["version"])
         print("----END ERROR LOG----")

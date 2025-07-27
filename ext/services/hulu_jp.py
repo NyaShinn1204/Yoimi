@@ -291,8 +291,27 @@ class downloader:
         self.logger.info(" + Session Token: "+metadata["playback_session_id"][:10]+"*****")
         
         if url_metadata["season_id"] == None:
-            episode_count = "1"
+            if url_metadata["season_meta_id"] == None:
+                episode_count = 1
+            else:
+                for single in url_metadata["video_categories"]:
+                    if single["ref_id"] == "episode_sub":
+                        input_type = "episode_sub"
+                    elif single["ref_id"] == "episode_dub":
+                        input_type = "episode_dub"
+                    else:
+                        input_type = "episode"
+                    
+                episode_count = self.get_total_episode(url_metadata["season_meta_id"], input_type)["total_count"]
             content_type = "movie"
+            title_name = url_metadata["series_name"] # ⚠️！要調整！⚠️
+            
+            if episode_count > 1:
+                self.logger.error("Unsupported Type Content.")
+                return ovp_video_id, "unexception_type_content"
+            else:
+                episode_num = None
+                episode_name = None
         else:
             input_type = None
             for single in url_metadata["video_categories"]:
@@ -303,16 +322,20 @@ class downloader:
                 else:
                     input_type = "episode"
                 
-            episode_count = str(self.get_total_episode(url_metadata["season_meta_id"], input_type)["total_count"])
+            episode_count = self.get_total_episode(url_metadata["season_meta_id"], input_type)["total_count"]
             content_type = "anime"
+            title_name = url_metadata["series_name"]
+            
+            episode_num = url_metadata["episode_number_title"]
+            episode_name = url_metadata["header"]
         
         video_info = {
             "raw": metadata,
             "content_type": content_type,
             "episode_count": episode_count,
-            "title_name": "",
-            "episode_num": "",
-            "episode_name": ""
+            "title_name": title_name,
+            "episode_num": episode_num,
+            "episode_name": episode_name
         }
         
         return ovp_video_id, video_info
