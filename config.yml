@@ -1,0 +1,12 @@
+directories:
+  Temp: ./temp
+  Downloads: ./downloads
+  Binaries: ./binaries
+cdms:
+  widevine: ''
+  playready: ''
+authorization:
+  use_cache: true
+format:
+  anime: '{seriesname}_{titlename}_{episodename}'
+  movie: '{seriesname}_{titlename}_{episodename}'
