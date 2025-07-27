@@ -303,7 +303,7 @@ class downloader:
                 else:
                     input_type = "episode"
                 
-            episode_count = str(self.get_total_episode(url_metadata["series_meta_id"], input_type)["total_count"])
+            episode_count = str(self.get_total_episode(url_metadata["season_meta_id"], input_type)["total_count"])
             content_type = "anime"
         
         video_info = {
