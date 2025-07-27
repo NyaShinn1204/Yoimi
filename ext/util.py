@@ -171,7 +171,7 @@ def download_command(input: str, command_list: Iterator):
         service_downloader = module_service.downloader(session=session, logger=service_logger)
         
         ### check session
-        if service_config["cache_session"]:
+        if service_config["cache_session"] and loaded_config["authorization"]["use_cache"]:
             session_manager = session_logic(logger=service_logger, service_name=service_label, service_util=service_downloader)
             
             availiable_cache = session_manager.check_session(service_label)
@@ -201,13 +201,13 @@ def download_command(input: str, command_list: Iterator):
                         method = "qr"
                     else:
                         service_logger.error("This service doesn't support qr login")
-                        exit(1)
+                        return None
                 else:
                     method = "normal"
                 login_status, user_info, session_data = session_manager.login_with_credentials(email, password, login_method=method)
                 if login_status == False:
                     service_logger.error(user_info)
-                    exit(1)
+                    return None
                 else:
                     session_status = True
                     with open(os.path.join("cache", "session", service_label.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
@@ -216,7 +216,7 @@ def download_command(input: str, command_list: Iterator):
         elif service_config["require_account"]:
             if not email or not password:
                 service_logger.error(f"{service_label} is require account login.")
-                exit(1)
+                return None
             else:
                 if not session_status:
                     login_status, user_info = service_downloader.authorize(email, password)

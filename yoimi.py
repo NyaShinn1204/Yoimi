@@ -22,7 +22,7 @@ def cli(version=False):
     if version:
         print('Yoimi v{} - Created NyaShinn1204'.format(__version__))
         print('Based by yuu(NoAiOne)')
-        exit(0)
+        exit(1)
 
 @cli.command("download", short_help="Download a video from yuu Supported we(e)bsite")
 @click.argument("input", metavar="<URL site>")
