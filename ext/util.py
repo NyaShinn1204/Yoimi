@@ -221,7 +221,9 @@ def download_command(input: str, command_list: Iterator):
             service_logger.info("Fetching 1 Episode")
             
             video_id, video_info = service_downloader.parse_input(input)
-            output_titlename = titlename_logic.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_name=video_info["episode_name"])
+            
+            yoimi_logger.info("Creating Content filename...") 
+            output_titlename = titlename_logic.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
             
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")

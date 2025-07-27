@@ -311,6 +311,7 @@ class downloader:
             "content_type": content_type,
             "episode_count": episode_count,
             "title_name": "",
+            "episode_num": "",
             "episode_name": ""
         }
         
