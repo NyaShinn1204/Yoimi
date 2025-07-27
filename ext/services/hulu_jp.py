@@ -20,7 +20,6 @@ import hashlib
 
 from ext.utils.pymazda.sensordata.sensor_data_builder import SensorDataBuilder
 
-__user_agent__ = "jp.happyon.android/3.24.0 (Linux; Android 8.0.0; BRAVIA 4K GB Build/OPR2.170623.027.S32) AndroidTV"
 __service_config__ = {
     "service_name": "Hulu-jp",
     "require_account": True,
@@ -47,6 +46,15 @@ class downloader:
             "accept-encoding": "gzip",
             "accept-language": "ja",
         }
+        
+        self.default_headers = {
+            "user-agent": "Mozilla/5.0 (Linux; Android 10; A7S Build/QP1A.190711.020; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/138.0.7204.157 Mobile Safari/537.36",
+            "accept-language": "ja",
+            "connection": "Keep-Alive",
+            "accept-encoding": "gzip"
+        }
+        
+        self.session.headers.update(self.default_headers)
 
     def parse_input(self, input):
         assets_name = self.get_assets_info(input)
@@ -283,14 +291,25 @@ class downloader:
         self.logger.info(" + Session Token: "+metadata["playback_session_id"][:10]+"*****")
         
         if url_metadata["season_id"] == None:
+            episode_count = "1"
             content_type = "movie"
         else:
+            input_type = None
+            for single in url_metadata["video_categories"]:
+                if single["ref_id"] == "episode_sub":
+                    input_type = "episode_sub"
+                elif single["ref_id"] == "episode_dub":
+                    input_type = "episode_dub"
+                else:
+                    input_type = "episode"
+                
+            episode_count = str(self.get_total_episode(url_metadata["series_meta_id"], input_type)["total_count"])
             content_type = "anime"
         
         video_info = {
             "raw": metadata,
             "content_type": content_type,
-            "episode_count": "",
+            "episode_count": episode_count,
             "title_name": "",
             "episode_name": ""
         }
@@ -326,6 +345,28 @@ class downloader:
                 return True, episode_metadata
         except:
             return False, None
+    # エピソード数の取得
+    def get_total_episode(self, season_id, episode_type):
+        querystring = {
+            "expand_object_flag": "0",
+            "sort": "sort:asc,id_in_schema:asc",
+            "order": "asc",
+            "app_id": 4,
+            "device_code": 7,
+            "datasource": "decorator",
+            "limit": 999,
+            "page": "1",
+            "with_total_count": "true",
+            "hierarchy_type": episode_type,
+            "only_searchable": "true"
+        }
+        meta_response = self.session.get("https://mapi.prod.hjholdings.tv/api/v1/metas/"+str(season_id)+"/children", params=querystring)
+        try:
+            if meta_response.status_code == 200:
+                meta_res = meta_response.json()
+                return meta_res
+        except:
+            return None
     # 4kのチェック
     def find_4k(self, meta_id):
         querystring = {
