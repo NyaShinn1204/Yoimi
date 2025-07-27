@@ -1,12 +1,13 @@
-from ruamel import yaml
+import ruamel.yaml
 
 __config_path__ = "config.yml"
 
 class other_util:
     def load_config():
         try:
-            with open('config.yml', 'r') as yml:
-                config = yaml.safe_load(yml)
+            yaml = ruamel.yaml.YAML(typ='safe', pure=True)
+            with open("config.yml", "r") as file:
+                config = yaml.load(file)
             return config
         except FileNotFoundError:
             return None

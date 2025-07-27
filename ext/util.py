@@ -235,9 +235,9 @@ def download_command(input: str, command_list: Iterator):
                 service_logger.error("URL: ",input)
                 return None
             
-            yoimi_logger.info("Creating Content filename...") 
+            service_logger.info("Creating Content filename...") 
             output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
-            
+            service_logger.info(" + "+output_titlename)
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")
     except:

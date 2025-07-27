@@ -285,7 +285,7 @@ class downloader:
             self.logger.info("Creating Video Sesson 4K...")
             status, metadata = self.playback_auth(asset_name, uhd=True, media_id=media_id)
         else:
-            self.logger.info(" - Not Found.")
+            self.logger.info(" - Not Availiable.")
             ovp_video_id = metadata["media"]["ovp_video_id"]
         
         self.logger.info(" + Session Token: "+metadata["playback_session_id"][:10]+"*****")
