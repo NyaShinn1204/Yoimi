@@ -263,6 +263,8 @@ class downloader:
         self.logger.info("Creating Video Sesson...")
         status, metadata = self.playback_auth(asset_name)
         
+        self.logger.info("Get Title for 1 Episode")
+        status, url_metadata = self.get_title_info(metadata["log_params"]["meta_id"])
         self.logger.info("Checking Availiable 4K...")
         
         found4k = self.find_4k(metadata["log_params"]["meta_id"])
@@ -280,12 +282,20 @@ class downloader:
         
         self.logger.info(" + Session Token: "+metadata["playback_session_id"][:10]+"*****")
         
+        if url_metadata["season_id"] == None:
+            content_type = "movie"
+        else:
+            content_type = "anime"
+        
         video_info = {
             "raw": metadata,
-            
+            "content_type": content_type,
+            "episode_count": "",
+            "title_name": "",
+            "episode_name": ""
         }
         
-        return ovp_video_id, 
+        return ovp_video_id, video_info
     
     # アセッツ名を取得
     def get_assets_info(self, url):
@@ -300,6 +310,23 @@ class downloader:
         if match:
             return match.group(1)
         return None
+    # タイトル取得
+    def get_title_info(self, meta_id):
+        querystring = {
+            "expand_object_flag": "0",
+            "app_id": 4,
+            "device_code": 7,
+            "datasource": "decorator"
+        }
+        
+        meta_response = self.session.get("https://mapi.prod.hjholdings.tv/api/v1/metas/"+str(meta_id), params=querystring)
+        try:
+            if meta_response.status_code == 200:
+                episode_metadata = meta_response.json()
+                return True, episode_metadata
+        except:
+            return False, None
+    # 4kのチェック
     def find_4k(self, meta_id):
         querystring = {
             "fields": "values",
