@@ -62,9 +62,9 @@ class downloader:
             self.logger.error("Failed parse Assets info")
             exit(1)
         
-        video_id, content_metadata = self.get_info_and_check(assets_name)
+        content_metadata = self.get_info_and_check(assets_name)
         
-        return video_id, content_metadata
+        return content_metadata
 
 
     def authorize(self, email, password):
@@ -274,9 +274,10 @@ class downloader:
         self.logger.info("Get Title for 1 Episode")
         status, url_metadata = self.get_title_info(metadata["log_params"]["meta_id"])
         self.logger.info("Checking Availiable 4K...")
-        
+        support_4k = False
         found4k = self.find_4k(metadata["log_params"]["meta_id"])
         if found4k != []:
+            support_4k = True
             self.logger.info(" + Found 4k, Re-open Session...")
             status, message = self.close_playback_session(metadata["playback_session_id"])
             self.logger.info("Close Video Session")
@@ -308,7 +309,7 @@ class downloader:
             
             if episode_count > 1:
                 self.logger.error("Unsupported Type Content.")
-                return ovp_video_id, "unexception_type_content"
+                return "unexception_type_content"
             else:
                 episode_num = None
                 episode_name = None
@@ -335,10 +336,23 @@ class downloader:
             "episode_count": episode_count,
             "title_name": title_name,
             "episode_num": episode_num,
-            "episode_name": episode_name
+            "episode_name": episode_name,
+            "support_4k": support_4k,
+            "video_id": ovp_video_id,
+            "video_schema_id": url_metadata["id_in_schema"],
+            "session_id": metadata["playback_session_id"]
         }
         
-        return ovp_video_id, video_info
+        return video_info
+    
+    # manifestの取得
+    def open_session_get_dl(self, video_info):
+        self.logger.info("Open Video Session")
+        status, playdata = self.open_playback_session(video_info["video_id"], video_info["session_id"], str(video_info["video_schema_id"]))
+        
+        status, message = self.close_playback_session(video_info["session_id"])
+        self.logger.info("Close Video Session")
+        pass
     
     # アセッツ名を取得
     def get_assets_info(self, url):

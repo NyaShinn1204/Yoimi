@@ -231,7 +231,7 @@ def download_command(input: str, command_list: Iterator):
         if watchtype == "single":
             service_logger.info("Fetching 1 Episode")
             
-            video_id, video_info = service_downloader.parse_input(input)
+            video_info = service_downloader.parse_input(input)
             
             if video_info == "unexception_type_content":
                 service_logger.error("Please report content url!")
@@ -241,6 +241,8 @@ def download_command(input: str, command_list: Iterator):
             service_logger.info("Creating Content filename...") 
             output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
             service_logger.info(" + "+output_titlename)
+            
+            dl_type, manifest_info = service_downloader.open_session_get_dl(video_info)
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")
     except:
