@@ -166,6 +166,9 @@ def download_command(input: str, command_list: Iterator):
             session = tls_client.Session(client_identifier="chrome139",random_tls_extension_order=True)
         else:
             session = requests.Session()
+        proxy = command_list["proxy"]
+        if proxy:
+            session.proxies = {'http': proxy, 'https': proxy}
         titlename_manager = titlename_logic(config=loaded_config)
             
         service_downloader = module_service.downloader(session=session, logger=service_logger)
