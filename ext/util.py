@@ -13,6 +13,7 @@ from importlib import import_module
 from urllib.parse import urlparse, parse_qs
 
 
+import ext.utils.parser_util as parser_util
 from ext.utils.session_util import session_logic
 from ext.utils.titlename_util import titlename_logic
 from ext.utils.zzz_other_util import other_util
@@ -35,6 +36,7 @@ def path_check(input_path):
 def update_config(obj, config_dict):
     for key, value in config_dict.items():
         setattr(obj, key, value)
+
 def check_dmm_content_type(season_id):
     try:
         res = requests.post("https://api.tv.dmm.com/graphql", json={
@@ -127,7 +129,7 @@ class Logger:
     
     def create_logger(service_name: str, LOG_LEVEL: bool):
         base_logger = logging.getLogger('YoimiLogger')
-        if LOG_LEVEL == "DEBUG":
+        if LOG_LEVEL:
             base_logger.setLevel(logging.DEBUG)
         else:
             base_logger.setLevel(logging.INFO)
@@ -149,7 +151,7 @@ class Logger:
 def download_command(input: str, command_list: Iterator):
     try:
         enable_verbose = command_list["verbose"]
-        
+                
         module_service, module_label = get_parser(input)
         service_config = module_service.__service_config__
         service_label = service_config["service_name"]
@@ -242,7 +244,13 @@ def download_command(input: str, command_list: Iterator):
             output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
             service_logger.info(" + "+output_titlename)
             
-            dl_type, manifest_info = service_downloader.open_session_get_dl(video_info)
+            manifest_link, manifest_info = service_downloader.open_session_get_dl(video_info)
+            
+            Tracks = parser_util.global_parser()
+            dl_type = Tracks.determine_mpd_type(session.get(manifest_link).text)
+            
+            yoimi_logger.debug("Get Manifest Dl Type")
+            yoimi_logger.debug(" + "+dl_type)
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")
     except:

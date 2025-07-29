@@ -365,7 +365,7 @@ class downloader:
         status, message = self.close_playback_session(video_info["session_id"])
         self.logger.info("Close Video Session")
 
-        self.logger.info("Got MPD Link")
+        self.logger.info("Get MPD Link")
         
         urls = []
         widevine_url = None
@@ -377,8 +377,11 @@ class downloader:
             reverse=True
         )
         
+        self.logger.debug("Source List")
+        
         for source in sorted_sources:
             if "manifest.mpd" in source.get("src", ""):
+                self.logger.debug(" + "+source.get("src", ""))
                 urls.append(source["src"])
                 if source.get("key_systems"):
                     widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url")
@@ -387,6 +390,10 @@ class downloader:
         
         if urls:
             mpd_link = urls[0]
+            
+            self.logger.debug("Select Best quality mpd")
+            self.logger.debug(" + "+mpd_link)
+            
             self.logger.info(f" + MPD_link: {mpd_link[:15] + '*****'}")
             return mpd_link, {"widevine": widevine_url, "playready": playready_url}
         else:
