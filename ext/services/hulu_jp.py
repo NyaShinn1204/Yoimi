@@ -163,7 +163,8 @@ class downloader:
     def check_token(self, token):
         self.session.headers.update({
             "authorization": "Bearer " + token,
-            "x-token-id": self.x_user_id
+            "x-token-id": self.x_user_id,
+            "x-user-id": self.x_user_id
         })
         status, profile = self.get_userinfo()
         return status, profile
