@@ -6,6 +6,7 @@ name: Hulu-jp
 require_account: Yes
 enable_refresh: Yes
 support_qr: No
+is_drm: Yes
 cache_session: Yes
 use_tlsclient: No
 support_url: 
@@ -23,6 +24,7 @@ from ext.utils.pymazda.sensordata.sensor_data_builder import SensorDataBuilder
 __service_config__ = {
     "service_name": "Hulu-jp",
     "require_account": True,
+    "is_drm": True,
     "cache_session": True,
     "enable_refresh": True,
     "use_tls": False,
@@ -395,10 +397,10 @@ class downloader:
             self.logger.debug(" + "+mpd_link)
             
             self.logger.info(f" + MPD_link: {mpd_link[:15] + '*****'}")
-            return mpd_link, {"widevine": widevine_url, "playready": playready_url}
+            return self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}
         else:
             self.logger.warning("No suitable MPD link found")
-            return None, None
+            return None, None, None
     
     # アセッツ名を取得
     def get_assets_info(self, url):

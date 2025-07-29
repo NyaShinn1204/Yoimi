@@ -244,13 +244,21 @@ def download_command(input: str, command_list: Iterator):
             output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
             service_logger.info(" + "+output_titlename)
             
-            manifest_link, manifest_info = service_downloader.open_session_get_dl(video_info)
+            manifest_respnse, manifest_link, manifest_info = service_downloader.open_session_get_dl(video_info)
             
             Tracks = parser_util.global_parser()
-            dl_type = Tracks.determine_mpd_type(session.get(manifest_link).text)
+            dl_type = Tracks.determine_mpd_type(manifest_respnse)
+            transformed_data = Tracks.mpd_parser(manifest_respnse)
             
             yoimi_logger.debug("Get Manifest Dl Type")
             yoimi_logger.debug(" + "+dl_type)
+            
+            yoimi_logger.info("Parsing MPD file")
+            if service_config["is_drm"]:
+                yoimi_logger.info("Get Video, Audio PSSH")
+                yoimi_logger.info(" + Widevine: "+ transformed_data["pssh_list"]["widevine"][:35]+"...")
+                yoimi_logger.info(" + Playready: "+ transformed_data["pssh_list"]["playready"][:35]+"...")
+                
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")
     except:
