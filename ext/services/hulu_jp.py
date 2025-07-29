@@ -163,7 +163,7 @@ class downloader:
     def check_token(self, token):
         self.session.headers.update({
             "authorization": "Bearer " + token,
-            "x-user-id": self.x_user_id
+            "x-token-id": self.x_user_id
         })
         status, profile = self.get_userinfo()
         return status, profile
@@ -347,12 +347,45 @@ class downloader:
     
     # manifestの取得
     def open_session_get_dl(self, video_info):
+        def resolution_to_pixels(resolution_str):
+            match = re.match(r"(\d+)x(\d+)", resolution_str)
+            if match:
+                width, height = map(int, match.groups())
+                return width * height
+            return 0
         self.logger.info("Open Video Session")
         status, playdata = self.open_playback_session(video_info["video_id"], video_info["session_id"], str(video_info["video_schema_id"]))
         
         status, message = self.close_playback_session(video_info["session_id"])
         self.logger.info("Close Video Session")
-        pass
+
+        self.logger.info("Got MPD Link")
+        
+        urls = []
+        widevine_url = None
+        playready_url = None
+        
+        sorted_sources = sorted(
+            playdata["sources"],
+            key=lambda s: resolution_to_pixels(s.get("resolution", "0x0")),
+            reverse=True
+        )
+        
+        for source in sorted_sources:
+            if "manifest.mpd" in source.get("src", ""):
+                urls.append(source["src"])
+                if source.get("key_systems"):
+                    widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url")
+                    playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url")
+                break
+        
+        if urls:
+            mpd_link = urls[0]
+            self.logger.info(f" + MPD_link: {mpd_link[:15] + '*****'}")
+            return mpd_link, {"widevine": widevine_url, "playready": playready_url}
+        else:
+            self.logger.warning("No suitable MPD link found")
+            return None, None
     
     # アセッツ名を取得
     def get_assets_info(self, url):
