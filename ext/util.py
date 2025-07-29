@@ -248,7 +248,7 @@ def download_command(input: str, command_list: Iterator):
             
             Tracks = parser_util.global_parser()
             dl_type = Tracks.determine_mpd_type(manifest_respnse)
-            transformed_data = Tracks.mpd_parser(manifest_respnse)
+            transformed_data = Tracks.mpd_parser(manifest_respnse, debug=enable_verbose)
             
             yoimi_logger.debug("Get Manifest Dl Type")
             yoimi_logger.debug(" + "+dl_type)
