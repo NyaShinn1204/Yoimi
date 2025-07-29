@@ -186,6 +186,11 @@ class downloader:
             "access_token": access_token,
             "refresh_token": refresh_token
         }
+        
+        self.session.headers.update({
+            "authorization": "Bearer "+access_token
+        })
+        
         return session_json
     def get_userinfo(self):
         _USER_INFO_API = "https://mapi.prod.hjholdings.tv/api/v1/users/me"
