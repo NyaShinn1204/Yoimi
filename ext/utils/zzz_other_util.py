@@ -62,7 +62,10 @@ class other_util:
                 
                 while True:
                     try:
-                        choice = int(input("Enter the number of the file you want to use: "))
+                        choice = int(input("Enter the number of the file you want to use (if you want bypass, just type '0'): "))
+                        if choice == 0:
+                            selected_file = None
+                            return result
                         if 1 <= choice <= len(wvd_files):
                             selected_file = wvd_files[choice - 1]
                             break
@@ -89,7 +92,10 @@ class other_util:
                 
                 while True:
                     try:
-                        choice = int(input("Enter the number of the file you want to use: "))
+                        choice = int(input("Enter the number of the file you want to use (if you want bypass, just type '0'): "))
+                        if choice == 0:
+                            selected_file = None
+                            return result
                         if 1 <= choice <= len(prd_files):
                             selected_file = prd_files[choice - 1]
                             break
