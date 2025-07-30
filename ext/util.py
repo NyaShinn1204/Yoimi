@@ -267,9 +267,17 @@ def download_command(input: str, command_list: Iterator):
                 if transformed_data["pssh_list"].get("playready"):
                     yoimi_logger.info(" + Playready: "+ transformed_data["pssh_list"]["playready"][:35]+"...")
                 
-                yoimi_logger.info("Decrypt License")
-                license_return = license_logic.decrypt_license(transformed_data, manifest_info)
-                yoimi_logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_return["key"] if key['type'] == 'CONTENT']}")        
+                yoimi_logger.info("Decrypting License")
+                license_return = license_logic.decrypt_license(transformed_data, manifest_info, {}, session, loaded_config, yoimi_logger, debug=enable_verbose)
+                if license_return["type"] == "widevine":
+                    yoimi_logger.info(f"Decrypt License (Widevine):")
+                    for license_key in license_return["key"]:
+                        if license_key["type"] == "CONTENT":
+                            yoimi_logger.info(" + "+license_key['kid_hex']+":"+license_key['key_hex']) 
+                elif license_return["type"] == "playready":
+                    yoimi_logger.info(f"Decrypt License (PlayReady):")
+                    for license_key in license_return["key"]:
+                        yoimi_logger.info(" + "+license_key) 
 
                 
         elif watchtype == "season":
