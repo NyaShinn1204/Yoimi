@@ -14,6 +14,7 @@ from urllib.parse import urlparse, parse_qs
 
 
 import ext.utils.parser_util as parser_util
+from ext.utils.license_util import license_logic
 from ext.utils.session_util import session_logic
 from ext.utils.titlename_util import titlename_logic
 from ext.utils.zzz_other_util import other_util
@@ -256,8 +257,15 @@ def download_command(input: str, command_list: Iterator):
             yoimi_logger.info("Parsing MPD file")
             if service_config["is_drm"]:
                 yoimi_logger.info("Get Video, Audio PSSH")
-                yoimi_logger.info(" + Widevine: "+ transformed_data["pssh_list"]["widevine"][:35]+"...")
-                yoimi_logger.info(" + Playready: "+ transformed_data["pssh_list"]["playready"][:35]+"...")
+                if transformed_data["pssh_list"].get("widevine"):
+                    yoimi_logger.info(" + Widevine: "+ transformed_data["pssh_list"]["widevine"][:35]+"...")
+                if transformed_data["pssh_list"].get("playready"):
+                    yoimi_logger.info(" + Playready: "+ transformed_data["pssh_list"]["playready"][:35]+"...")
+                
+                yoimi_logger.info("Decrypt License")
+                license_return = license_logic.decrypt_license(transformed_data, manifest_info)
+                yoimi_logger.info(f" + Decrypt Video, Audio License: {[f"{key['kid_hex']}:{key['key_hex']}" for key in license_return["key"] if key['type'] == 'CONTENT']}")        
+
                 
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")
