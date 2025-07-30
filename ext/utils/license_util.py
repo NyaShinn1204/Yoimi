@@ -33,7 +33,7 @@ class license_util:
         return keys
     def playready_license(playready_pssh, playready_url, headers, session, config):
         # Playready License Logic HERE
-        device = PRDecice.load(
+        device = PRDevice.load(
             config["cdms"]["playready"]
         )
         cdm = PRCdm.from_device(device)
