@@ -161,8 +161,13 @@ def download_command(input: str, command_list: Iterator):
         
         email, password = command_list["email"], command_list["password"]
         
-        # load config file
+        ### load config file
         loaded_config = other_util.load_config()
+        
+        ### check cdm config
+        return_cdms = other_util.cdms_check(loaded_config)
+        if return_cdms == None:
+            return None
         
         ### define, init service
         if service_config["use_tls"]:
