@@ -392,58 +392,67 @@ class global_parser:
             return attributes
         except ET.ParseError: return {}
     def print_tracks(self, tracks_json, real_bitrate=False):
-        """解析結果を元のシンプルな形式で表示する文字列を生成"""
-        # --- Reverted to the original print_tracks code ---
+        """解析結果を整列されたフォーマットで表示"""
         if not tracks_json or not isinstance(tracks_json, dict):
             return "Invalid tracks data provided."
-
+    
         output = ""
-        # Video tracks
+    
+        # --- Video Tracks ---
         video_tracks = tracks_json.get('video_track', [])
         output += f"{len(video_tracks)} Video Tracks:\n"
+    
+        # codec と resolution の最大幅を測定
+        max_codec_len = max((len(v.get('codec', '')) for v in video_tracks), default=0)
+        max_reso_len = max((len(v.get('resolution', '')) for v in video_tracks), default=0)
+    
         if video_tracks:
-             # Determine prefix for each line
-             prefixes = ["├─"] * (len(video_tracks) - 1) + ["└─"] if len(video_tracks) > 0 else []
-             for i, video in enumerate(video_tracks):
-                 prefix = prefixes[i]
-                 codec = video.get('codec', 'N/A')
-                 resolution = video.get('resolution', 'N/A')
-                 bitrate = video.get('bitrate', 'N/A')
-                 if bitrate != 'N/A' and real_bitrate:
-                     bitrate = int(int(bitrate) / 1000)
-                 output += f"{prefix} VID | [{codec}] [{resolution}] | {bitrate} kbps\n" # Original format
+            prefixes = ["├─"] * (len(video_tracks) - 1) + ["└─"]
+            for i, video in enumerate(video_tracks):
+                prefix = prefixes[i]
+                codec = video.get('codec', 'N/A')
+                resolution = video.get('resolution', 'N/A')
+                bitrate = video.get('bitrate', 'N/A')
+                if bitrate != 'N/A' and real_bitrate:
+                    bitrate = int(int(bitrate) / 1000)
+                codec_fmt = f"[{codec}]".ljust(max_codec_len + 2)
+                reso_fmt = f"[{resolution}]".ljust(max_reso_len + 2)
+                output += f"{prefix} VID | {codec_fmt} {reso_fmt} | {bitrate} kbps\n"
         else:
-             output += "  No video tracks found.\n" # Indentation for consistency if needed
-
-        # Audio tracks
+            output += "  No video tracks found.\n"
+    
+        # --- Audio Tracks ---
         audio_tracks = tracks_json.get('audio_track', [])
         output += f"\n{len(audio_tracks)} Audio Tracks:\n"
+    
+        max_acodec_len = max((len(a.get('codec', '')) for a in audio_tracks), default=0)
+    
         if audio_tracks:
-             prefixes = ["├─"] * (len(audio_tracks) - 1) + ["└─"] if len(audio_tracks) > 0 else []
-             for i, audio in enumerate(audio_tracks):
-                 prefix = prefixes[i]
-                 codec = audio.get('codec', 'N/A')
-                 bitrate = audio.get('bitrate', 'N/A')
-                 if bitrate != 'N/A' and real_bitrate:
-                     bitrate = int(int(bitrate) / 1000)
-                 # Original format didn't explicitly show language, but it's useful. Keeping it simple.
-                 # lang = audio.get('language', 'und')
-                 # output += f"{prefix} AUD | [{codec}] [{lang}] | {bitrate} kbps\n"
-                 output += f"{prefix} AUD | [{codec}] | {bitrate} kbps\n" # Reverted to original format
+            prefixes = ["├─"] * (len(audio_tracks) - 1) + ["└─"]
+            for i, audio in enumerate(audio_tracks):
+                prefix = prefixes[i]
+                codec = audio.get('codec', 'N/A')
+                bitrate = audio.get('bitrate', 'N/A')
+                if bitrate != 'N/A' and real_bitrate:
+                    bitrate = int(int(bitrate) / 1000)
+                codec_fmt = f"[{codec}]".ljust(max_acodec_len + 2)
+                output += f"{prefix} AUD | {codec_fmt} | {bitrate} kbps\n"
         else:
-             output += "  No audio tracks found.\n"
-
-        # Text tracks (Keep commented out as original)
+            output += "  No audio tracks found.\n"
+    
+        # --- Text Tracks ---
         text_tracks = tracks_json.get('text_track', [])
         if text_tracks:
             output += f"\n{len(text_tracks)} Text Tracks:\n"
-            prefixes = ["├─"] * (len(text_tracks) - 1) + ["└─"] if len(text_tracks) > 0 else []
+            prefixes = ["├─"] * (len(text_tracks) - 1) + ["└─"]
             for i, text in enumerate(text_tracks):
                 prefix = prefixes[i]
                 language = text.get('language', 'und')
                 name = text.get('name', 'N/A')
                 output += f"{prefix} SUB | [VTT] | {language} | {name}\n"
+    
         return output.strip()
+    
     def select_best_tracks(self, tracks_json):
         """利用可能なトラックの中から最もビットレートが高いものを選択"""
         # (Implementation from previous step - kept as is, robust version)

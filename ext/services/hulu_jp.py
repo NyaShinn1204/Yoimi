@@ -171,30 +171,28 @@ class downloader:
         status, profile = self.get_userinfo()
         return status, profile
     def refresh_token(self, refresh_token, session_data):
-        
-        payload = {
-            "refresh_token": refresh_token,
-            "app_id": 5,
-            "device_code": 8
-        }
-        refresh_response = self.session.post("https://token.prod.hjholdings.tv/token/refresh", json=payload).json()
-        
-        #refresh_response["token_id"]
-        access_token = refresh_response["access_token"]
-        refresh_token = refresh_response["refresh_token"]
-        session_json = {
-            "method": "normal",
-            "email": None,
-            "password": None,
-            "access_token": access_token,
-            "refresh_token": refresh_token
-        }
-        
-        self.session.headers.update({
-            "authorization": "Bearer "+access_token
-        })
-        
-        return session_json
+        try:
+            
+            payload = {
+                "refresh_token": refresh_token,
+                "app_id": 5,
+                "device_code": 8
+            }
+            refresh_response = self.session.post("https://token.prod.hjholdings.tv/token/refresh", json=payload).json()
+            
+            #refresh_response["token_id"]
+            access_token = refresh_response["access_token"]
+            refresh_token = refresh_response["refresh_token"]
+            session_data["access_token"] = access_token
+            session_data["refresh_token"] = refresh_token
+            
+            self.session.headers.update({
+                "authorization": "Bearer "+access_token
+            })
+            
+            return session_data
+        except:
+            return None
     def get_userinfo(self):
         _USER_INFO_API = "https://mapi.prod.hjholdings.tv/api/v1/users/me"
         

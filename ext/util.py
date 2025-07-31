@@ -206,7 +206,7 @@ def download_command(input: str, command_list: Iterator):
                             service_logger.info("Please re-login.")
             
             # if invalid cache or not found, just re-login
-            if not session_status:
+            if not session_status and (email != None and password != None):
                 if email == "QR_LOGIN":
                     if service_config["support_qr"]:
                         method = "qr"
@@ -223,7 +223,6 @@ def download_command(input: str, command_list: Iterator):
                     session_status = True
                     with open(os.path.join("cache", "session", service_label.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
                         json.dump(session_data, f, ensure_ascii=False, indent=4)
-        
         elif service_config["require_account"]:
             if not email or not password:
                 service_logger.error(f"{service_label} is require account login.")
@@ -260,6 +259,14 @@ def download_command(input: str, command_list: Iterator):
             yoimi_logger.debug(" + "+dl_type)
             
             yoimi_logger.info("Parsing MPD file")
+            
+            track_data = Tracks.print_tracks(transformed_data)
+            print(track_data)
+            get_best_track = Tracks.select_best_tracks(transformed_data)
+            yoimi_logger.info("Selected Best Quality Track:")
+            yoimi_logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps")
+            yoimi_logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps")
+            
             if service_config["is_drm"]:
                 yoimi_logger.info("Get Video, Audio PSSH")
                 if transformed_data["pssh_list"].get("widevine"):
@@ -278,7 +285,11 @@ def download_command(input: str, command_list: Iterator):
                     yoimi_logger.info(f"Decrypt License (PlayReady):")
                     for license_key in license_return["key"]:
                         yoimi_logger.info(" + "+license_key) 
-
+                        
+            if dl_type == "segment":
+                yoimi_logger.info("Download Segments...")
+            elif dl_type == "single":
+                yoimi_logger.info("Download Files...")
                 
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")
