@@ -16,6 +16,7 @@ from urllib.parse import urlparse, parse_qs
 import ext.utils.parser_util as parser_util
 
 from ext.utils.download_util import (aria2c_downloader, segment_downloader)
+from ext.utils.decrypt_util import main_decrypt
 
 from ext.utils.license_util import license_logic
 from ext.utils.session_util import session_logic
@@ -172,6 +173,29 @@ def download_command(input: str, command_list: Iterator):
         if return_cdms == None:
             return None
         
+        ### check decryptor found
+        return_decryptor = other_util.decryptor_check(loaded_config)
+        if not return_decryptor["shaka_path"] and not return_decryptor["mp4_path"]:
+            binary_folder = loaded_config["directories"]["Binaries"]
+            yoimi_logger.error("Decryptor not found. Please check.")
+
+            paths = {
+                "Windows": {
+                    "Mp4_decryptor": "mp4decrypt.exe",
+                    "Shaka_packager": "shaka_packager_win.exe"
+                },
+                "Linux": {
+                    "Mp4_decryptor": "mp4decrypt",
+                    "Shaka_packager": "shaka_packager_linux"
+                }
+            }
+
+            for os_name, tools in paths.items():
+                yoimi_logger.error(f"{os_name}:")
+                for name, filename in tools.items():
+                    yoimi_logger.error(f" + {name}: {os.path.join(binary_folder, filename)}")
+
+            return None
         ### define, init service
         if service_config["use_tls"]:
             session = tls_client.Session(client_identifier="chrome139",random_tls_extension_order=True)
@@ -291,9 +315,7 @@ def download_command(input: str, command_list: Iterator):
                     for license_key in license_return["key"]:
                         yoimi_logger.info(" + "+license_key) 
                         
-            if dl_type == "segment":
-                #yoimi_logger.info("Download Segments...")
-                
+            if dl_type == "segment":                
                 yoimi_logger.info("Calculate about Manifest")
                 duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
                 yoimi_logger.debug(" + Episode Duration: "+str(int(duration)))
@@ -307,9 +329,15 @@ def download_command(input: str, command_list: Iterator):
                 audio_segment_links, video_segment_links = service_downloader.create_segment_links(get_best_track, video_segment_list, audio_segment_list)
                 
                 yoimi_logger.info("Downloading Segments...")
-                downloader = segment_downloader()
-                success, result = downloader.download(video_segment_links, "download_encrypt_video.mp4", loaded_config, unixtime, service_logger, service_label)
-                success, result = downloader.download(audio_segment_links, "download_encrypt_audio.mp4", loaded_config, unixtime, service_logger, service_label)
+                downloader = segment_downloader(service_logger)
+                success, video_output = downloader.download(video_segment_links, "download_encrypt_video.mp4", loaded_config, unixtime, "Yoimi")
+                success, audio_output = downloader.download(audio_segment_links, "download_encrypt_audio.mp4", loaded_config, unixtime, "Yoimi")
+                
+                yoimi_logger.info("Decrypting Segments...")
+                decryptor = main_decrypt(service_logger)
+                video_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_video.mp4")
+                audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
+                decryptor.decrypt(license_keys=license_key, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
                 
             elif dl_type == "single":
                 yoimi_logger.info("Download Files...")

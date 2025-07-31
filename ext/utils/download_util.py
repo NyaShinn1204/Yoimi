@@ -171,16 +171,19 @@ class aria2c_downloader:
         return True, os.path.join(output_temp_directory, output_file_name)
 
 class segment_downloader:
-    def verify_download(self, segment_links, output_temp_directory, service_logger, fetch_and_save):
-        service_logger.info("Starting file integrity verification...")
+    def __init__(self, logger):
+        self.logger = logger
+    
+    def verify_download(self, segment_links, output_temp_directory, fetch_and_save):
+        self.logger.info("Starting file integrity verification...")
         for i, url in enumerate(segment_links):
             temp_path = os.path.join(output_temp_directory, f"{i:05d}.ts")
             if not os.path.exists(temp_path):
                 fetch_and_save((i, url))
-                service_logger.info(f"Successfully downloaded segment {i}: {url}")
+                self.logger.info(f"Successfully downloaded segment {i}: {url}")
                 time.sleep(2)
-        service_logger.info("Completed file integrity verification.")
-    def download(self, segment_links: list, output_file_name: str, config: Dict[str, Any], unixtime: str, service_logger: logging.Logger, service_name: str = "") -> Tuple[bool]:
+        self.logger.info("Completed file integrity verification.")
+    def download(self, segment_links: list, output_file_name: str, config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool]:
         """
         セグメントのURLリストから並列でダウンロードを行い、結合して1つのファイルに出力する。
 
@@ -246,7 +249,7 @@ class segment_downloader:
                             print(f"Error: {e}")
                         pbar.update(1)
             
-            self.verify_download(segment_links, output_temp_directory, service_logger, fetch_and_save)
+            self.verify_download(segment_links, output_temp_directory, fetch_and_save)
             
             output_path = os.path.join(output_temp_directory, output_file_name)
             with open(output_path, 'wb') as out_file:

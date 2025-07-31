@@ -109,3 +109,37 @@ class other_util:
                 with config_path.open('w', encoding='utf-8') as f:
                     yaml.dump(config, f)
         return result
+    
+    def decryptor_check(config):
+        binary_folder = config["directories"]["Binaries"]
+        
+        if os.name == "nt":
+            path_shaka_packager = os.path.join(binary_folder, "shaka_packager_win.exe")
+            path_mp4_decryptor = os.path.join(binary_folder, "mp4decrypt.exe")
+        else:
+            path_shaka_packager = os.path.join(binary_folder, "shaka_packager_linux")
+            path_mp4_decryptor = os.path.join(binary_folder, "mp4decrypt")
+            
+        if os.path.isfile(path_shaka_packager) and not os.path.isfile(path_mp4_decryptor):
+            return {
+                "shaka_path": path_shaka_packager,
+                "mp4_path": None
+            }
+            
+        if os.path.isfile(path_mp4_decryptor) and not os.path.isfile(path_shaka_packager):
+            return {
+                "shaka_path": None,
+                "mp4_path": path_mp4_decryptor
+            }
+            
+        if os.path.isfile(path_shaka_packager) and os.path.isfile(path_mp4_decryptor):
+            return {
+                "shaka_path": path_shaka_packager,
+                "mp4_path": path_mp4_decryptor
+            }
+            
+        if not os.path.isfile(path_shaka_packager) and not os.path.isfile(path_mp4_decryptor):
+            return {
+                "shaka_path": None,
+                "mp4_path": None
+            }
