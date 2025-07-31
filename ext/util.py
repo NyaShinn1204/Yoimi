@@ -14,6 +14,9 @@ from urllib.parse import urlparse, parse_qs
 
 
 import ext.utils.parser_util as parser_util
+
+from ext.utils.download_util import (aria2c_downloader, segment_downloader)
+
 from ext.utils.license_util import license_logic
 from ext.utils.session_util import session_logic
 from ext.utils.titlename_util import titlename_logic
@@ -238,6 +241,8 @@ def download_command(input: str, command_list: Iterator):
         if watchtype == "single":
             service_logger.info("Fetching 1 Episode")
             
+            unixtime = str(int(time.time()))
+            
             video_info = service_downloader.parse_input(input)
             
             if video_info == "unexception_type_content":
@@ -298,6 +303,13 @@ def download_command(input: str, command_list: Iterator):
                 yoimi_logger.info(" + Video Segments: "+str(int(video_segment_list)))                 
                 audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
                 yoimi_logger.info(" + Audio Segments: "+str(int(audio_segment_list)))
+                
+                service_downloader.create_segment_links(get_best_track, video_segment_list, audio_segment_list)
+                
+                yoimi_logger.info("Downloading Segments...")
+                downloader = segment_downloader()
+                downloader.download(video_segment_list, "download_encrypt_video.mp4", loaded_config, unixtime, service_logger, service_label)
+                downloader.download(audio_segment_list, "download_encrypt_audio.mp4", loaded_config, unixtime, service_logger, service_label)
                 
             elif dl_type == "single":
                 yoimi_logger.info("Download Files...")

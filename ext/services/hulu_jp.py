@@ -535,3 +535,19 @@ class downloader:
                 return True, None
         except:
             return False, close_response.json()
+        
+    # セグメントのリンクを作成
+    def create_segment_links(self, get_best_track, video_segment_list, audio_segment_list):
+        video_segment_links = []
+        audio_segment_links = []
+        video_segment_links.append(get_best_track["video"]["url"])
+        audio_segment_links.append(get_best_track["audio"]["url"])
+        
+        for single_segment in range(video_segment_list):
+            temp_link = get_best_track["video"]["url_base"]+get_best_track["video"]["url_segment_base"].replace("$Number$", str(single_segment))
+            video_segment_links.append(temp_link)
+        for single_segment in range(audio_segment_list):
+            temp_link = get_best_track["audio"]["url_base"]+get_best_track["audio"]["url_segment_base"].replace("$Number$", str(single_segment))
+            audio_segment_links.append(temp_link)
+            
+        return audio_segment_links, video_segment_links
