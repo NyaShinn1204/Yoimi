@@ -197,6 +197,7 @@ class segment_downloader:
         Returns:
             Tuple[bool]: 正常終了時はTrue、失敗または割り込み時は例外を送出。
         """
+        
         output_temp_directory = os.path.join(config["directories"]["Temp"], "content", unixtime)
         os.makedirs(output_temp_directory, exist_ok=True)
         
