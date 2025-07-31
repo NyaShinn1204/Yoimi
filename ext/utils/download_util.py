@@ -101,7 +101,7 @@ class aria2c_downloader:
     def _get_executable_path(self, config: Dict[str, Any]) -> str:
         """OSに応じてaria2cの実行可能ファイルパスを取得する。"""
         if os.name == 'nt':
-            path = os.path.join(config["directorys"]["Binaries"], "aria2c.exe")
+            path = os.path.join(config["directories"]["Binaries"], "aria2c.exe")
             if not os.path.isfile(path) or not os.access(path, os.X_OK):
                 raise FileNotFoundError(f"aria2c binary not found or not executable: {path}")
             return path
@@ -127,7 +127,7 @@ class aria2c_downloader:
         except FileNotFoundError as e:
             return False, str(e)
             
-        output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+        output_temp_directory = os.path.join(config["directories"]["Temp"], "content", unixtime)
         os.makedirs(output_temp_directory, exist_ok=True)
 
         aria2c_command = [
@@ -194,7 +194,7 @@ class segment_downloader:
         Returns:
             Tuple[bool]: 正常終了時はTrue、失敗または割り込み時は例外を送出。
         """
-        output_temp_directory = os.path.join(config["directorys"]["Temp"], "content", unixtime)
+        output_temp_directory = os.path.join(config["directories"]["Temp"], "content", unixtime)
         os.makedirs(output_temp_directory, exist_ok=True)
         
         stop_flag = threading.Event()
@@ -283,7 +283,7 @@ if __name__ == '__main__':
         os.system('') ## Bypass Fucking Idiot Windows Color Issue
     
     dummy_config = {
-        "directorys": {
+        "directories": {
             "Temp": "temp_dir",
             "Binaries": "."
         }
@@ -315,7 +315,7 @@ if __name__ == '__main__':
         os.system('') ## Bypass Fucking Idiot Windows Color Issue
     
     dummy_config = {
-        "directorys": {
+        "directories": {
             "Temp": "temp_dir",
             "Binaries": "."
         }

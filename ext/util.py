@@ -6,8 +6,8 @@ import logging
 import colorama
 import requests
 import tls_client
-
 from typing import Iterator
+from datetime import datetime
 from rich.console import Console
 from importlib import import_module
 from urllib.parse import urlparse, parse_qs
@@ -241,7 +241,7 @@ def download_command(input: str, command_list: Iterator):
         if watchtype == "single":
             service_logger.info("Fetching 1 Episode")
             
-            unixtime = str(int(time.time()))
+            unixtime = str(int(datetime.now().timestamp()))
             
             video_info = service_downloader.parse_input(input)
             
@@ -304,12 +304,14 @@ def download_command(input: str, command_list: Iterator):
                 audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
                 yoimi_logger.info(" + Audio Segments: "+str(int(audio_segment_list)))
                 
-                service_downloader.create_segment_links(get_best_track, video_segment_list, audio_segment_list)
+                audio_segment_links, video_segment_links = service_downloader.create_segment_links(get_best_track, video_segment_list, audio_segment_list)
                 
                 yoimi_logger.info("Downloading Segments...")
                 downloader = segment_downloader()
-                downloader.download(video_segment_list, "download_encrypt_video.mp4", loaded_config, unixtime, service_logger, service_label)
-                downloader.download(audio_segment_list, "download_encrypt_audio.mp4", loaded_config, unixtime, service_logger, service_label)
+                success, result = downloader.download(audio_segment_links, "download_encrypt_video.mp4", loaded_config, unixtime, service_logger, service_label)
+                print(result)
+                success, result = downloader.download(video_segment_links, "download_encrypt_audio.mp4", loaded_config, unixtime, service_logger, service_label)
+                print(result)
                 
             elif dl_type == "single":
                 yoimi_logger.info("Download Files...")
