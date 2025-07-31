@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from collections import defaultdict
 
 def safe_format(format_string, raw_values):
@@ -41,3 +42,36 @@ class titlename_logic:
             format_string = self.config["format"]["anime"]
             title_name_logger = safe_format(format_string, raw_values) 
         return title_name_logger
+    
+class filename_logic:
+    def sanitize_filename(filename: str, delete_only: bool = False) -> str:
+        """
+        Fucking idiot Windows filename convert to JP string
+        
+        例:
+            delete_only = False
+            filename:
+            いずれ最強の錬金術師? -> いずれ最強の錬金術師？
+            
+            delete_only = True
+            filename:
+            いずれ最強の錬金術師? -> いずれ最強の錬金術師
+        """
+        if delete_only:
+            filename = unicodedata.normalize('NFKD', filename).encode('ascii', 'ignore').decode('ascii')
+            filename = re.sub(r'[^\w\s-]', '', filename.lower())
+            return re.sub(r'[-\s]+', '-', filename).strip('-_')
+        replacements = {
+            '<': '＜',
+            '>': '＞',
+            ':': '：',
+            '"': '”',
+            '/': '／',
+            '\\': '＼',
+            '|': '｜',
+            '?': '？',
+            '*': '＊'
+        }
+        for bad_char, safe_char in replacements.items():
+            filename = filename.replace(bad_char, safe_char)
+        return filename
