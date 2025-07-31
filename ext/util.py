@@ -308,10 +308,8 @@ def download_command(input: str, command_list: Iterator):
                 
                 yoimi_logger.info("Downloading Segments...")
                 downloader = segment_downloader()
-                success, result = downloader.download(audio_segment_links, "download_encrypt_video.mp4", loaded_config, unixtime, service_logger, service_label)
-                print(result)
-                success, result = downloader.download(video_segment_links, "download_encrypt_audio.mp4", loaded_config, unixtime, service_logger, service_label)
-                print(result)
+                success, result = downloader.download(video_segment_links, "download_encrypt_video.mp4", loaded_config, unixtime, service_logger, service_label)
+                success, result = downloader.download(audio_segment_links, "download_encrypt_audio.mp4", loaded_config, unixtime, service_logger, service_label)
                 
             elif dl_type == "single":
                 yoimi_logger.info("Download Files...")
