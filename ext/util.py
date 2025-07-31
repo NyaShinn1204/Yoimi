@@ -287,7 +287,18 @@ def download_command(input: str, command_list: Iterator):
                         yoimi_logger.info(" + "+license_key) 
                         
             if dl_type == "segment":
-                yoimi_logger.info("Download Segments...")
+                #yoimi_logger.info("Download Segments...")
+                
+                yoimi_logger.info("Calculate about Manifest")
+                duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+                yoimi_logger.debug(" + Episode Duration: "+str(int(duration)))
+                
+                yoimi_logger.info("Video, Audio Segment Count")
+                video_segment_list = Tracks.calculate_segments(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
+                yoimi_logger.info(" + Video Segments: "+str(int(video_segment_list)))                 
+                audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
+                yoimi_logger.info(" + Audio Segments: "+str(int(audio_segment_list)))
+                
             elif dl_type == "single":
                 yoimi_logger.info("Download Files...")
                 
