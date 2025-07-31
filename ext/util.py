@@ -329,15 +329,16 @@ def download_command(input: str, command_list: Iterator):
                 audio_segment_links, video_segment_links = service_downloader.create_segment_links(get_best_track, video_segment_list, audio_segment_list)
                 
                 yoimi_logger.info("Downloading Segments...")
-                downloader = segment_downloader(service_logger)
+                downloader = segment_downloader(yoimi_logger)
                 success, video_output = downloader.download(video_segment_links, "download_encrypt_video.mp4", loaded_config, unixtime, "Yoimi")
                 success, audio_output = downloader.download(audio_segment_links, "download_encrypt_audio.mp4", loaded_config, unixtime, "Yoimi")
                 
                 yoimi_logger.info("Decrypting Segments...")
-                decryptor = main_decrypt(service_logger)
+                decryptor = main_decrypt(yoimi_logger)
                 video_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_video.mp4")
                 audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
-                decryptor.decrypt(license_keys=license_key, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
+                                
+                decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
                 
             elif dl_type == "single":
                 yoimi_logger.info("Download Files...")

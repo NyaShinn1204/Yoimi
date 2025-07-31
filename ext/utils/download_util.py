@@ -175,14 +175,14 @@ class segment_downloader:
         self.logger = logger
     
     def verify_download(self, segment_links, output_temp_directory, fetch_and_save):
-        self.logger.info("Starting file integrity verification...")
+        self.logger.info(" + Starting file integrity verification...")
         for i, url in enumerate(segment_links):
             temp_path = os.path.join(output_temp_directory, f"{i:05d}.ts")
             if not os.path.exists(temp_path):
                 fetch_and_save((i, url))
-                self.logger.info(f"Successfully downloaded segment {i}: {url}")
+                self.logger.info(f" + Successfully downloaded segment {i}: {url}")
                 time.sleep(2)
-        self.logger.info("Completed file integrity verification.")
+        self.logger.info(" + Completed file integrity verification.")
     def download(self, segment_links: list, output_file_name: str, config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool]:
         """
         セグメントのURLリストから並列でダウンロードを行い、結合して1つのファイルに出力する。
