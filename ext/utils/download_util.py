@@ -337,7 +337,7 @@ if __name__ == '__main__':
     ]
     test_filename = "sample_m3u8.mp4"
 
-    downloader = segment_downloader()
+    downloader = segment_downloader(logging.Logger())
 
     print("Download starting...")
     success, result = downloader.download(
