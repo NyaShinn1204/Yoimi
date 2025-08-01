@@ -58,6 +58,6 @@ class main_mux:
                     raise subprocess.CalledProcessError(process.returncode, compile_command, output="\n".join(ffmpeg_output))
     
         except subprocess.CalledProcessError as e:
-            self.logger.error(f"ffmpeg failed with return code {e.returncode}", extra={"service_name": service_name})
-            self.logger.error(f"ffmpeg output:\n{e.output}", extra={"service_name": service_name})
+            self.logger.error(f"ffmpeg failed with return code {e.returncode}")
+            self.logger.error(f"ffmpeg output:\n{e.output}")
             raise Exception(f"Failde to muxing")
