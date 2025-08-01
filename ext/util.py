@@ -2,6 +2,7 @@ import re
 import os
 import json
 import time
+import shutil
 import logging
 import colorama
 import requests
@@ -17,10 +18,11 @@ import ext.utils.parser_util as parser_util
 
 from ext.utils.download_util import (aria2c_downloader, segment_downloader)
 from ext.utils.decrypt_util import main_decrypt
+from ext.utils.mux_util import main_mux
 
 from ext.utils.license_util import license_logic
 from ext.utils.session_util import session_logic
-from ext.utils.titlename_util import titlename_logic
+from ext.utils.titlename_util import (titlename_logic, filename_logic)
 from ext.utils.zzz_other_util import other_util
 
 colorama.init()
@@ -314,7 +316,46 @@ def download_command(input: str, command_list: Iterator):
                     yoimi_logger.info(f"Decrypt License (PlayReady):")
                     for license_key in license_return["key"]:
                         yoimi_logger.info(" + "+license_key) 
-                        
+            
+            yoimi_logger.info("Setting output filename")
+            
+            ### Setting output filename
+            ## define name
+            sanitize_logic = filename_logic(delete_only=False)
+            
+            media_name = video_info["raw"]["media"]["name"]
+            schema_id = str(video_info["video_schema_id"])
+            clean_media_name = media_name.replace(f"{schema_id}:", "")
+            title_name = video_info["title_name"]
+            
+            extension_name = "." + command_list["output_extension"]
+            
+            output_dir = command_list.get("output_directory")
+            output_filename = command_list.get("output_filename")
+            
+            # Build output path :skull:
+            if output_dir or output_filename:
+                if clean_media_name == title_name:
+                    if output_dir and not output_filename:
+                        output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name) + extension_name)
+                    elif output_dir and output_filename:
+                        output_path = os.path.join(output_dir, output_filename)
+                else:
+                    output_path_temp = os.path.join(title_name, sanitize_logic.sanitize_filename(clean_media_name) + extension_name)
+                    if output_dir and not output_filename:
+                        output_path = os.path.join(output_dir, output_path_temp)
+                    elif output_dir and output_filename:
+                        output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(output_filename))
+            else:
+                output_dir = loaded_config["directories"]["Downloads"]
+                if clean_media_name == title_name:
+                    output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name) + extension_name)
+                else:
+                    output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name), sanitize_logic.sanitize_filename(clean_media_name) + extension_name)
+            
+            yoimi_logger.info(" + " + str(output_path))
+                
+            
             if dl_type == "segment":                
                 yoimi_logger.info("Calculate about Manifest")
                 duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
@@ -341,8 +382,23 @@ def download_command(input: str, command_list: Iterator):
                                     
                     decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
                 
+                yoimi_logger.info("Muxing Content")
+                muxer = main_mux(yoimi_logger)
+                muxer.mux_content(video_input=video_decrypt_output, audio_input=audio_decrypt_output, output_path=output_path, duration=int(duration), service_name="Yoimi")
             elif dl_type == "single":
                 yoimi_logger.info("Download Files...")
+                
+            if command_list["keep"] or enable_verbose:
+                yoimi_logger.warn("Enable Keep temp flag")
+            else:
+                dir_path = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime)
+                try:
+                    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                        shutil.rmtree(dir_path)
+                    else:
+                        yoimi_logger.error(f"Folder is not found: {dir_path}")
+                except Exception as e:
+                    yoimi_logger.error(f"Delete folder error: {e}")
                 
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")

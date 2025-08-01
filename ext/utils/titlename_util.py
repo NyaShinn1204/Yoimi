@@ -44,7 +44,9 @@ class titlename_logic:
         return title_name_logger
     
 class filename_logic:
-    def sanitize_filename(filename: str, delete_only: bool = False) -> str:
+    def __init__(self, delete_only: bool = False):
+        self.delete_only = delete_only
+    def sanitize_filename(self, filename: str) -> str:
         """
         Fucking idiot Windows filename convert to JP string
         
@@ -57,7 +59,7 @@ class filename_logic:
             filename:
             いずれ最強の錬金術師? -> いずれ最強の錬金術師
         """
-        if delete_only:
+        if self.delete_only:
             filename = unicodedata.normalize('NFKD', filename).encode('ascii', 'ignore').decode('ascii')
             filename = re.sub(r'[^\w\s-]', '', filename.lower())
             return re.sub(r'[-\s]+', '-', filename).strip('-_')
