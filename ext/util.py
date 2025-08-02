@@ -335,7 +335,7 @@ def download_command(input: str, command_list: Iterator):
             
             # Build output path :skull:
             if output_dir or output_filename:
-                if clean_media_name == title_name:
+                if (clean_media_name == title_name) or (clean_media_name.replace("ref:", "") == schema_id):
                     if output_dir and not output_filename:
                         output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name) + extension_name)
                     elif output_dir and output_filename:
@@ -348,14 +348,13 @@ def download_command(input: str, command_list: Iterator):
                         output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(output_filename))
             else:
                 output_dir = loaded_config["directories"]["Downloads"]
-                if clean_media_name == title_name:
+                if (clean_media_name == title_name) or (clean_media_name.replace("ref:", "") == schema_id):
                     output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name) + extension_name)
                 else:
                     output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name), sanitize_logic.sanitize_filename(clean_media_name) + extension_name)
             
             yoimi_logger.info(" + " + str(output_path))
                 
-            
             if dl_type == "segment":                
                 yoimi_logger.info("Calculate about Manifest")
                 duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
