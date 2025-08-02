@@ -322,39 +322,28 @@ def download_command(input: str, command_list: Iterator):
             ### Setting output filename
             ## define name
             sanitize_logic = filename_logic(delete_only=False)
-            
-            media_name = video_info["raw"]["media"]["name"]
-            schema_id = str(video_info["video_schema_id"])
-            clean_media_name = media_name.replace(f"{schema_id}:", "")
             title_name = video_info["title_name"]
-            
             extension_name = "." + command_list["output_extension"]
             
             output_dir = command_list.get("output_directory")
             output_filename = command_list.get("output_filename")
             
-            # Build output path :skull:
+            ## Build output path :skull:
             if output_dir or output_filename:
-                if (clean_media_name == title_name) or (clean_media_name.replace("ref:", "") == schema_id):
+                if video_info["content_type"] == "movie":
                     if output_dir and not output_filename:
-                        output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name) + extension_name)
+                        output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(output_titlename) + extension_name)
                     elif output_dir and output_filename:
                         output_path = os.path.join(output_dir, output_filename)
-                else:
-                    output_path_temp = os.path.join(title_name, sanitize_logic.sanitize_filename(clean_media_name) + extension_name)
-                    if output_dir and not output_filename:
-                        output_path = os.path.join(output_dir, output_path_temp)
-                    elif output_dir and output_filename:
-                        output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(output_filename))
             else:
                 output_dir = loaded_config["directories"]["Downloads"]
-                if (clean_media_name == title_name) or (clean_media_name.replace("ref:", "") == schema_id):
-                    output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name) + extension_name)
+                if video_info["content_type"] == "movie":
+                    output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(output_titlename) + extension_name)
                 else:
-                    output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name), sanitize_logic.sanitize_filename(clean_media_name) + extension_name)
+                    output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name), sanitize_logic.sanitize_filename(output_titlename) + extension_name)
             
             yoimi_logger.info(" + " + str(output_path))
-                
+            
             if dl_type == "segment":                
                 yoimi_logger.info("Calculate about Manifest")
                 duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
