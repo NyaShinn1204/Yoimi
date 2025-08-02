@@ -374,6 +374,7 @@ def download_command(input: str, command_list: Iterator):
                 muxer = main_mux(yoimi_logger)
                 muxer.mux_content(video_input=video_decrypt_output, audio_input=audio_decrypt_output, output_path=output_path, duration=int(duration), service_name="Yoimi")
             elif dl_type == "single":
+                # maybe this option is unext, h-next
                 yoimi_logger.info("Download Files...")
                 
             if command_list["keep"] or enable_verbose:
@@ -387,7 +388,9 @@ def download_command(input: str, command_list: Iterator):
                         yoimi_logger.error(f"Folder is not found: {dir_path}")
                 except Exception as e:
                     yoimi_logger.error(f"Delete folder error: {e}")
-                
+            
+            yoimi_logger.info('Finished download: {}'.format(output_filename))
+            
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")
     except:
