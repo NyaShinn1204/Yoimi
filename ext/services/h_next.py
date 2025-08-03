@@ -56,8 +56,9 @@ class downloader:
         
         self.session.headers.update(self.default_headers)
         
-    def parse_input(self, url_input):
-        aed_id = re.search(r"(AED\d+)", url_input).group(1)
+    def parse_input(self, url_input, id=None):
+        if id != None:
+            url_input = id
         aid_id = re.search(r"(AID\d+)", url_input).group(1)
         content_metadata = self.get_content_info(aid=aid_id)
         
@@ -66,12 +67,17 @@ class downloader:
             "content_type": "special",
             "title_name": None,
             "output_titlename": content_metadata["title_name"],
-            "video_id": content_metadata["episode_code"]
+            "video_id": content_metadata["episode_code"],
+            "episode_list": {
+                "metas": [{"id_in_schema": url_input}]
+            }
         }
         
         return video_info
     def parse_input_season(self, url_input):
-        pass
+        video_info = self.parse_input(url_input)
+        
+        return None, video_info["output_titlename"], video_info
     
     def authorize(self, email_or_id, password):
         _ENDPOINT_LOGIN = "https://tvh.unext.jp/api/1/login"

@@ -68,7 +68,7 @@ def get_parser(url):
         (re.compile(r'^https?://gyao\.yahoo\.co\.jp/.+'), None, 'ext.services.gyao', 'gyao'),
         (re.compile(r'^https?://(?:www\.)?aniplus-asia\.com/episode/.+'), None, 'ext.services.aniplus', 'aniplus'),
         (re.compile(r'^https?://(?:video|video-share)\.unext\.jp/.+(SID\d+|ED\d+)'), None, 'ext.services.unext_v2', 'unext'),
-        (re.compile(r'^https?://video\.hnext\.jp/(?:play|title)/.+(AID\d+|AED\d+)'), None, 'ext.services.h_next', 'H-Next'),
+        (re.compile(r'^https?://video\.hnext\.jp/(?:play|title)/(AID\d+|AED\d+)'), None, 'ext.services.h_next', 'H-Next'),
         (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+).*(content=([^&]+))?'), lambda u: check_dmm_content_type(parse_qs(urlparse(u).query).get("season", [None])[0]) == "VOD_VR", 'ext.services.fanza', 'Fanza-VR'),
         (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+)'), None, 'ext.services.dmm_tv', 'dmm_tv'),
         (re.compile(r'^https?://www\.brainshark\.com/.+pi=([^&]+)'), None, 'ext.services.brainshark', 'brainshark'),
@@ -428,12 +428,12 @@ def download_command(input: str, command_list: Iterator):
             season_title, season_output, video_info = service_downloader.parse_input_season(input)
             
             for single in video_info["episode_list"]["metas"]:
-                single_video_info = service_downloader.parse_input(input=None, id=str(single["id_in_schema"]))
+                single_video_info = service_downloader.parse_input(url_input=None, id=str(single["id_in_schema"]))
                 single_dl(None, video_info=single_video_info, season_title=season_title)
                 
             yoimi_logger.info("Finished download season: {}".format(season_output))
     except:
-        service_logger.error("Traceback has occurred")
+        print("Traceback has occurred")
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
         print("\n----ERROR LOG----")
         console.print_exception(show_locals=enable_verbose)

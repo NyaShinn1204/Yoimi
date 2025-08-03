@@ -62,8 +62,8 @@ class downloader:
         self.session.headers.update(self.default_headers)
     
         
-    def parse_input(self, input, id=None):
-        assets_name = self.get_assets_info(input, id=id)
+    def parse_input(self, url_input, id=None):
+        assets_name = self.get_assets_info(url_input, id=id)
         if assets_name == None:
             self.logger.error("Failed parse Assets info")
             exit(1)
