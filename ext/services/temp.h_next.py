@@ -168,4 +168,12 @@ class downloader:
         profile_id = user_data["cuid"]
         self.logger.info("Logged-in Account")
         self.logger.info(" + id: " + profile_id)
-            
+
+    # 単体かシーズンかをチェック
+    def judgment_watchtype(self, url):
+        if "/play/" in url:
+            return "single"
+        elif "/title/" in url:
+            return "season"
+        else:
+            return None
