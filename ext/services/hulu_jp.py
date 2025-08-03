@@ -121,26 +121,32 @@ class downloader:
             
             single_season_metadata = nice_season_metadata[season_num]
             if single_season_metadata["name"] != None:
-                season_message = metadata_series_info["name"]+"_"+single_season_metadata["name"]
+                season_message = single_season_metadata["name"]
+                season_output = metadata_series_info["name"]+"_"+single_season_metadata["name"]
             else:
-                season_message = metadata_series_info["name"]
-            return season_message, single_season_metadata
+                season_message = None
+                season_output = metadata_series_info["name"]
+            return season_message, season_output, single_season_metadata
         elif season_num.lower() in ("all", "a"):
             season_num = "all"
             for single in nice_season_metadata:
                 if single["name"] != None:
                     season_message = single["name"]
+                    season_output = metadata_series_info["name"]+"_"+single["name"]
                 else:
                     season_message = None
-                return season_message, single              
+                    season_output = metadata_series_info["name"]
+                return season_message, season_output, single              
         elif season_num == "user_select":
             for single in nice_season_metadata:
                 if single["id"] == int(parse_ids):
                     if single["name"] != None:
                         season_message = single["name"]
+                        season_output = metadata_series_info["name"]+"_"+single["name"]
                     else:
                         season_message = None
-                    return season_message, single
+                        season_output = metadata_series_info["name"]
+                    return season_message, season_output, single
                 else:
                     pass 
         elif season_num == "force_select":
@@ -149,9 +155,11 @@ class downloader:
             single_season_metadata = nice_season_metadata[season_num]
             if single_season_metadata["name"] != None:
                 season_message = single_season_metadata["name"]
+                season_output = metadata_series_info["name"]+"_"+single["name"]
             else:
                 season_message = None
-            return season_message, single_season_metadata
+                season_output = metadata_series_info["name"]
+            return season_message, season_output, single_season_metadata
             
     def authorize(self, email, password):
         self.use_cache = False

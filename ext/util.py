@@ -390,18 +390,24 @@ def download_command(input: str, command_list: Iterator):
                 except Exception as e:
                     yoimi_logger.error(f"Delete folder error: {e}")
             
-            yoimi_logger.info('Finished download: {}'.format(output_filename))
+            if output_filename != None:
+                yoimi_logger.info('Finished download: {}'.format(output_filename))
+            else:
+                yoimi_logger.info('Finished download: {}'.format(output_titlename))
+                
         
         if watchtype == "single":
             single_dl(input)
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")
             
-            season_title, video_info = service_downloader.parse_input_season(input)
+            season_title, season_output, video_info = service_downloader.parse_input_season(input)
             
             for single in video_info["episode_list"]["metas"]:
                 single_video_info = service_downloader.parse_input(input=None, id=str(single["id_in_schema"]))
                 single_dl(None, video_info=single_video_info, season_title=season_title)
+                
+            yoimi_logger.info("Finished download season: {}".format(season_output))
     except:
         service_logger.error("Traceback has occurred")
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")
