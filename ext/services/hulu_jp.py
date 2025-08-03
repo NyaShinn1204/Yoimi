@@ -27,11 +27,11 @@ from ext.utils.pymazda.sensordata.sensor_data_builder import SensorDataBuilder
 __service_config__ = {
     "service_name": "Hulu-jp",
     "require_account": True,
+    "support_qr": False,
     "is_drm": True,
     "cache_session": True,
     "enable_refresh": True,
     "use_tls": False,
-    "support_qr": False
 }
 
 class downloader:
