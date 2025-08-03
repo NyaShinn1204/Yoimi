@@ -68,7 +68,7 @@ def get_parser(url):
         (re.compile(r'^https?://gyao\.yahoo\.co\.jp/.+'), None, 'ext.services.gyao', 'gyao'),
         (re.compile(r'^https?://(?:www\.)?aniplus-asia\.com/episode/.+'), None, 'ext.services.aniplus', 'aniplus'),
         (re.compile(r'^https?://(?:video|video-share)\.unext\.jp/.+(SID\d+|ED\d+)'), None, 'ext.services.unext_v2', 'unext'),
-        (re.compile(r'^https?://video\.hnext\.jp/(?:play|title)/.+(AID\d+|AED\d+)'), None, 'ext.services.hnext', 'H-Next'),
+        (re.compile(r'^https?://video\.hnext\.jp/(?:play|title)/.+(AID\d+|AED\d+)'), None, 'ext.services.h_next', 'H-Next'),
         (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+).*(content=([^&]+))?'), lambda u: check_dmm_content_type(parse_qs(urlparse(u).query).get("season", [None])[0]) == "VOD_VR", 'ext.services.fanza', 'Fanza-VR'),
         (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+)'), None, 'ext.services.dmm_tv', 'dmm_tv'),
         (re.compile(r'^https?://www\.brainshark\.com/.+pi=([^&]+)'), None, 'ext.services.brainshark', 'brainshark'),
@@ -278,10 +278,14 @@ def download_command(input: str, command_list: Iterator):
                 return None
             
             service_logger.info("Creating Content filename...") 
-            output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
+            if video_info["content_type"] == "special":
+                output_titlename = video_info["output_titlename"]
+                video_info["content_type"] = "movie"
+            else:
+                output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
             service_logger.info(" + "+output_titlename)
             
-            manifest_respnse, manifest_link, manifest_info = service_downloader.open_session_get_dl(video_info)
+            manifest_respnse, manifest_link, manifest_info, license_header = service_downloader.open_session_get_dl(video_info)
             
             Tracks = parser_util.global_parser()
             dl_type = Tracks.determine_mpd_type(manifest_respnse)
@@ -317,6 +321,8 @@ def download_command(input: str, command_list: Iterator):
                     yoimi_logger.info(f"Decrypt License (PlayReady):")
                     for license_key in license_return["key"]:
                         yoimi_logger.info(" + "+license_key) 
+            
+            service_downloader.decrypt_done()
             
             yoimi_logger.info("Setting output filename")
             

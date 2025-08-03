@@ -684,7 +684,7 @@ class global_parser:
             root = ET.fromstring(mpd_text)
             ns = {'mpd': root.tag.split('}')[0].strip('{')} if '}' in root.tag else {}
     
-            segment_tags = ['SegmentTemplate', 'SegmentList', 'SegmentBase']
+            segment_tags = ['SegmentTemplate', 'SegmentList']
             for tag in segment_tags:
                 found = root.findall(f'.//mpd:{tag}', ns) if ns else root.findall(f'.//{tag}')
                 if found:

@@ -14,6 +14,7 @@ support_url:
    https://video.hnext.jp/play/xxx/xxx
 """
 
+import re
 import uuid
 import time
 
@@ -55,9 +56,20 @@ class downloader:
         
         self.session.headers.update(self.default_headers)
         
-    def parse_input(self, input):
-        pass
-    
+    def parse_input(self, url_input):
+        aed_id = re.search(r"(AED\d+)", url_input).group(1)
+        aid_id = re.search(r"(AID\d+)", url_input).group(1)
+        content_metadata = self.get_content_info(aid=aid_id)
+        
+        video_info = {
+            "raw": content_metadata,
+            "content_type": "special",
+            "title_name": None,
+            "output_titlename": content_metadata["title_name"],
+            "video_id": content_metadata["episode_code"]
+        }
+        
+        return video_info
     def parse_input_season(self, url_input):
         pass
     
@@ -79,7 +91,8 @@ class downloader:
                 "email": email_or_id,
                 "password": password,
                 "access_token": response.cookies["_ut"],
-                "refresh_token": None
+                "refresh_token": None,
+                "additional_info": {}
             }
             return True, user_response["common"]["userInfo"], True, session_json
         elif user_response["common"]["result"]["errorCode"] == "GUN8030006":
@@ -140,7 +153,8 @@ class downloader:
                     "email": None,
                     "password": None,
                     "access_token": response.cookies["_ut"],
-                    "refresh_token": None
+                    "refresh_token": None,
+                    "additional_info": {}
                 }
                 
                 return True, user_response["common"]["userInfo"], True, session_json
@@ -163,12 +177,12 @@ class downloader:
             return True, profile_resposne.json()
         else:
             return False, None
-        
+    
     def show_userinfo(self, user_data):
         profile_id = user_data["cuid"]
         self.logger.info("Logged-in Account")
         self.logger.info(" + id: " + profile_id)
-
+    
     # 単体かシーズンかをチェック
     def judgment_watchtype(self, url):
         if "/play/" in url:
@@ -177,3 +191,59 @@ class downloader:
             return "season"
         else:
             return None
+        
+    def get_content_info(self, aid):
+        try:
+            url = "https://tvh.unext.jp/api/1/adult/titleDetail"
+            queryparams = {"title_code": aid}
+            
+            content_info = self.session.get(url, params=queryparams)
+            content_json = content_info.json()["data"]["title"]
+            return content_json
+        except:
+            return None
+    
+    def open_session_get_dl(self, video_info):
+        global url_info, play_token
+        querystring = {
+            "code": video_info["video_id"],
+            "keyonly_flg": "0",
+            "play_mode": "caption",
+            "media_type": "ADULT"
+        }
+        
+        response = self.session.get("https://tvh.unext.jp/api/1/playlisturl", params=querystring).json()
+        if response["data"]["result_status"] == 476:
+            raise Exception("Require rental/buy")
+        if response["data"]["result_status"] == 475:
+            raise Exception("Require subscription (H-Next)")
+        elif response["data"]["result_status"] == 200:
+            play_token = response["data"]["play_token"]
+            url_info = response["data"]["url_info"][0]
+            
+            dash_profile = url_info["movie_profile"].get("dash")
+            mpd_link = dash_profile["playlist_url"]
+            if dash_profile.get("license_url_list"):
+                widevine_url = dash_profile.get("license_url_list").get("widevine")+f"?play_token={play_token}"
+                playready_url = dash_profile.get("license_url_list").get("playready")+f"?play_token={play_token}"
+            
+            mpd_response = self.session.get(mpd_link+f"&play_token={play_token}").text
+            license_header = {
+                "content-type": "application/octet-stream",
+                "user-agent": "Beautiful_Japan_TV_Android/1.0.6 (Linux;Android 10) ExoPlayerLib/2.12.0",
+                "accept-encoding": "gzip",
+                "host": "wvproxy.unext.jp",
+                "connection": "Keep-Alive"
+            }
+            return mpd_response, mpd_link+f"&play_token={play_token}", {"widevine": widevine_url, "playready": playready_url}, license_header 
+    
+    def decrypt_done(self):
+        self.close_session(media_code=url_info["code"], play_token=play_token)    
+    
+    def close_session(self, media_code, play_token):
+        signal_result = self.session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/0/?play_token={play_token}&last_viewing_flg=0")
+        
+        if signal_result.status_code == 200:
+            return True
+        else:
+            return False

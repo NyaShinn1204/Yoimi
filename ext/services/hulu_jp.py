@@ -549,10 +549,15 @@ class downloader:
             self.logger.debug(" + "+mpd_link)
             
             self.logger.info(f" + MPD_link: {mpd_link[:15] + '*****'}")
-            return self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}
+            return self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}, {}
         else:
             self.logger.warning("No suitable MPD link found")
-            return None, None, None
+            return None, None, None, None
+    
+    # ライセンス処理後の処理
+    def decrypt_done(self):
+        # 今回は特になし
+        pass
     
     # アセッツ名を取得
     def get_assets_info(self, url, id=None):
