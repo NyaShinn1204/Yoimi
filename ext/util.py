@@ -264,12 +264,13 @@ def download_command(input: str, command_list: Iterator):
         
         watchtype = service_downloader.judgment_watchtype(input)
         
-        if watchtype == "single":
+        def single_dl(input, video_info = None, season_title = None):
             service_logger.info("Fetching 1 Episode")
             
             unixtime = str(int(datetime.now().timestamp()))
             
-            video_info = service_downloader.parse_input(input)
+            if video_info == None:
+                video_info = service_downloader.parse_input(input)
             
             if video_info == "unexception_type_content":
                 service_logger.error("Please report content url!")
@@ -332,7 +333,7 @@ def download_command(input: str, command_list: Iterator):
             if output_dir or output_filename:
                 if video_info["content_type"] == "movie":
                     if output_dir and not output_filename:
-                        output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(output_titlename) + extension_name)
+                        output_path = os.path.join(output_dir, season_title, sanitize_logic.sanitize_filename(output_titlename) + extension_name)
                     elif output_dir and output_filename:
                         output_path = os.path.join(output_dir, output_filename)
             else:
@@ -340,7 +341,7 @@ def download_command(input: str, command_list: Iterator):
                 if video_info["content_type"] == "movie":
                     output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(output_titlename) + extension_name)
                 else:
-                    output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name), sanitize_logic.sanitize_filename(output_titlename) + extension_name)
+                    output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name), season_title, sanitize_logic.sanitize_filename(output_titlename) + extension_name)
             
             yoimi_logger.info(" + " + str(output_path))
             
@@ -390,9 +391,17 @@ def download_command(input: str, command_list: Iterator):
                     yoimi_logger.error(f"Delete folder error: {e}")
             
             yoimi_logger.info('Finished download: {}'.format(output_filename))
-            
+        
+        if watchtype == "single":
+            single_dl(input)
         elif watchtype == "season":
             service_logger.info("Fetching Sesaon")
+            
+            season_title, video_info = service_downloader.parse_input_season(input)
+            
+            for single in video_info["episode_list"]["metas"]:
+                single_video_info = service_downloader.parse_input(input=None, id=str(single["id_in_schema"]))
+                single_dl(None, video_info=single_video_info, season_title=season_title)
     except:
         service_logger.error("Traceback has occurred")
         print("If the process stops due to something unexpected, please post the following log to \nhttps://github.com/NyaShinn1204/Yoimi/issues.")

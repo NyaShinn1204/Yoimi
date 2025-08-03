@@ -17,8 +17,11 @@ support_url:
 
 import re
 import uuid
+import json
 import hashlib
 
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse, parse_qs
 from ext.utils.pymazda.sensordata.sensor_data_builder import SensorDataBuilder
 
 __service_config__ = {
@@ -57,9 +60,10 @@ class downloader:
         }
         
         self.session.headers.update(self.default_headers)
-
-    def parse_input(self, input):
-        assets_name = self.get_assets_info(input)
+    
+        
+    def parse_input(self, input, id=None):
+        assets_name = self.get_assets_info(input, id=id)
         if assets_name == None:
             self.logger.error("Failed parse Assets info")
             exit(1)
@@ -67,8 +71,88 @@ class downloader:
         content_metadata = self.get_info_and_check(assets_name)
         
         return content_metadata
-
-
+    
+    def parse_input_season(self, url_input):
+        status, message = self.find_season_id(url_input)
+        parsed_url = urlparse(url_input)
+        query_params = parse_qs(parsed_url.query)
+        parse_season_ids = query_params.get('season_id')
+        if parse_season_ids:
+            parse_ids = parse_season_ids[0] 
+        else:
+            parse_ids = None
+        metadata_series_info, nice_season_metadata = self.get_season_list(message, "episode")
+        self.logger.info("Found "+str(len(nice_season_metadata))+" Season")
+        
+        for idx, single in enumerate(nice_season_metadata, 1):
+            if single["name"] == "":
+                season_message = metadata_series_info["name"]
+            else:
+                season_message = metadata_series_info["name"]+"_"+single["name"]
+            self.logger.info(" + "+str(idx)+": "+season_message)
+            
+        # hierarchy_types から key を盗む！！！
+        hierarchy_keys = [item["key"] for item in metadata_series_info["hierarchy_types"]]
+        
+        # sub/dub 両方含まれているかを殴り込みで確認
+        if "episode_sub" in hierarchy_keys and "episode_dub" in hierarchy_keys:
+            self.logger.info("Found Sub, Dub type")
+            input_episode_type = input("Please enter the type of the season you want to download (e.x: sub, dub) >> ")
+            # sub,dubだけだったらそれだけを選択
+            if input_episode_type.lower() == "sub":
+                episode_type = "episode_sub"
+            elif input_episode_type.lower() == "dub":
+                episode_type = "episode_dub"
+        else:
+            episode_type = "episode"
+        if episode_type != "episode":
+            # episode以外だったら、再度それを指定して再取得。ブタを殴るのと同じ
+            metadata_series_info, nice_season_metadata = self.get_season_list(message, episode_type)
+            
+        if len(nice_season_metadata) == 1:
+            season_num = "force_select"
+        elif (parse_ids == None) and len(nice_season_metadata) != 1:
+            season_num = input("Please enter the number of the season you want to download (e.x: 1, 2, all) >> ")
+        else:
+            season_num = "user_select"
+            
+        if season_num.isdigit():
+            season_num = int(season_num)-1
+            
+            single_season_metadata = nice_season_metadata[season_num]
+            if single_season_metadata["name"] != None:
+                season_message = metadata_series_info["name"]+"_"+single_season_metadata["name"]
+            else:
+                season_message = metadata_series_info["name"]
+            return season_message, single_season_metadata
+        elif season_num.lower() in ("all", "a"):
+            season_num = "all"
+            for single in nice_season_metadata:
+                if single["name"] != None:
+                    season_message = single["name"]
+                else:
+                    season_message = None
+                return season_message, single              
+        elif season_num == "user_select":
+            for single in nice_season_metadata:
+                if single["id"] == int(parse_ids):
+                    if single["name"] != None:
+                        season_message = single["name"]
+                    else:
+                        season_message = None
+                    return season_message, single
+                else:
+                    pass 
+        elif season_num == "force_select":
+            season_num = int(0)
+            
+            single_season_metadata = nice_season_metadata[season_num]
+            if single_season_metadata["name"] != None:
+                season_message = single_season_metadata["name"]
+            else:
+                season_message = None
+            return season_message, single_season_metadata
+            
     def authorize(self, email, password):
         self.use_cache = False
         global test_temp_token
@@ -271,6 +355,68 @@ class downloader:
         else:
             return "season"
         
+    # シーズンのurlからシーズンidたちを抜き出す
+    def find_season_id(self, url):
+        meta_response = self.session.get(url, headers={"user-agent":"Mozilla/5.0 (Linux; Android 9; 22081212C Build/PQ3B.190801.10101846; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.82 Safari/537.36"})
+        try:
+            if meta_response.status_code == 200:
+                soup = BeautifulSoup(meta_response.text, 'html.parser')
+                
+                script_tags = soup.find_all('script')
+                app_data = None
+                
+                for script in script_tags:
+                    if script.string and 'window.app' in script.string:
+                        match = re.search(r'window\.app\s*=\s*(\{.*?\});', script.string, re.DOTALL)
+                        if match:
+                            js_obj_str = match.group(1)
+                            app_data = json.loads(js_obj_str.replace("undefined","null"))
+                if app_data:
+                    return True, app_data["falcorCache"]["titleSlug"][next(iter(app_data["falcorCache"]["titleSlug"]))]["value"][1]
+                else:
+                    return False, None
+        except:
+            return False, None 
+    # シーズンidからエピソードリストやらなんやらをぬきたし
+    def get_season_list(self, series_id, episode_type):
+        querystring = {
+            "expand_object_flag": "0",
+            "app_id": 4,
+            "device_code": 7,
+            "datasource": "decorator"
+        }
+        
+        meta_response = self.session.get("https://mapi.prod.hjholdings.tv/api/v1/metas/"+str(series_id), params=querystring)
+        try:
+            if meta_response.status_code == 200:
+                meta_res = meta_response.json()
+                total_season = []
+                if meta_res["seasons"] == []:
+                    return meta_res, [{"id": meta_res["id"], "episode_list": self.get_total_episode(meta_res["id"], episode_type), "name": ""}]
+                for single_season in meta_res["seasons"]:
+                    ## Sample response:
+                    #    {
+                    #      "id": 7434,
+                    #      "name": "シーズン1",
+                    #      "language_support_types": [
+                    #        "sub",
+                    #        "dub"
+                    #      ],
+                    #      "has_closed_caption": false,
+                    #      "has_en_caption": true
+                    #    }
+                    single_res = self.get_total_episode(single_season["id"], episode_type)
+                    
+                    temp_json = {}
+                    temp_json = single_season
+                    temp_json["episode_list"] = single_res
+                    
+                    total_season.append(temp_json)
+                    
+                return meta_res, total_season
+        except:
+            return None
+    
     # エピソードの詳細取得
     # 4kあるかのcheck
     def get_info_and_check(self, asset_name):
@@ -401,10 +547,14 @@ class downloader:
             return None, None, None
     
     # アセッツ名を取得
-    def get_assets_info(self, url):
-        match = re.search(r'/watch/(\d+)', url)
-        
-        media_id = match.group(1)
+    def get_assets_info(self, url, id=None):
+        if id != None:
+            url = "https://www.hulu.jp/watch/"+id
+            media_id = id
+        else:
+            match = re.search(r'/watch/(\d+)', url)
+            
+            media_id = match.group(1)
         
         response = self.session.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"})
         
