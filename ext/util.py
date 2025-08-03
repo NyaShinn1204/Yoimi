@@ -351,9 +351,10 @@ def download_command(input: str, command_list: Iterator):
             
             yoimi_logger.info(" + " + str(output_path))
             
+            yoimi_logger.info("Calculate about Manifest")
+            duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+            
             if dl_type == "segment":                
-                yoimi_logger.info("Calculate about Manifest")
-                duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
                 yoimi_logger.debug(" + Episode Duration: "+str(int(duration)))
                 
                 yoimi_logger.info("Video, Audio Segment Count")
@@ -376,13 +377,30 @@ def download_command(input: str, command_list: Iterator):
                     audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
                                     
                     decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
-                
-                yoimi_logger.info("Muxing Content")
-                muxer = main_mux(yoimi_logger)
-                muxer.mux_content(video_input=video_decrypt_output, audio_input=audio_decrypt_output, output_path=output_path, duration=int(duration), service_name="Yoimi")
+            
             elif dl_type == "single":
                 # maybe this option is unext, h-next
-                yoimi_logger.info("Download Files...")
+                yoimi_logger.info("Downloading Files...")
+                
+                video_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_encrypt_video.mp4")
+                audio_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4")
+                
+                downloader = aria2c_downloader()
+                
+                status, result = downloader.download(get_best_track["video"]["url"], "download_encrypt_video.mp4", loaded_config, unixtime, "Yoimi")
+                status, result = downloader.download(get_best_track["audio"]["url"], "download_encrypt_audio.mp4", loaded_config, unixtime, "Yoimi")
+                
+                if service_config["is_drm"]:
+                    yoimi_logger.info("Decrypting Files...")
+                    decryptor = main_decrypt(yoimi_logger)
+                    video_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_video.mp4")
+                    audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
+                                    
+                    decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
+                
+            yoimi_logger.info("Muxing Content")
+            muxer = main_mux(yoimi_logger)
+            muxer.mux_content(video_input=video_decrypt_output, audio_input=audio_decrypt_output, output_path=output_path, duration=int(duration), service_name="Yoimi")
                 
             if command_list["keep"] or enable_verbose:
                 yoimi_logger.warn("Enable Keep temp flag")
