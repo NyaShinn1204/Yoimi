@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# -*- Nice Parser -*-
+# -*- Nice Parser   -*-
 import re
 import xml.etree.ElementTree as ET
 
@@ -19,7 +19,6 @@ class global_parser:
             resolved = urljoin(current_base_url, base_url_elem.text.strip())
             new_base_url = resolved
         return new_base_url
-    # この関数を global_parser クラスの中に追加してください
     def _count_segments_from_timeline(self, segment_timeline_element, ns):
         """
         SegmentTimeline要素からセグメントの総数を正確に集計する。
@@ -239,106 +238,6 @@ class global_parser:
             # Let's return the info, downstream code can filter later if needed
             track_info["type"] = "unknown"
             return track_info
-    def mpd_parser(self, mpd_content, mpd_url="", debug=False, real_bitrate=False):
-        """MPDコンテンツを解析し、トラック情報やPSSHなどを抽出する (元の形式に近いPSSHリスト)"""
-        try:
-            if mpd_content.startswith('\ufeff'): mpd_content = mpd_content[1:]
-            root = ET.fromstring(mpd_content.strip())
-        except ET.ParseError as e:
-            print(f"Error parsing MPD XML: {e}")
-            try:
-                line, column = e.position; lines = mpd_content.splitlines()
-                if 0 < line <= len(lines):
-                     print(f"Error near line {line}:\n{lines[line-1]}\n{' ' * (column-1)}^")
-            except Exception: pass
-            return None
-
-        ns = {'mpd': 'urn:mpeg:dash:schema:mpd:2011',
-              'cenc': 'urn:mpeg:cenc:2013',
-              'mspr': 'urn:microsoft:playready', # Kept namespace for potential future use
-              'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
-
-        # --- Resolve MPD level BaseURL ---
-        mpd_base_url = mpd_url
-        base_url_elem = root.find('mpd:BaseURL', ns)
-        if base_url_elem is not None and base_url_elem.text:
-             mpd_base_url = urljoin(mpd_url, base_url_elem.text.strip())
-        if debug: print(f"BaseURL (MPD level, resolved from '{mpd_url}'): {mpd_base_url}")
-
-        # --- PSSH情報の取得 (元の形式) ---
-        pssh_list = {}
-        # Find all ContentProtection elements anywhere in the document
-        for content_protection in root.findall(".//mpd:ContentProtection", ns):
-            scheme_id_uri = content_protection.attrib.get("schemeIdUri", "").lower()
-            # Find the cenc:pssh element within this ContentProtection
-            pssh_elem = content_protection.find("cenc:pssh", ns)
-
-            if pssh_elem is not None and pssh_elem.text:
-                pssh_text = pssh_elem.text.replace('\n', '').strip()
-                drm_system = None
-                if "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed" in scheme_id_uri: drm_system = "widevine"
-                elif "9a04f079-9840-4286-ab92-e65be0885f95" in scheme_id_uri: drm_system = "playready"
-                elif "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b" in scheme_id_uri: drm_system = "w3c_cenc" # As in original
-
-                # Store the first PSSH found for each system
-                if drm_system and drm_system not in pssh_list:
-                    pssh_list[drm_system] = pssh_text
-                    if debug: print(f"Found {drm_system.upper()} PSSH.")
-            # Stop searching if all desired systems are found (optional optimization)
-            # if "widevine" in pssh_list and "playready" in pssh_list and "w3c_cenc" in pssh_list:
-            #     break
-
-        if debug: print(f"PSSH List: {pssh_list}")
-
-        # ▼▼▼▼▼ ここから修正 ▼▼▼▼▼
-        # MPD全体の再生時間を秒単位で取得
-        media_duration_str = root.attrib.get('mediaPresentationDuration', 'PT0S')
-        total_duration_sec = self.calculate_video_duration(media_duration_str)
-        if debug: print(f"MPD mediaPresentationDuration: {media_duration_str} ({total_duration_sec} seconds)")
-        # ▲▲▲▲▲ ここまで修正 ▲▲▲▲▲
-
-        # --- トラック情報の抽出 ---
-        video_tracks = []
-        audio_tracks = []
-        text_tracks = [] # Original didn't handle text tracks
-        periods = root.findall('mpd:Period', ns)
-        if not periods and root.tag == '{' + ns['mpd'] + '}MPD': periods = [root]
-
-        for period in periods:
-            period_id = period.attrib.get('id', 'N/A')
-            if debug: print(f"Processing Period (ID: {period_id})")
-            current_period_base_url = self._resolve_base_url(period, mpd_base_url, ns)
-            if debug: print(f"  BaseURL (Period level): {current_period_base_url}")
-
-            for adaptation_set in period.findall('mpd:AdaptationSet', ns):
-                adapt_id = adaptation_set.attrib.get('id', 'N/A')
-                mime_type_adapt = adaptation_set.attrib.get('mimeType', 'N/A')
-                content_type_adapt = adaptation_set.attrib.get('contentType', 'N/A')
-                if debug: print(f"  Processing AdaptationSet (ID: {adapt_id}, mimeType: {mime_type_adapt}, contentType: {content_type_adapt})")
-
-                for representation in adaptation_set.findall("mpd:Representation", ns):
-                    # ★引数に total_duration_sec を渡す
-                    track_info = self._extract_track_info_from_representation(
-                        representation, adaptation_set, current_period_base_url, total_duration_sec, ns, debug=debug, real_bitrate=real_bitrate
-                    )
-
-                    if track_info:
-                        track_type = track_info.get("type")
-                        if track_type == "video": video_tracks.append(track_info)
-                        elif track_type == "audio": audio_tracks.append(track_info)
-                        elif track_type == "text": text_tracks.append(track_info)
-
-        # --- MPDルート要素の属性を取得 ---
-        more_info = self.extract_mpd_attributes(mpd_content) # Kept this method
-
-        # --- 結果を返す ---
-        return {
-            "info": more_info,
-            "pssh_list": pssh_list,
-            "video_track": video_tracks,
-            "audio_track": audio_tracks,
-            "text_track": text_tracks # Keep commented out as per original
-        }
     def calculate_video_duration(self, duration_str):
         """ISO 8601 duration (PnYnMnDTnHnMnS) を秒単位に変換"""
         if not duration_str or not isinstance(duration_str, str) or not duration_str.startswith('P'):
@@ -391,123 +290,108 @@ class global_parser:
                  attributes[local_name] = value
             return attributes
         except ET.ParseError: return {}
-    def print_tracks(self, tracks_json, real_bitrate=False):
-        """解析結果を整列されたフォーマットで表示"""
-        if not tracks_json or not isinstance(tracks_json, dict):
-            return "Invalid tracks data provided."
     
-        output = ""
-    
-        # --- Video Tracks ---
-        video_tracks = tracks_json.get('video_track', [])
-        output += f"{len(video_tracks)} Video Tracks:\n"
-    
-        # codec と resolution の最大幅を測定
-        max_codec_len = max((len(v.get('codec', '')) for v in video_tracks), default=0)
-        max_reso_len = max((len(v.get('resolution', '')) for v in video_tracks), default=0)
-    
-        if video_tracks:
-            prefixes = ["├─"] * (len(video_tracks) - 1) + ["└─"]
-            for i, video in enumerate(video_tracks):
-                prefix = prefixes[i]
-                codec = video.get('codec', 'N/A')
-                resolution = video.get('resolution', 'N/A')
-                bitrate = video.get('bitrate', 'N/A')
-                if bitrate != 'N/A' and real_bitrate:
-                    bitrate = int(int(bitrate) / 1000)
-                codec_fmt = f"[{codec}]".ljust(max_codec_len + 2)
-                reso_fmt = f"[{resolution}]".ljust(max_reso_len + 2)
-                output += f"{prefix} VID | {codec_fmt} {reso_fmt} | {bitrate} kbps\n"
-        else:
-            output += "  No video tracks found.\n"
-    
-        # --- Audio Tracks ---
-        audio_tracks = tracks_json.get('audio_track', [])
-        output += f"\n{len(audio_tracks)} Audio Tracks:\n"
-    
-        max_acodec_len = max((len(a.get('codec', '')) for a in audio_tracks), default=0)
-    
-        if audio_tracks:
-            prefixes = ["├─"] * (len(audio_tracks) - 1) + ["└─"]
-            for i, audio in enumerate(audio_tracks):
-                prefix = prefixes[i]
-                codec = audio.get('codec', 'N/A')
-                bitrate = audio.get('bitrate', 'N/A')
-                if bitrate != 'N/A' and real_bitrate:
-                    bitrate = int(int(bitrate) / 1000)
-                codec_fmt = f"[{codec}]".ljust(max_acodec_len + 2)
-                output += f"{prefix} AUD | {codec_fmt} | {bitrate} kbps\n"
-        else:
-            output += "  No audio tracks found.\n"
-    
-        # --- Text Tracks ---
-        text_tracks = tracks_json.get('text_track', [])
-        if text_tracks:
-            output += f"\n{len(text_tracks)} Text Tracks:\n"
-            prefixes = ["├─"] * (len(text_tracks) - 1) + ["└─"]
-            for i, text in enumerate(text_tracks):
-                prefix = prefixes[i]
-                language = text.get('language', 'und')
-                name = text.get('name', 'N/A')
-                output += f"{prefix} SUB | [VTT] | {language} | {name}\n"
-    
-        return output.strip()
-    
-    def select_best_tracks(self, tracks_json):
-        """利用可能なトラックの中から最もビットレートが高いものを選択"""
-        # (Implementation from previous step - kept as is, robust version)
-        if not tracks_json or not isinstance(tracks_json, dict): return {"video": None, "audio": None}
-        highest_video, highest_audio = None, None
-        video_tracks = tracks_json.get("video_track", [])
-        if video_tracks:
+    def mpd_parser(self, mpd_content, mpd_url="", debug=False, real_bitrate=False):
+        """MPDコンテンツを解析し、トラック情報やPSSHなどを抽出する (元の形式に近いPSSHリスト)"""
+        try:
+            if mpd_content.startswith('\ufeff'): mpd_content = mpd_content[1:]
+            root = ET.fromstring(mpd_content.strip())
+        except ET.ParseError as e:
+            print(f"Error parsing MPD XML: {e}")
             try:
-                valid_videos = [v for v in video_tracks if str(v.get("bitrate", "")).isdigit()]
-                if valid_videos: highest_video = max(valid_videos, key=lambda x: int(x["bitrate"]))
-                else: highest_video = video_tracks[0] if video_tracks else None
-            except (ValueError, TypeError, IndexError): highest_video = video_tracks[0] if video_tracks else None
-        audio_tracks = tracks_json.get("audio_track", [])
-        if audio_tracks:
-             try:
-                 valid_audios = [a for a in audio_tracks if str(a.get("bitrate", "")).isdigit()]
-                 if valid_audios: highest_audio = max(valid_audios, key=lambda x: int(x["bitrate"]))
-                 else: highest_audio = audio_tracks[0] if audio_tracks else None
-             except (ValueError, TypeError, IndexError): highest_audio = audio_tracks[0] if audio_tracks else None
-        return {"video": highest_video, "audio": highest_audio}
-    
-    # HLS PARSER
-    def hls_parser(self, hls_content, hls_url="", debug=False):
-        """HLSコンテンツを解析し、トラック情報を抽出する"""
+                line, column = e.position; lines = mpd_content.splitlines()
+                if 0 < line <= len(lines):
+                     print(f"Error near line {line}:\n{lines[line-1]}\n{' ' * (column-1)}^")
+            except Exception: pass
+            return None
 
+        ns = {'mpd': 'urn:mpeg:dash:schema:mpd:2011',
+              'cenc': 'urn:mpeg:cenc:2013',
+              'mspr': 'urn:microsoft:playready', # Kept namespace for potential future use
+              'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+
+        # --- Resolve MPD level BaseURL ---
+        mpd_base_url = mpd_url
+        base_url_elem = root.find('mpd:BaseURL', ns)
+        if base_url_elem is not None and base_url_elem.text:
+             mpd_base_url = urljoin(mpd_url, base_url_elem.text.strip())
+        if debug: print(f"BaseURL (MPD level, resolved from '{mpd_url}'): {mpd_base_url}")
+
+        # --- PSSH情報の取得 (元の形式) ---
+        pssh_list = {}
+        # Find all ContentProtection elements anywhere in the document
+        for content_protection in root.findall(".//mpd:ContentProtection", ns):
+            scheme_id_uri = content_protection.attrib.get("schemeIdUri", "").lower()
+            # Find the cenc:pssh element within this ContentProtection
+            pssh_elem = content_protection.find("cenc:pssh", ns)
+
+            if pssh_elem is not None and pssh_elem.text:
+                pssh_text = pssh_elem.text.replace('\n', '').strip()
+                drm_system = None
+                if "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed" in scheme_id_uri: drm_system = "widevine"
+                elif "9a04f079-9840-4286-ab92-e65be0885f95" in scheme_id_uri: drm_system = "playready"
+                elif "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b" in scheme_id_uri: drm_system = "w3c_cenc" # As in original
+
+                # Store the first PSSH found for each system
+                if drm_system and drm_system not in pssh_list:
+                    pssh_list[drm_system] = pssh_text
+                    if debug: print(f"Found {drm_system.upper()} PSSH.")
+            # Stop searching if all desired systems are found (optional optimization)
+            # if "widevine" in pssh_list and "playready" in pssh_list and "w3c_cenc" in pssh_list:
+            #     break
+
+        if debug: print(f"PSSH List: {pssh_list}")
+
+        # MPD全体の再生時間を秒単位で取得
+        media_duration_str = root.attrib.get('mediaPresentationDuration', 'PT0S')
+        total_duration_sec = self.calculate_video_duration(media_duration_str)
+        if debug: print(f"MPD mediaPresentationDuration: {media_duration_str} ({total_duration_sec} seconds)")
+
+        # --- トラック情報の抽出 ---
         video_tracks = []
         audio_tracks = []
-        text_tracks = []
+        text_tracks = [] # Original didn't handle text tracks
+        periods = root.findall('mpd:Period', ns)
+        if not periods and root.tag == '{' + ns['mpd'] + '}MPD': periods = [root]
 
-        lines = hls_content.splitlines()
-        base_url = hls_url  # 初期値としてHLSのURLを設定
+        for period in periods:
+            period_id = period.attrib.get('id', 'N/A')
+            if debug: print(f"Processing Period (ID: {period_id})")
+            current_period_base_url = self._resolve_base_url(period, mpd_base_url, ns)
+            if debug: print(f"  BaseURL (Period level): {current_period_base_url}")
 
-        # HLSのEXT-X-MEDIAタグとEXT-X-STREAM-INFタグを解析
-        for line in lines:
-            line = line.strip()
+            for adaptation_set in period.findall('mpd:AdaptationSet', ns):
+                adapt_id = adaptation_set.attrib.get('id', 'N/A')
+                mime_type_adapt = adaptation_set.attrib.get('mimeType', 'N/A')
+                content_type_adapt = adaptation_set.attrib.get('contentType', 'N/A')
+                if debug: print(f"  Processing AdaptationSet (ID: {adapt_id}, mimeType: {mime_type_adapt}, contentType: {content_type_adapt})")
 
-            if line.startswith("#EXT-X-MEDIA:"):
-                # 字幕トラックを解析
-                if "TYPE=SUBTITLES" in line:
-                    text_track = self._parse_media_tag(line, base_url)
-                    if text_track:
-                        text_tracks.append(text_track)
-            elif line.startswith("#EXT-X-STREAM-INF:"):
-                # ビデオトラックを解析
-                video_track = self._parse_stream_inf_tag(line, base_url, lines)
-                if video_track:
-                    video_tracks.append(video_track)
+                for representation in adaptation_set.findall("mpd:Representation", ns):
+                    # ★引数に total_duration_sec を渡す
+                    track_info = self._extract_track_info_from_representation(
+                        representation, adaptation_set, current_period_base_url, total_duration_sec, ns, debug=debug, real_bitrate=real_bitrate
+                    )
 
+                    if track_info:
+                        track_type = track_info.get("type")
+                        if track_type == "video": video_tracks.append(track_info)
+                        elif track_type == "audio": audio_tracks.append(track_info)
+                        elif track_type == "text": text_tracks.append(track_info)
+
+        # --- MPDルート要素の属性を取得 ---
+        more_info = self.extract_mpd_attributes(mpd_content) # Kept this method
+
+        # --- 結果を返す ---
         return {
-            "info": {},  # HLSにはMPDのような詳細なルート情報がないため、空の辞書
+            "info": more_info,
+            "pssh_list": pssh_list,
             "video_track": video_tracks,
             "audio_track": audio_tracks,
-            "text_track": text_tracks
+            "text_track": text_tracks # Keep commented out as per original
         }
-
+    
+    
+    # HLS PARSER
     def _parse_media_tag(self, line, base_url):
         """EXT-X-MEDIAタグを解析して字幕トラック情報を抽出する"""
         attributes = {}
@@ -530,7 +414,6 @@ class global_parser:
             }
             return text_track
         return None
-
     def _parse_stream_inf_tag(self, line, base_url, lines):
         """EXT-X-STREAM-INFタグを解析してビデオトラック情報を抽出する"""
         attributes = {}
@@ -671,6 +554,40 @@ class global_parser:
         except Exception as e:
             print(f"予期せぬエラーが発生しました: {e}")
             return {}
+    
+    def hls_parser(self, hls_content, hls_url="", debug=False):
+        """HLSコンテンツを解析し、トラック情報を抽出する"""
+
+        video_tracks = []
+        audio_tracks = []
+        text_tracks = []
+
+        lines = hls_content.splitlines()
+        base_url = hls_url  # 初期値としてHLSのURLを設定
+
+        # HLSのEXT-X-MEDIAタグとEXT-X-STREAM-INFタグを解析
+        for line in lines:
+            line = line.strip()
+
+            if line.startswith("#EXT-X-MEDIA:"):
+                # 字幕トラックを解析
+                if "TYPE=SUBTITLES" in line:
+                    text_track = self._parse_media_tag(line, base_url)
+                    if text_track:
+                        text_tracks.append(text_track)
+            elif line.startswith("#EXT-X-STREAM-INF:"):
+                # ビデオトラックを解析
+                video_track = self._parse_stream_inf_tag(line, base_url, lines)
+                if video_track:
+                    video_tracks.append(video_track)
+
+        return {
+            "info": {},  # HLSにはMPDのような詳細なルート情報がないため、空の辞書
+            "video_track": video_tracks,
+            "audio_track": audio_tracks,
+            "text_track": text_tracks
+        }
+      
         
     def determine_mpd_type(self, mpd_text: str) -> str:
         """
@@ -694,4 +611,161 @@ class global_parser:
     
         except ET.ParseError:
             return None
+    def print_tracks(self, tracks_json, real_bitrate=False):
+        """解析結果を整列されたフォーマットで表示"""
+        if not tracks_json or not isinstance(tracks_json, dict):
+            return "Invalid tracks data provided."
     
+        output = ""
+    
+        # --- Video Tracks ---
+        video_tracks = tracks_json.get('video_track', [])
+        output += f"{len(video_tracks)} Video Tracks:\n"
+    
+        # codec と resolution の最大幅を測定
+        max_codec_len = max((len(v.get('codec', '')) for v in video_tracks), default=0)
+        max_reso_len = max((len(v.get('resolution', '')) for v in video_tracks), default=0)
+    
+        if video_tracks:
+            prefixes = ["├─"] * (len(video_tracks) - 1) + ["└─"]
+            for i, video in enumerate(video_tracks):
+                prefix = prefixes[i]
+                codec = video.get('codec', 'N/A')
+                resolution = video.get('resolution', 'N/A')
+                bitrate = video.get('bitrate', 'N/A')
+                if bitrate != 'N/A' and real_bitrate:
+                    bitrate = int(int(bitrate) / 1000)
+                codec_fmt = f"[{codec}]".ljust(max_codec_len + 2)
+                reso_fmt = f"[{resolution}]".ljust(max_reso_len + 2)
+                output += f"{prefix} VID | {codec_fmt} {reso_fmt} | {bitrate} kbps\n"
+        else:
+            output += "  No video tracks found.\n"
+    
+        # --- Audio Tracks ---
+        audio_tracks = tracks_json.get('audio_track', [])
+        output += f"\n{len(audio_tracks)} Audio Tracks:\n"
+    
+        max_acodec_len = max((len(a.get('codec', '')) for a in audio_tracks), default=0)
+    
+        if audio_tracks:
+            prefixes = ["├─"] * (len(audio_tracks) - 1) + ["└─"]
+            for i, audio in enumerate(audio_tracks):
+                prefix = prefixes[i]
+                codec = audio.get('codec', 'N/A')
+                bitrate = audio.get('bitrate', 'N/A')
+                if bitrate != 'N/A' and real_bitrate:
+                    bitrate = int(int(bitrate) / 1000)
+                codec_fmt = f"[{codec}]".ljust(max_acodec_len + 2)
+                output += f"{prefix} AUD | {codec_fmt} | {bitrate} kbps\n"
+        else:
+            output += "  No audio tracks found.\n"
+    
+        # --- Text Tracks ---
+        text_tracks = tracks_json.get('text_track', [])
+        if text_tracks:
+            output += f"\n{len(text_tracks)} Text Tracks:\n"
+            prefixes = ["├─"] * (len(text_tracks) - 1) + ["└─"]
+            for i, text in enumerate(text_tracks):
+                prefix = prefixes[i]
+                language = text.get('language', 'und')
+                name = text.get('name', 'N/A')
+                output += f"{prefix} SUB | [VTT] | {language} | {name}\n"
+    
+        return output.strip()
+    
+    def select_best_tracks(self, tracks_json):
+        """利用可能なトラックの中から最もビットレートが高いものを選択"""
+        if not tracks_json or not isinstance(tracks_json, dict):
+            return {"video": None, "audio": None}
+        highest_video, highest_audio = None, None
+        video_tracks = tracks_json.get("video_track", [])
+        if video_tracks:
+            try:
+                valid_videos = [v for v in video_tracks if str(v.get("bitrate", "")).isdigit()]
+                if valid_videos:
+                    highest_video = max(valid_videos, key=lambda x: int(x["bitrate"]))
+                else:
+                    highest_video = video_tracks[0] if video_tracks else None
+            except (ValueError, TypeError, IndexError):
+                highest_video = video_tracks[0] if video_tracks else None
+        audio_tracks = tracks_json.get("audio_track", [])
+        if audio_tracks:
+            try:
+                valid_audios = [a for a in audio_tracks if str(a.get("bitrate", "")).isdigit()]
+                if valid_audios:
+                    highest_audio = max(valid_audios, key=lambda x: int(x["bitrate"]))
+                else:
+                    highest_audio = audio_tracks[0] if audio_tracks else None
+            except (ValueError, TypeError, IndexError):
+                highest_audio = audio_tracks[0] if audio_tracks else None
+        return {"video": highest_video, "audio": highest_audio}
+    def select_worst_tracks(self, tracks_json):
+        """利用可能なトラックの中から最もビットレートが低いものを選択"""
+        if not tracks_json or not isinstance(tracks_json, dict):
+            return {"video": None, "audio": None}
+        highest_video, highest_audio = None, None
+        video_tracks = tracks_json.get("video_track", [])
+        if video_tracks:
+            try:
+                valid_videos = [v for v in video_tracks if str(v.get("bitrate", "")).isdigit()]
+                if valid_videos:
+                    highest_video = min(valid_videos, key=lambda x: int(x["bitrate"]))
+                else:
+                    highest_video = video_tracks[0] if video_tracks else None
+            except (ValueError, TypeError, IndexError):
+                highest_video = video_tracks[0] if video_tracks else None
+        audio_tracks = tracks_json.get("audio_track", [])
+        if audio_tracks:
+            try:
+                valid_audios = [a for a in audio_tracks if str(a.get("bitrate", "")).isdigit()]
+                if valid_audios:
+                    highest_audio = min(valid_audios, key=lambda x: int(x["bitrate"]))
+                else:
+                    highest_audio = audio_tracks[0] if audio_tracks else None
+            except (ValueError, TypeError, IndexError):
+                highest_audio = audio_tracks[0] if audio_tracks else None
+        return {"video": highest_video, "audio": highest_audio}
+    def select_special_week(self, user_value, tracks_json):
+        """user_valueの解像度に近いvideo_trackを選ぶ"""
+        def extract_height(resolution: str) -> int:
+            """解像度文字列から高さ（vertical resolution）を抽出"""
+            match = re.match(r"\d+x(\d+)", resolution)
+            return int(match.group(1)) if match else -1
+        
+        def parse_user_height(user_value: str) -> int:
+            """user_valueから数値（解像度の高さ）を抽出"""
+            match = re.search(r"\d{3,4}", user_value)
+            return int(match.group(0)) if match else -1
+        
+        if not tracks_json or not isinstance(tracks_json, dict):
+            return None
+    
+        video_tracks = tracks_json.get("video_track", [])
+        if not video_tracks:
+            return None
+    
+        user_height = parse_user_height(user_value)
+        if user_height <= 0:
+            return None
+    
+        # 解像度ごとの高さを取り出して比較
+        matched_track = None
+        closest_track = None
+        closest_diff = float('inf')
+    
+        for track in video_tracks:
+            resolution = track.get("resolution", "")
+            height = extract_height(resolution)
+            if height <= 0:
+                continue
+    
+            if height == user_height:
+                matched_track = track
+                break
+            else:
+                diff = abs(height - user_height)
+                if diff <= 100 and diff < closest_diff:
+                    closest_diff = diff
+                    closest_track = track
+    
+        return matched_track or closest_track

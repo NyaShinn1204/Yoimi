@@ -298,10 +298,21 @@ def download_command(input: str, command_list: Iterator):
             
             track_data = Tracks.print_tracks(transformed_data)
             print(track_data)
-            get_best_track = Tracks.select_best_tracks(transformed_data)
+            
+            if command_list["show_resolution"]:
+                return
+            
+            
+            if command_list["resolution"] == "best":
+                select_track = Tracks.select_best_tracks(transformed_data)
+            if command_list["resolution"] == "worst":
+                select_track = Tracks.select_worst_tracks(transformed_data)
+            if "p" in command_list["resolution"]: # select user track
+                select_track = Tracks.select_special_week(command_list["resolution"], transformed_data)
+            
             yoimi_logger.info("Selected Best Quality Track:")
-            yoimi_logger.info(f" + Video: [{get_best_track["video"]["codec"]}] [{get_best_track["video"]["resolution"]}] | {get_best_track["video"]["bitrate"]} kbps")
-            yoimi_logger.info(f" + Audio: [{get_best_track["audio"]["codec"]}] | {get_best_track["audio"]["bitrate"]} kbps")
+            yoimi_logger.info(f" + Video: [{select_track["video"]["codec"]}] [{select_track["video"]["resolution"]}] | {select_track["video"]["bitrate"]} kbps")
+            yoimi_logger.info(f" + Audio: [{select_track["audio"]["codec"]}] | {select_track["audio"]["bitrate"]} kbps")
             
             if service_config["is_drm"]:
                 yoimi_logger.info("Get Video, Audio PSSH")
@@ -358,12 +369,12 @@ def download_command(input: str, command_list: Iterator):
                 yoimi_logger.debug(" + Episode Duration: "+str(int(duration)))
                 
                 yoimi_logger.info("Video, Audio Segment Count")
-                video_segment_list = Tracks.calculate_segments(duration, int(get_best_track["video"]["seg_duration"]), int(get_best_track["video"]["seg_timescale"]))
+                video_segment_list = Tracks.calculate_segments(duration, int(select_track["video"]["seg_duration"]), int(select_track["video"]["seg_timescale"]))
                 yoimi_logger.info(" + Video Segments: "+str(int(video_segment_list)))                 
-                audio_segment_list = Tracks.calculate_segments(duration, int(get_best_track["audio"]["seg_duration"]), int(get_best_track["audio"]["seg_timescale"]))
+                audio_segment_list = Tracks.calculate_segments(duration, int(select_track["audio"]["seg_duration"]), int(select_track["audio"]["seg_timescale"]))
                 yoimi_logger.info(" + Audio Segments: "+str(int(audio_segment_list)))
                 
-                audio_segment_links, video_segment_links = service_downloader.create_segment_links(get_best_track, video_segment_list, audio_segment_list)
+                audio_segment_links, video_segment_links = service_downloader.create_segment_links(select_track, video_segment_list, audio_segment_list)
                 
                 yoimi_logger.info("Downloading Segments...")
                 downloader = segment_downloader(yoimi_logger)
@@ -387,8 +398,8 @@ def download_command(input: str, command_list: Iterator):
                 
                 downloader = aria2c_downloader()
                 
-                status, result = downloader.download(get_best_track["video"]["url"], "download_encrypt_video.mp4", loaded_config, unixtime, "Yoimi")
-                status, result = downloader.download(get_best_track["audio"]["url"], "download_encrypt_audio.mp4", loaded_config, unixtime, "Yoimi")
+                status, result = downloader.download(select_track["video"]["url"], "download_encrypt_video.mp4", loaded_config, unixtime, "Yoimi")
+                status, result = downloader.download(select_track["audio"]["url"], "download_encrypt_audio.mp4", loaded_config, unixtime, "Yoimi")
                 
                 if service_config["is_drm"]:
                     yoimi_logger.info("Decrypting Files...")
