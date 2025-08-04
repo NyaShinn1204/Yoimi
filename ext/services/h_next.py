@@ -17,13 +17,13 @@ support_url:
 import re
 import uuid
 import time
+import hashlib
 
 __service_config__ = {
     "service_name": "H-Next",
     "require_account": True,
     "support_qr": True,
     "is_drm": True,
-    "cache_session": True,
     "cache_session": True,
     "enable_refresh": False,
     "use_tls": False,
@@ -94,8 +94,8 @@ class downloader:
         if user_response["common"]["result"]["errorCode"] == "":
             session_json = {
                 "method": "LOGIN",
-                "email": email_or_id,
-                "password": password,
+                "email": hashlib.sha256(email_or_id.encode()).hexdigest(),
+                "password": hashlib.sha256(password.encode()).hexdigest(),
                 "access_token": response.cookies["_ut"],
                 "refresh_token": None,
                 "additional_info": {}
