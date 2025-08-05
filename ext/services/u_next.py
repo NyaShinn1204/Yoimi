@@ -1,3 +1,4 @@
+import re
 import uuid
 import time
 import hashlib
@@ -46,7 +47,30 @@ class downloader:
             "accept-encoding": "gzip"
         }
         self.session.headers.update(self.default_headers)
+    
+    def parse_input(self, url_input):
+        sid_id = re.search(r"(SID\d+)", url_input).group(1)
+        ed_id = re.search(r"(ED\d+)", url_input).group(1)
         
+        status, title_info = self.get_title_info(sid_id)
+        
+        status, all_list = self.get_all_episode(sid_id)
+        
+        for single in all_list:
+            if single["id"] == ed_id:
+                video_info = {
+                    "raw": title_info,
+                    "content_type": title_info["mainGenreName"],
+                    "title_name": title_info["titleName"],
+                    "episode_count": title_info["publicMainEpisodeCount"],
+                    "episode_name": single["episodeName"],
+                    "episode_num": single["displayNo"],
+                }
+                
+                return video_info
+            return "unexception_type_content"
+    def parse_input_season(self, url_input):
+        pass
     def authorize(self, email_or_id, password):
         _ENDPOINT_LOGIN = "https://napi.unext.jp/1/auth/login"
         
@@ -100,7 +124,7 @@ class downloader:
                 "code": response.json()["auth_code"],
                 "redirect_uri": response.json()["redirect_uri"]
             }
-            response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload)
+            response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload, headers={"content-type": "application/x-www-form-urlencoded; charset=utf-8"})
             
             response = response.json()
             
@@ -205,7 +229,7 @@ class downloader:
                         "code": response.json()["auth_code"],
                         "redirect_uri": response.json()["redirect_uri"]
                     }
-                    response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload)
+                    response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload, headers={"content-type": "application/x-www-form-urlencoded; charset=utf-8"})
                     
                     response = response.json()
                     
@@ -256,6 +280,56 @@ class downloader:
         _USER_INFO_API = "https://napi.unext.jp/2/user/account/get"
         
         profile_resposne = self.session.get(_USER_INFO_API, json=self.default_payload)
-        if profile_resposne.json()["common"]["result"]["errorCode"] != None:
+        if profile_resposne.json()["common"]["result"]["errorCode"] != "":
             return False, None
-        return True, profile_resposne.json()["common"]["userInfo"]
+        else:
+            return True, profile_resposne.json()["common"]["userInfo"]
+    
+    def show_userinfo(self, user_data):
+        profile_id = user_data["cuid"]
+        self.logger.info("Logged-in Account")
+        self.logger.info(" + id: " + profile_id)
+        
+    def judgment_watchtype(self, url):
+        if "/play/" in url:
+            return "single"
+        if "/live/" in url:
+            return "single"
+        elif "/title/" in url:
+            return "season"
+        else:
+            return None
+    
+    def get_title_info(self, sid_id):
+        '''メタデータを取得するコード'''
+        meta_json = {
+            "operationName": "cosmo_getVideoTitle",
+            "variables": {"code": sid_id},
+            "query": "query cosmo_getVideoTitle($code: ID!) {\n  webfront_title_stage(id: $code) {\n    id\n    titleName\n    rate\n    userRate\n    productionYear\n    country\n    catchphrase\n    attractions\n    story\n    check\n    seriesCode\n    seriesName\n    publicStartDate\n    displayPublicEndDate\n    restrictedCode\n    copyright\n    mainGenreId\n    bookmarkStatus\n    thumbnail {\n      standard\n      secondary\n      __typename\n    }\n    mainGenreName\n    isNew\n    exclusive {\n      typeCode\n      isOnlyOn\n      __typename\n    }\n    isOriginal\n    lastEpisode\n    updateOfWeek\n    nextUpdateDateTime\n    productLineupCodeList\n    hasMultiprice\n    minimumPrice\n    country\n    productionYear\n    paymentBadgeList {\n      name\n      code\n      __typename\n    }\n    nfreeBadge\n    hasDub\n    hasSubtitle\n    saleText\n    currentEpisode {\n      id\n      interruption\n      duration\n      completeFlag\n      displayDurationText\n      existsRelatedEpisode\n      playButtonName\n      purchaseEpisodeLimitday\n      __typename\n    }\n    publicMainEpisodeCount\n    comingSoonMainEpisodeCount\n    missingAlertText\n    sakuhinNotices\n    hasPackRights\n    __typename\n  }\n}\n",
+        }
+        try:   
+            metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+            return_json = metadata_response.json()
+            if return_json["data"]["webfront_title_stage"] != None:
+                return True, return_json["data"]["webfront_title_stage"]
+            else:
+                return False, None
+        except Exception:
+            return False, None
+    def get_all_episode(self, sid_id):
+        '''エピソードのタイトルについて取得するコード'''
+        meta_json = {
+            "operationName": "cosmo_getVideoTitleEpisodes",
+            "variables": {"code": sid_id, "page": 1, "pageSize": 1000},
+            "query": "query cosmo_getVideoTitleEpisodes($code: ID!, $page: Int, $pageSize: Int) {\n  webfront_title_titleEpisodes(id: $code, page: $page, pageSize: $pageSize) {\n    episodes {\n      id\n      episodeName\n      purchaseEpisodeLimitday\n      thumbnail {\n        standard\n        __typename\n      }\n      duration\n      displayNo\n      interruption\n      completeFlag\n      saleTypeCode\n      introduction\n      saleText\n      episodeNotices\n      isNew\n      hasPackRights\n      minimumPrice\n      hasMultiplePrices\n      productLineupCodeList\n      isPurchased\n      purchaseEpisodeLimitday\n      __typename\n    }\n    pageInfo {\n      ...PageInfo\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment PageInfo on PortalPageInfo {\n  page\n  pages\n  pageSize\n  results\n  __typename\n}\n"
+        }
+        try:
+            metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+            return_json = metadata_response.json()
+            if return_json["data"]["webfront_title_titleEpisodes"] != None:
+                metadata_response_single = return_json['data']['webfront_title_titleEpisodes']['episodes']
+                return True, metadata_response_single
+            else:
+                return False, None
+        except Exception as e:
+            return False, None

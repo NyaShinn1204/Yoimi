@@ -29,7 +29,7 @@ class titlename_logic:
             "episodename": episode_name
         }
     
-        if content_type in ("anime", "drama"):
+        if content_type in ("anime", "drama", "アニメ", "ドラマ"):
             format_string = self.config["format"]["anime"]
             title_name_logger = safe_format(format_string, raw_values)
         elif content_type in ("movie"):
