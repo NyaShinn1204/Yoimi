@@ -472,7 +472,10 @@ class FOD_downloader:
     
     
     def check_single_episode(self, url):
-        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
+        if "ppv" in url:
+            matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/(?:title|ppv)/(?P<title_id>[0-9a-z]+)/(?P<episode_temp_id>[0-9a-z]+)/(?P<episode_id>[0-9a-z]+)/?(?:\?.*)?$', url)
+        else:
+            matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/(?:title|ppv)/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
 
         def contains_repeated_identifier(url, identifier):
             pattern = f"({re.escape(identifier)}).*\\1"
@@ -483,7 +486,10 @@ class FOD_downloader:
         else:
             return False
     def get_title_parse_all(self, url):
-        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
+        if "ppv" in url:
+            matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/(?:title|ppv)/(?P<title_id>[0-9a-z]+)/(?P<episode_temp_id>[0-9a-z]+)/(?P<episode_id>[0-9a-z]+)/?(?:\?.*)?$', url)
+        else:
+            matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/(?:title|ppv)/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
         '''エピソードのタイトルについて取得するコード'''
         try:
             metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/lineup/detail/?lu_id={matches_url.group("title_id")}&is_premium=false&is_kids=false&dv_type=tv")
@@ -496,7 +502,10 @@ class FOD_downloader:
         except Exception:
             return False, None, None
     def get_title_parse_single(self, url):
-        matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
+        if "ppv" in url:
+            matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/(?:title|ppv)/(?P<title_id>[0-9a-z]+)/(?P<episode_temp_id>[0-9a-z]+)/(?P<episode_id>[0-9a-z]+)/?(?:\?.*)?$', url)
+        else:
+            matches_url = re.match(r'^https?://fod\.fujitv\.co\.jp/(?:title|ppv)/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+)?/?(?:\?.*)?$', url)
         '''エピソードの1タイトルについて取得するコード'''
         try:
             metadata_response = self.session.get(f"https://i.fod.fujitv.co.jp/apps/api/episode/detail/?ep_id={matches_url.group("episode_id")}&is_premium=false&is_kids=false&dv_type=tv")

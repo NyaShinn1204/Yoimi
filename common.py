@@ -36,7 +36,7 @@ def get_parser(url):
     valid_hnext = r'^https?://video\.hnext\.jp/(?:play|title)/.*(?:AID\d+|AED\d+)'
     valid_dmm_tv = r'^["\']?https?://tv\.dmm\.com/(?:vod(?:/playback(?:/[^?]*)?)?|shorts)/\?.*season=(?P<season>[^&?]+)(?:&.*content=(?P<content>[^&?]+)|)["\']?$'
     valid_brainshark = r'^["\']?https?://www\.brainshark\.com/brainshark/brainshark\.services\.player/api/v1\.0/Presentation\?([^&]*&)*pi=(?P<pi>[^&]+)(&|$)'
-    valid_fod = r'^["\']?https?://fod\.fujitv\.co\.jp/title/(?P<title_id>[0-9a-z]+)/?(?P<episode_id>[0-9a-z]+/?)?(?:\?.*)?["\']?$'
+    valid_fod = r'^["\']?https?://fod\.fujitv\.co\.jp/(?:title|ppv)/(?P<title_id>[0-9a-z]+)/(?P<episode_temp_id>[0-9a-z]+)/(?P<episode_id>[0-9a-z]+)/?(?:\?.*)?["\']?$'
     valid_anime3rb = r'^["\']?http(?:|s)://anime3rb\.com/(?:titles|episode)/([\w-]+)/.*|search\?q=[^"\']+["\']?$'
     valid_crunchyroll = r'^["\']?https?://www\.crunchyroll\.com/(series|watch)/[^/]+/[^"\']+["\']?$'
     valid_b_ch = r'^["\']?https?://www\.b-ch\.com/titles/\d+(/\d+)?/?["\']?$'
