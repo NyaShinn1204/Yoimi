@@ -19,6 +19,26 @@ class downloader:
         
         self.use_cahce = True
         
+        self.device_uuid = None
+        self.user_token = None
+        self.security_token = None
+        
+        self.default_payload = {
+            "common":{
+                "userInfo":{
+                    "userToken":None,
+                    "service_name":"unext",
+                    "securityToken":None
+                },
+                "deviceInfo":{
+                    "deviceType":"980",
+                    "appVersion":"1",
+                    "deviceUuid":None
+                }
+            },
+            "data":{}
+        }
+        
         self.default_headers = {
             "user-agent": "U-NEXT TV App Android10 5.49.0 A7S",
             "content-type": "application/json; charset=utf-8",
@@ -92,7 +112,8 @@ class downloader:
                 "refresh_token": response["refresh_token"],
                 "additional_info": {
                     "device_uuid": device_uuid,
-                    "user_token": user_token
+                    "user_token": user_token,
+                    "security_token": security_token,
                 }
             }
             return True, user_response["common"]["userInfo"], True, session_json
@@ -196,7 +217,8 @@ class downloader:
                         "refresh_token": response["refresh_token"],
                         "additional_info": {
                             "device_uuid": device_uuid,
-                            "user_token": user_token
+                            "user_token": user_token,
+                            "security_token": security_token,
                         }
                     }
                     return True, user_response["common"]["userInfo"], True, session_json
@@ -208,6 +230,21 @@ class downloader:
                 print("Login request is expired")
                 return False, None
     def check_token(self, token):
+        self.default_payload = {
+            "common":{
+                "userInfo":{
+                    "userToken":self.user_token,
+                    "service_name":"unext",
+                    "securityToken":self.security_token
+                },
+                "deviceInfo":{
+                    "deviceType":"980",
+                    "appVersion":"1",
+                    "deviceUuid":self.device_uuid
+                }
+            },
+            "data":{}
+        }
         status, profile = self.get_userinfo()
         return status, profile
     def refresh_token(self, refresh_token, session_data):
@@ -216,14 +253,9 @@ class downloader:
         except:
             return None
     def get_userinfo(self):
-        _USER_INFO_API = "https://mapi.prod.hjholdings.tv/api/v1/users/me"
+        _USER_INFO_API = "https://napi.unext.jp/2/user/account/get"
         
-        payload_query = {
-            "with_profiles": "true",
-            "app_id": 5,
-            "device_code": 8
-        }
-        profile_resposne = self.session.get(_USER_INFO_API, params=payload_query)
-        if profile_resposne.status_code == 401:
+        profile_resposne = self.session.get(_USER_INFO_API, json=self.default_payload)
+        if profile_resposne.json()["common"]["result"]["errorCode"] != None:
             return False, None
-        return True, profile_resposne.json()
+        return True, profile_resposne.json()["common"]["userInfo"]
