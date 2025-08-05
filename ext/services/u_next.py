@@ -102,6 +102,7 @@ class downloader:
             return False, 'Require Japan VPN, Proxy', False, None
     def authorize_qr(self):
         _ENDPOINT_LOGIN = "https://login-delegation.unext.jp/"
+        _ENDPOINT_LOGIN = "https://napi.unext.jp/1/auth/login"
        
         device_uuid = str(uuid.uuid4())
         
@@ -133,31 +134,76 @@ class downloader:
                 time.sleep(5)
             elif send_checkping.status_coed == 200:
                 print("Login Accept")
+                                 
+                one_time_token = send_checkping.json()["oneTimeToken"]
                 
-                ## ToDo: Make Qr Login
-                return False, None
+                payload = {
+                  "common": {
+                    "userInfo": {
+                      "userToken": "",
+                      "service_name": "unext"
+                    },
+                    "deviceInfo": {
+                      "deviceType": "980",
+                      "appVersion": "1",
+                      "deviceUuid": device_uuid
+                    }
+                  },
+                  "data": {
+                    "onetimeToken": one_time_token
+                  }
+                }
                 
-                 
-                #one_time_token = send_checkping.json()["data"]["loginDelegationPollSession"]["oneTimeToken"]
-                #
-                #payload = {
-                #    "oneTimeToken": one_time_token,
-                #}
-                #
-                #response = self.session.post(_ENDPOINT_LOGIN, json=payload)
-                #
-                #user_response = response.json()
-                #
-                #session_json = {
-                #    "method": "QR_LOGIN",
-                #    "email": None,
-                #    "password": None,
-                #    "access_token": response.cookies["_ut"],
-                #    "refresh_token": None,
-                #    "additional_info": {}
-                #}
-                #
-                #return True, user_response["common"]["userInfo"], True, session_json
+                response = self.session.post(_ENDPOINT_LOGIN, json=payload)
+                
+                user_response = response.json()
+                
+                if user_response["common"]["result"]["errorCode"] == "":
+                    
+                    user_token = user_response["common"]["userInfo"]["userToken"]
+                    security_token = user_response["common"]["userInfo"]["securityToken"]
+                    
+                    ### migrate token
+                    payload = {
+                        "client_id": "unextAndroidApp",
+                        "scope": [
+                            "offline",
+                            "unext"
+                        ],
+                        "portal_user_info": {
+                            "securityToken": security_token
+                        }
+                    }
+                    response = self.session.post("https://oauth.unext.jp/oauth2/migration", json=payload)
+                    
+                    ### get token
+                    payload = {
+                        "client_id": "unextAndroidApp",
+                        "client_secret": "unextAndroidApp",
+                        "grant_type": "authorization_code",
+                        "code": response.json()["auth_code"],
+                        "redirect_uri": response.json()["redirect_uri"]
+                    }
+                    response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload)
+                    
+                    response = response.json()
+                    
+                    session_json = {
+                        "method": "LOGIN",
+                        "email": None,
+                        "password": None,
+                        "access_token": response["access_token"],
+                        "refresh_token": response["refresh_token"],
+                        "additional_info": {
+                            "device_uuid": device_uuid,
+                            "user_token": user_token
+                        }
+                    }
+                    return True, user_response["common"]["userInfo"], True, session_json
+                elif user_response["common"]["result"]["errorCode"] == "GUN8030006":
+                    return False, 'Wrong Email or password', False, None
+                elif user_response["common"]["result"]["errorCode"] == "GAW0500003":
+                    return False, 'Require Japan VPN, Proxy', False, None
             elif send_checkping.status_code == 403:
                 print("Login request is expired")
                 return False, None
