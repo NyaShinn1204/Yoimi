@@ -356,7 +356,7 @@ class downloader:
         except:
             return False
         
-    def get_playtoken(self, episode_id):
+    def get_play_token(self, episode_id):
         '''メタデータを取得するコード'''
         payload = self.default_payload.copy()
         payload["data"] = {
@@ -378,22 +378,21 @@ class downloader:
         try:   
             metadata_response = self.session.post("https://napi.unext.jp/3/cmsuser/playlisturl/file", json=payload)
             return_json = metadata_response.json()
-            if return_json["data"]["webfront_playlistUrl"] != None:
-                #print(return_json["data"]["webfront_playlistUrl"]["urlInfo"][0])
-                #print("moviePartsPositionList" in return_json["data"]["webfront_playlistUrl"]["urlInfo"][0])
-                #print("found")
-                if ("moviePartsPositionList" in return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]):
-                    movieparts = return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["moviePartsPositionList"]
+            if return_json["common"]["result"]["errorCode"] == "":
+
+                if ("movie_parts_position_list" in return_json["data"]["url_info"][0]):
+                    movieparts = return_json["data"]["url_info"][0]["movie_parts_position_list"]
                 else:
                     movieparts = None
-                return True, return_json["data"]["webfront_playlistUrl"]["playToken"], return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"], [movieparts]
+                return True, return_json["data"]["play_token"], return_json["data"]["url_info"][0], [movieparts]
             else:
-                return False, None, None
+                return False, None, None, None
         except Exception as e:
             print(e)
-            return False, None, None
+            return False, None, None, None
     
     def open_session_get_dl(self, video_info):
+        global url_info, play_token
         if video_info["raw_single"]["minimumPrice"] != -1:
             self.logger.info(f" ! This contetn require {video_info["raw_single"]["minimumPrice"]} point")
             is_buyed = self.check_buyed(video_info["series_id"])
@@ -403,10 +402,36 @@ class downloader:
                 self.logger.error(" ! Please buy content at web.")
                 raise Exception("Require rental/buy")
         
-        status, play_token, media_code, additional_meta = self.get_play_token(video_info["raw_single"]["id"])
+        status, play_token, url_info, additional_meta = self.get_play_token(video_info["raw_single"]["id"])
+        
         
         if status == False:
             self.logger.error("Failed to get play_token")
             return None, None, None, None
         else:
-            self.logger.info("Get License for 1 Episode.")
+            dash_profile = url_info["movie_profile"].get("dash")
+            mpd_link = dash_profile["playlist_url"]
+            if dash_profile.get("license_url_list"):
+                widevine_url = dash_profile.get("license_url_list").get("widevine")+f"?play_token={play_token}"
+                playready_url = dash_profile.get("license_url_list").get("playready")+f"?play_token={play_token}"
+                
+            mpd_response = self.session.get(mpd_link+f"&play_token={play_token}").text
+            license_header = {
+                "content-type": "application/octet-stream",
+                "user-agent": "Beautiful_Japan_TV_Android/1.0.6 (Linux;Android 10) ExoPlayerLib/2.12.0",
+                "accept-encoding": "gzip",
+                "host": "wvproxy.unext.jp",
+                "connection": "Keep-Alive"
+            }
+            return mpd_response, mpd_link+f"&play_token={play_token}", {"widevine": widevine_url, "playready": playready_url}, license_header 
+        
+    def decrypt_done(self):
+        self.close_session(media_code=url_info["code"], play_token=play_token)    
+    
+    def close_session(self, media_code, play_token):
+        signal_result = self.session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/0/?play_token={play_token}&last_viewing_flg=0")
+        
+        if signal_result.status_code == 200:
+            return True
+        else:
+            return False

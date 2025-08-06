@@ -338,28 +338,7 @@ def download_command(input: str, command_list: Iterator):
             
             yoimi_logger.info("Setting output filename")
             
-            ### Setting output filename
-            ## define name
-            sanitize_logic = filename_logic(delete_only=False)
-            title_name = video_info["title_name"]
-            extension_name = "." + command_list["output_extension"]
-            
-            output_dir = command_list.get("output_directory")
-            output_filename = command_list.get("output_filename")
-            
-            ## Build output path :skull:
-            if output_dir or output_filename:
-                if video_info["content_type"] == "movie":
-                    if output_dir and not output_filename:
-                        output_path = os.path.join(output_dir, season_title, sanitize_logic.sanitize_filename(output_titlename) + extension_name)
-                    elif output_dir and output_filename:
-                        output_path = os.path.join(output_dir, output_filename)
-            else:
-                output_dir = loaded_config["directories"]["Downloads"]
-                if video_info["content_type"] == "movie":
-                    output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(output_titlename) + extension_name)
-                else:
-                    output_path = os.path.join(output_dir, sanitize_logic.sanitize_filename(title_name), season_title, sanitize_logic.sanitize_filename(output_titlename) + extension_name)
+            output_filename, output_path = titlename_manager.create_output_filename(video_info, command_list, season_title, output_titlename)
             
             yoimi_logger.info(" + " + str(output_path))
             
