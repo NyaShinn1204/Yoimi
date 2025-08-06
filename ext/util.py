@@ -300,6 +300,7 @@ def download_command(input: str, command_list: Iterator):
             print(track_data)
             
             if command_list["show_resolution"]:
+                service_downloader.decrypt_done()
                 return
             
             

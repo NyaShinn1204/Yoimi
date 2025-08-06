@@ -60,11 +60,13 @@ class downloader:
             if single["id"] == ed_id:
                 video_info = {
                     "raw": title_info,
+                    "raw_single": single,
                     "content_type": title_info["mainGenreName"],
                     "title_name": title_info["titleName"],
                     "episode_count": title_info["publicMainEpisodeCount"],
                     "episode_name": single["episodeName"],
                     "episode_num": single["displayNo"],
+                    "series_id": title_info["id"]
                 }
                 
                 return video_info
@@ -314,7 +316,7 @@ class downloader:
                 return True, return_json["data"]["webfront_title_stage"]
             else:
                 return False, None
-        except Exception:
+        except:
             return False, None
     def get_all_episode(self, sid_id):
         '''エピソードのタイトルについて取得するコード'''
@@ -331,5 +333,80 @@ class downloader:
                 return True, metadata_response_single
             else:
                 return False, None
-        except Exception as e:
+        except:
             return False, None
+    
+    def check_buyed(self, sid_id):
+        '''購入済みか確認するコード'''
+        meta_json = {
+            "operationName": "cosmo_getVideoTitle",
+            "variables": {"code": sid_id},
+            "query": "query cosmo_getVideoTitle($code: ID!) {\n  webfront_title_stage(id: $code) {\n    id\n    titleName\n    rate\n    userRate\n    productionYear\n    country\n    catchphrase\n    attractions\n    story\n    check\n    seriesCode\n    seriesName\n    publicStartDate\n    displayPublicEndDate\n    restrictedCode\n    copyright\n    mainGenreId\n    bookmarkStatus\n    thumbnail {\n      standard\n      secondary\n      __typename\n    }\n    mainGenreName\n    isNew\n    exclusive {\n      typeCode\n      isOnlyOn\n      __typename\n    }\n    isOriginal\n    lastEpisode\n    updateOfWeek\n    nextUpdateDateTime\n    productLineupCodeList\n    hasMultiprice\n    minimumPrice\n    country\n    productionYear\n    paymentBadgeList {\n      name\n      code\n      __typename\n    }\n    nfreeBadge\n    hasDub\n    hasSubtitle\n    saleText\n    currentEpisode {\n      id\n      interruption\n      duration\n      completeFlag\n      displayDurationText\n      existsRelatedEpisode\n      playButtonName\n      purchaseEpisodeLimitday\n      __typename\n    }\n    publicMainEpisodeCount\n    comingSoonMainEpisodeCount\n    missingAlertText\n    sakuhinNotices\n    hasPackRights\n    __typename\n  }\n}\n",
+        }
+        try:   
+            metadata_response = self.session.post("https://cc.unext.jp", json=meta_json)
+            return_json = metadata_response.json()
+            if return_json["data"]["webfront_title_stage"] != None:
+                if return_json["data"]["webfront_title_stage"]["paymentBadgeList"][0]["id"] == "BUY":
+                    return True
+                else:
+                    return False 
+            else:
+                return False
+        except:
+            return False
+        
+    def get_playtoken(self, episode_id):
+        '''メタデータを取得するコード'''
+        payload = self.default_payload.copy()
+        payload["data"] = {
+            "code": episode_id,
+            "bitrate_low": 192,
+            "play_type": 2,
+            "play_mode": "caption", ## sub = caption, dub = dub
+            "keyonly_flg": 0,
+            "validation_flg": 0,
+            "codec": [
+                "H264",  ## hd flag
+                "H265",  ## 4k flag
+                "HDR10", ## 4k flag
+                "SDR",   ## 4k flag
+                "VISION",## 4k flag
+                "HLG"    ## 4k flag
+            ]
+        }
+        try:   
+            metadata_response = self.session.post("https://napi.unext.jp/3/cmsuser/playlisturl/file", json=payload)
+            return_json = metadata_response.json()
+            if return_json["data"]["webfront_playlistUrl"] != None:
+                #print(return_json["data"]["webfront_playlistUrl"]["urlInfo"][0])
+                #print("moviePartsPositionList" in return_json["data"]["webfront_playlistUrl"]["urlInfo"][0])
+                #print("found")
+                if ("moviePartsPositionList" in return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]):
+                    movieparts = return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["moviePartsPositionList"]
+                else:
+                    movieparts = None
+                return True, return_json["data"]["webfront_playlistUrl"]["playToken"], return_json["data"]["webfront_playlistUrl"]["urlInfo"][0]["code"], [movieparts]
+            else:
+                return False, None, None
+        except Exception as e:
+            print(e)
+            return False, None, None
+    
+    def open_session_get_dl(self, video_info):
+        if video_info["raw_single"]["minimumPrice"] != -1:
+            self.logger.info(f" ! This contetn require {video_info["raw_single"]["minimumPrice"]} point")
+            is_buyed = self.check_buyed(video_info["series_id"])
+            if is_buyed == True:
+                self.logger.info(f" ! already purchased.")
+            else:
+                self.logger.error(" ! Please buy content at web.")
+                raise Exception("Require rental/buy")
+        
+        status, play_token, media_code, additional_meta = self.get_play_token(video_info["raw_single"]["id"])
+        
+        if status == False:
+            self.logger.error("Failed to get play_token")
+            return None, None, None, None
+        else:
+            self.logger.info("Get License for 1 Episode.")
