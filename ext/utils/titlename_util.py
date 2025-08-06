@@ -60,7 +60,8 @@ class titlename_logic:
             if content_type in ("movie", "洋画", "邦画"):
                 if output_dir and not output_filename:
                     output_path = os.path.join(output_dir, season_title, sanitize_logic.sanitize_filename(output_titlename) + extension_name)
-                elif output_dir and output_filename:
+                elif not output_dir and output_filename:
+                    output_dir = self.config["directories"]["Downloads"]
                     output_path = os.path.join(output_dir, output_filename)
         else:
             output_dir = self.config["directories"]["Downloads"]

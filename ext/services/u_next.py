@@ -356,14 +356,14 @@ class downloader:
         except:
             return False
         
-    def get_play_token(self, episode_id):
+    def get_play_token(self, episode_id, episode_type):
         '''メタデータを取得するコード'''
         payload = self.default_payload.copy()
         payload["data"] = {
             "code": episode_id,
             "bitrate_low": 192,
             "play_type": 2,
-            "play_mode": "caption", ## sub = caption, dub = dub
+            "play_mode": episode_type, ## sub = caption, dub = dub
             "keyonly_flg": 0,
             "validation_flg": 0,
             "codec": [
@@ -391,9 +391,42 @@ class downloader:
                 return True, return_json["data"]["play_token"], return_json["data"]["url_info"][0], [movieparts]
             else:
                 return False, None, None, None
-        except Exception as e:
-            print(e)
+        except:
             return False, None, None, None
+        
+    def judgment_sub_dub(self, episode_id):
+        payload = self.default_payload.copy()
+        payload["data"] = {
+            "code": episode_id,
+            "bitrate_low": 192,
+            "play_type": 2,
+            "play_mode": "caption",
+            "keyonly_flg": 1,
+            "validation_flg": 1,
+        }
+        try:   
+            metadata_response = self.session.post("https://napi.unext.jp/3/cmsuser/playlisturl/file", json=payload)
+            return_json = metadata_response.json()
+            if return_json["common"]["result"]["errorCode"] == "":
+                check_support =return_json["data"]["supported_playmodes"]
+                if check_support["has_subtitle"] and check_support["has_dub"]:
+                    self.logger.info("Found Sub, Dub type")
+                    input_episode_type = input("Please enter the type of the contetn you want to download (e.x: sub, dub) >> ")
+                    if input_episode_type.lower() == "sub":
+                        episode_type = "caption"
+                    elif input_episode_type.lower() == "dub":
+                        episode_type = "dub"
+                if check_support["has_subtitle"]:
+                    episode_type = "caption"
+                if check_support["has_dub"]:
+                    episode_type = "dub"
+                
+                
+                return True, episode_type
+            else:
+                return False, None
+        except:
+            return False, None
     
     def open_session_get_dl(self, video_info):
         global url_info, play_token
@@ -405,8 +438,10 @@ class downloader:
             else:
                 self.logger.error(" ! Please buy content at web.")
                 raise Exception("Require rental/buy")
+            
+        status, episode_type = self.judgment_sub_dub(video_info["raw_single"]["id"])
         
-        status, play_token, url_info, additional_meta = self.get_play_token(video_info["raw_single"]["id"])
+        status, play_token, url_info, additional_meta = self.get_play_token(video_info["raw_single"]["id"], episode_type)
         
         
         if status == False:
