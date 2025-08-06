@@ -373,6 +373,10 @@ class downloader:
                 "SDR",   ## 4k flag
                 "VISION",## 4k flag
                 "HLG"    ## 4k flag
+            ],
+            "audio_type_list": [
+                "ac-3",
+                "ec-3"
             ]
         }
         try:   
