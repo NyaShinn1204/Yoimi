@@ -1,5 +1,6 @@
 import os
 import re
+import binascii
 import subprocess
 from tqdm import tqdm
 from datetime import datetime
@@ -11,36 +12,43 @@ COLOR_RESET = "\033[0m"
 COLOR_BLUE = "\033[94m"
 
 class comamnd_util:
-    def create_mp4decrypt(decrypt_keys, config):
+    def create_mp4decrypt(decrypt_keys, config, input_path, output_path):
         if os.name == "nt": # Windows
             mp4decrypt_command = [os.path.join(config["directories"]["Binaries"], "mp4decrypt.exe")]
         else: # Linux or else
             mp4decrypt_command = [os.path.join(config["directories"]["Binaries"], "mp4decrypt")]
+    
         for key in decrypt_keys.get("key", []):
             if key["type"] == "CONTENT":
-                mp4decrypt_command.extend(
-                    [
-                        "--show-progress",
-                        "--key",
-                        "{}:{}".format(key["kid_hex"], key["key_hex"]),
-                    ]
-                )
+                mp4decrypt_command.extend([
+                    "--key",
+                    f'{key["kid_hex"]}:{key["key_hex"]}',
+                ])
+    
+        mp4decrypt_command.append(input_path)
+        mp4decrypt_command.append(output_path)
+    
         return mp4decrypt_command
-    def create_shaka_packager(decrypt_keys, config):
+    
+    
+    def create_shaka_packager(decrypt_keys, config, input_path, output_path, stream_type="video"):
         if os.name == "nt": # Windows
-            shaka_decrypt_command = [os.path.join(config["directories"]["Binaries"], "shaka_packager_win.exe")]
+            shaka_command = [os.path.join(config["directories"]["Binaries"], "shaka_packager_win.exe")]
         else: # Linux or else
-            shaka_decrypt_command = [os.path.join(config["directories"]["Binaries"], "shaka_packager_linux")]
+            shaka_command = [os.path.join(config["directories"]["Binaries"], "shaka_packager_linux")]
+    
+        shaka_command.append(f"input={input_path},stream={stream_type},output={output_path}")
+        shaka_command.append("--enable_raw_key_decryption")
+    
         for key in decrypt_keys.get("key", []):
             if key["type"] == "CONTENT":
-                shaka_decrypt_command.extend(
-                    [
-                        "--enable_raw_key_decryption",
-                        "--keys",
-                        "key_id={}:key={}".format(key["kid_hex"], key["key_hex"]),
-                    ]
-                )
-        return shaka_decrypt_command
+                shaka_command.extend([
+                    "--keys",
+                    f'key_id={key["kid_hex"]}:key={key["key_hex"]}',
+                ])
+    
+        return shaka_command
+    
     
     def check_command(config, second_status=None):
         if os.name == "nt": # Windows
@@ -127,20 +135,13 @@ class main_decrypt:
         status = comamnd_util.check_command(config)
         
         if status == "shaka":
-            command = comamnd_util.create_shaka_packager(license_keys, config)
-            if "video" in output_path:
-                command.extend([f"input={input_path},stream=video,output={output_path}"])
-            if "audio" in output_path:
-                command.extend([f"input={input_path},stream=audio,output={output_path}"])
+            stream_type = "video" if "video" in output_path else "audio"
+            command = comamnd_util.create_shaka_packager(license_keys, config, input_path, output_path, stream_type=stream_type)
         elif status == "mp4decrypt":
-            command = comamnd_util.create_mp4decrypt(license_keys, config)
-            command.extend([input_path, output_path])
+            command = comamnd_util.create_mp4decrypt(license_keys, config, input_path, output_path)
         elif status == "all":
-            command = comamnd_util.create_shaka_packager(license_keys, config)
-            if "video" in output_path:
-                command.extend([f"input={input_path},stream=video,output={output_path}"])
-            if "audio" in output_path:
-                command.extend([f"input={input_path},stream=audio,output={output_path}"])
+            stream_type = "video" if "video" in output_path else "audio"
+            command = comamnd_util.create_shaka_packager(license_keys, config, input_path, output_path, stream_type=stream_type)
         else:
             raise Exception("Decryptor not found")
         
@@ -168,21 +169,18 @@ class main_decrypt:
                     else:
                         self.logger.debug("Failed decrypt. Changing command...", extra={"service_name": service_name})
                         if status == "shaka":
-                            command = comamnd_util.create_mp4decrypt(license_keys, config)
-                            command.extend([input_path, output_path])
+                            command = comamnd_util.create_mp4decrypt(license_keys, config, input_path, output_path)
                         elif status == "mp4decrypt":
-                            command = comamnd_util.create_shaka_packager(license_keys, config)
-                            if "video" in output_path:
-                                command.extend([f"input={input_path},stream=video,output={output_path}"])
-                            if "audio" in output_path:
-                                command.extend([f"input={input_path},stream=audio,output={output_path}"])
+                            stream_type = "video" if "video" in output_path else "audio"
+                            command = comamnd_util.create_shaka_packager(license_keys, config, input_path, output_path, stream_type=stream_type)
                         elif status == "all":
-                            command = comamnd_util.create_mp4decrypt(license_keys, config)
-                            command.extend([input_path, output_path])
+                            command = comamnd_util.create_mp4decrypt(license_keys, config, input_path, output_path)
                         
                         self.logger.debug(f"[COMMAND] command: {command}", extra={"service_name": service_name})
                         with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", leave=False) as inner_pbar:
                             with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, encoding="utf-8") as process:
+                                for line in process.stdout:
+                                    print(line)
                                 if status == "mp4decrypt":
                                     for line in process.stdout:
                                         match = re.search(r"(ｲ+)", line)

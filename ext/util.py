@@ -259,7 +259,10 @@ def download_command(input: str, command_list: Iterator):
             else:
                 if not session_status:
                     login_status, user_info = service_downloader.authorize(email, password)
-                
+        
+        if user_info == None:
+            return None
+        
         service_downloader.show_userinfo(user_info)
         
         watchtype = service_downloader.judgment_watchtype(input)

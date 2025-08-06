@@ -44,6 +44,8 @@ class titlename_logic:
             title_name_logger = safe_format(format_string, raw_values) 
         return title_name_logger
     def create_output_filename(self, video_info, command_list, season_title, output_titlename):
+        if season_title == None:
+            season_title = ""
         ### Setting output filename
         ## define name
         sanitize_logic = filename_logic(delete_only=False)

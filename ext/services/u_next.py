@@ -37,7 +37,7 @@ class downloader:
                     "deviceUuid":None
                 }
             },
-            "data":{}
+            "data": {}
         }
         
         self.default_headers = {
@@ -274,8 +274,45 @@ class downloader:
         status, profile = self.get_userinfo()
         return status, profile
     def refresh_token(self, refresh_token, session_data):
-        try:
-            return None
+        try:            
+            payload = self.default_payload.copy()
+            payload["data"] = {
+                "securityToken": session_data["additional_info"]["security_token"]
+            }
+            refresh_json = self.session.get("https://napi.unext.jp/1/auth/login", json=payload)
+            if refresh_json.json()["common"]["result"]["errorCode"] != "":
+                return None
+            else:
+                session_json = {
+                    "method": "LOGIN",
+                    "email": None,
+                    "password": None,
+                    "access_token": None,
+                    "refresh_token": None,
+                    "additional_info": {
+                        "device_uuid": payload["common"]["deviceInfo"]["deviceUuid"],
+                        "user_token": refresh_json.json()["common"]["userInfo"]["userToken"],
+                        "security_token": refresh_json.json()["common"]["userInfo"]["securityToken"],
+                    }
+                }
+                
+                self.default_payload = {
+                    "common":{
+                        "userInfo":{
+                            "userToken":refresh_json.json()["common"]["userInfo"]["userToken"],
+                            "service_name":"unext",
+                            "securityToken":refresh_json.json()["common"]["userInfo"]["securityToken"],
+                        },
+                        "deviceInfo":{
+                            "deviceType":"980",
+                            "appVersion":"1",
+                            "deviceUuid":payload["common"]["deviceInfo"]["deviceUuid"]
+                        }
+                    },
+                    "data": {}
+                }
+                
+                return session_json
         except:
             return None
     def get_userinfo(self):
