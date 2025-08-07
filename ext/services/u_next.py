@@ -1,4 +1,5 @@
 import re
+import ast
 import uuid
 import time
 import hashlib
@@ -48,14 +49,21 @@ class downloader:
         }
         self.session.headers.update(self.default_headers)
     
-    def parse_input(self, url_input):
-        sid_id = re.search(r"(SID\d+)", url_input).group(1)
-        ed_id = re.search(r"(ED\d+)", url_input).group(1)
+    def parse_input(self, url_input, id = None):        
+        if id:
+            id = ast.literal_eval(id)
+            sid_id = id[0]
+            ed_id = id[1]
+        else:
+            sid_id = re.search(r"(SID\d+)", url_input).group(1)
+            ed_id = re.search(r"(ED\d+)", url_input).group(1)
+            if "/live/" in url_input:
+                return "special"
         
         status, title_info = self.get_title_info(sid_id)
         
         status, all_list = self.get_all_episode(sid_id)
-        
+                
         for single in all_list:
             if single["id"] == ed_id:
                 video_info = {
@@ -70,9 +78,33 @@ class downloader:
                 }
                 
                 return video_info
-            return "unexception_type_content"
+        return "unexception_type_content"
     def parse_input_season(self, url_input):
-        pass
+        sid_id = re.search(r"(SID\d+)", url_input).group(1)
+        
+        status, title_info = self.get_title_info(sid_id)
+        
+        status, all_list = self.get_all_episode(sid_id)
+        temp_list = []
+        
+        for single in all_list:
+            temp_json = {}
+            temp_json["raw"] = single
+            temp_json["episode_name"] = single["episodeName"]
+            temp_json["episode_num"] = single["displayNo"]
+            temp_json["id_in_schema"] = [title_info["id"], single["id"]]
+            temp_list.append(temp_json)
+        
+        video_info = {
+            "raw": title_info,
+            "episode_list": {
+                "metas": temp_list
+            }
+        }
+        
+        self.logger.info(" + "+title_info["titleName"])
+        
+        return None, title_info["titleName"], video_info
     def authorize(self, email_or_id, password):
         _ENDPOINT_LOGIN = "https://napi.unext.jp/1/auth/login"
         
@@ -511,3 +543,136 @@ class downloader:
             return True
         else:
             return False
+        
+    
+    
+    ### SPECIAL LOGIC HERE(LIVE)
+    def special_logic(self, url_input):
+        self.logger.info("Live Content Detect")
+        
+        liv_id = re.search(r"(LIV\d+)", url_input).group(1)
+        
+        get_data = self.get_live_info(liv_id)
+        self.logger.info("Live Name: "+get_data["live_name"])
+        
+        template_url, public_key = self.check_config()
+        template_url = template_url.format(titleId=liv_id)
+        
+        self.logger.info("Checking available watch")
+        available_watch, data_info = self.get_playlist(template_url)
+        self.logger.info(" + "+str(available_watch))
+        if available_watch == False:
+            return
+        
+        playlist_info = self.get_playlist_api(liv_id)
+        
+        if data_info["result_status"] == 200:
+            dash_profile = data_info["endpoint_urls"][0]["playables"].get("dash")
+            mpd_link = dash_profile["playlist_url"]
+            if dash_profile.get("license_url_list"):
+                widevine_url = dash_profile.get("license_url_list").get("widevine")+f"?play_token={play_token}"
+                playready_url = dash_profile.get("license_url_list").get("playready")+f"?play_token={play_token}"
+    
+                ### migrate token
+                payload = {
+                    "client_id": "unextAndroidApp",
+                    "scope": [
+                        "offline",
+                        "unext"
+                    ],
+                    "portal_user_info": {
+                        "securityToken": self.default_payload["common"]["userInfo"]["securityToken"]
+                    }
+                }
+                response = self.session.post("https://oauth.unext.jp/oauth2/migration", json=payload)
+                
+                ### get token
+                payload = {
+                    "client_id": "unextAndroidApp",
+                    "client_secret": "unextAndroidApp",
+                    "grant_type": "authorization_code",
+                    "code": response.json()["auth_code"],
+                    "redirect_uri": response.json()["redirect_uri"]
+                }
+                response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload, headers={"content-type": "application/x-www-form-urlencoded; charset=utf-8"})
+                
+                response = response.json()
+                
+                ### create live content play_token
+                payload = {
+                    "_at": response["access_token"]
+                }
+                response = self.session.post("https://stunt-right.ca.unext.jp/PROD/llp", json=payload)
+                
+                play_token = response.json()["long_lived_playtoken"]
+                
+                
+                ### get isem
+                payload = {
+                    "long_lived_playtoken": play_token,
+                    "device_id": self.default_payload["common"]["deviceInfo"]["deviceUuid"]
+                }
+                response = self.session.post("https://stunt-right.ca.unext.jp/PROD/isem", json=payload).json()
+                isem_token = response["isem_token"]
+                
+                ### activation isem
+                headers = {
+                    "u-isem-token": isem_token
+                }
+                response = self.session.post(f"https://wabit-isem.ca.unext.jp/activate_token?device_id={self.default_payload["common"]["deviceInfo"]["deviceUuid"]}&overwrite=1").json()
+                activate_isem_token = response["token"]
+                
+                #### 五分経ったら新しいの取得
+                # time.sleep(300)
+                headers = {
+                    "u-isem-token": activate_isem_token
+                }
+                response = self.session.post(f"https://wabit-isem.ca.unext.jp/refresh_token?device_id={self.default_payload["common"]["deviceInfo"]["deviceUuid"]}&overwrite=0").json()
+                activate_isem_token = response["token"]
+                
+                ### revoke isem
+                querystring = { "device_id": self.default_payload["common"]["deviceInfo"]["deviceUuid"] }
+                
+                headers = {
+                    "u-isem-token": isem_token,
+                }
+                self.session.post("https://wabit-isem.ca.unext.jp/discard_token", headers=headers, params=querystring)
+                
+    
+    def get_live_info(self, liv_id):
+        payload = self.default_payload.copy()
+        payload["data"] = {
+            "live_code": liv_id
+        }
+        
+        response = self.session.post("https://napi.unext.jp/1/lcms/live", json=payload)
+        if response.json()["common"]["result"]["errorCode"] == "":
+            return response.json()["data"]
+        else:
+            return None
+        
+    def check_config(self):
+        config_response = self.session.get("https://rconf.unext.jp/unext/common/config.json").json()
+        template_url = config_response["live_llp"]["static_playlist_url_template"]
+        public_key = config_response["live_llp"]["public_key"]
+        return template_url, public_key
+    
+    def get_playlist(self, template_url):
+        config_response = self.session.get(template_url)
+        if config_response.status_code == 403:
+            return False, None
+        else:
+            return True, config_response.json()["data"]
+        
+    def get_playlist_api(self, liv_id):
+        payload = self.default_payload.copy()
+        payload["data"] = {
+            "live_code": liv_id,
+            "validation_flg": False
+        }
+        
+        response = self.session.post("https://napi.unext.jp/3/lcms/live_playlisturl", json=payload)
+        if response.json()["common"]["result"]["errorCode"] == "":
+            return response.json()["data"]
+        else:
+            return None

@@ -67,7 +67,7 @@ def get_parser(url):
         (re.compile(r'^https?://abema\.tv/.+'), None, 'ext.services.abematv_v2', 'abema'),
         (re.compile(r'^https?://gyao\.yahoo\.co\.jp/.+'), None, 'ext.services.gyao', 'gyao'),
         (re.compile(r'^https?://(?:www\.)?aniplus-asia\.com/episode/.+'), None, 'ext.services.aniplus', 'aniplus'),
-        (re.compile(r'^https?://(?:video|video-share)\.unext\.jp/.+(SID\d+|ED\d+)'), None, 'ext.services.u_next', 'U-Next'),
+        (re.compile(r'^https?://(?:video|video-share)\.unext\.jp/.+(SID\d+|ED\d+|LIV\d+)', re.IGNORECASE), None, 'ext.services.u_next', 'U-Next'),
         (re.compile(r'^https?://video\.hnext\.jp/(?:play|title)/(AID\d+|AED\d+)'), None, 'ext.services.h_next', 'H-Next'),
         (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+).*(content=([^&]+))?'), lambda u: check_dmm_content_type(parse_qs(urlparse(u).query).get("season", [None])[0]) == "VOD_VR", 'ext.services.fanza', 'Fanza-VR'),
         (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+)'), None, 'ext.services.dmm_tv', 'dmm_tv'),
@@ -277,8 +277,12 @@ def download_command(input: str, command_list: Iterator):
             
             if video_info == "unexception_type_content":
                 service_logger.error("Please report content url!")
-                service_logger.error("URL: ",input)
+                service_logger.error("URL: "+input)
                 return None
+            
+            if video_info == "special":
+               service_downloader.special_logic(input)
+               return
             
             service_logger.info("Creating Content filename...") 
             if video_info["content_type"] == "special":
