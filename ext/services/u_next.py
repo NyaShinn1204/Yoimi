@@ -181,7 +181,7 @@ class downloader:
             return False, 'Require Japan VPN, Proxy', False, None
     def authorize_qr(self):
         _ENDPOINT_LOGIN = "https://login-delegation.unext.jp/"
-        _ENDPOINT_LOGIN = "https://napi.unext.jp/1/auth/login"
+        _ENDPOINT_LOGIN_U = "https://napi.unext.jp/1/auth/login"
        
         device_uuid = str(uuid.uuid4())
         
@@ -200,7 +200,7 @@ class downloader:
         
         session_check_data = {
           "code": get_qr_link["code"],
-          "sessionId": get_qr_link["dd2388ba"]
+          "sessionId": get_qr_link["sessionId"]
         }
         
         print("Login URL:", get_qr_link["authPageUrlTemplate"])
@@ -211,7 +211,7 @@ class downloader:
             if send_checkping.status_code == 400:
                 print("Waiting Login...")
                 time.sleep(5)
-            elif send_checkping.status_coed == 200:
+            elif send_checkping.status_code == 200:
                 print("Login Accept")
                                  
                 one_time_token = send_checkping.json()["oneTimeToken"]
@@ -233,7 +233,7 @@ class downloader:
                   }
                 }
                 
-                response = self.session.post(_ENDPOINT_LOGIN, json=payload)
+                response = self.session.post(_ENDPOINT_LOGIN_U, json=payload)
                 
                 user_response = response.json()
                 
