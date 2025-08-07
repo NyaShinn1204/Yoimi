@@ -91,17 +91,20 @@ def fetch_mpd_and_segment_info(mpd_url):
 
 
 def main_loop(mpd_url, seg_info):
-    while True:
-        mpd_content = fetch_mpd_and_segment_info(mpd_url)
-        if not mpd_content:
-            time.sleep(5)
-            continue
-
-        mup = parse_minimum_update_period(mpd_content)
-        download_and_merge_segments(seg_info, mpd_content)
-
-        print(f"Sleeping for {mup} seconds before refreshing MPD...")
-        time.sleep(mup)
+    try:
+        while True:
+            mpd_content = fetch_mpd_and_segment_info(mpd_url)
+            if not mpd_content:
+                time.sleep(5)
+                continue
+    
+            mup = parse_minimum_update_period(mpd_content)
+            download_and_merge_segments(seg_info, mpd_content)
+    
+            print(f"Sleeping for {mup} seconds before refreshing MPD...")
+            time.sleep(mup)
+    except KeyboardInterrupt:
+        print("exti")
 
 
 if __name__ == "__main__":

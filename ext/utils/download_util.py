@@ -282,8 +282,31 @@ class live_downloader:
     """ライブコンテンツのダウンロード"""
     def __init__(self, logger):
         self.logger = logger
-    def download(self, url: str, config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool, str]:
-        pass
+    def download(self, url: str, res_info: Dict[str, Any], config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool]:
+        try:
+            output_temp_directory = os.path.join(config["directories"]["Temp"], "content", unixtime)
+            os.makedirs(output_temp_directory, exist_ok=True)
+            
+            while True:
+                ### define output 
+                output_video = os.path.join(output_temp_directory, "download_encrypt_video.mp4")
+                output_audio = os.path.join(output_temp_directory, "download_encrypt_audio.mp4")
+                
+                ### check mpd content
+                mpd_content = self.fetch_mpd_and_segment_info(url)
+                if not mpd_content:
+                    time.sleep(5)
+                    continue
+        
+                mup = self.parse_minimum_update_period(mpd_content)
+                self.download_and_merge_segments(res_info, mpd_content)
+        
+                print(f"Sleeping for {mup} seconds before refreshing MPD...")
+                time.sleep(mup)
+        except KeyboardInterrupt:
+            return True
+        except:
+            return False
 ########## TEST SCRIPT HERE ##########
 
 if __name__ == '__main__':
@@ -405,7 +428,7 @@ if __name__ == '__main__':
     downloader = live_downloader()
 
     print("Download starting...")
-    success, result = downloader.download(
+    success = downloader.download(
         url=test_url,
         res_info=test_info,
         config=dummy_config,
