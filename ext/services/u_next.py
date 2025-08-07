@@ -3,6 +3,9 @@ import ast
 import uuid
 import time
 import hashlib
+import threading
+
+import ext.utils.parser_util as parser_util
 
 __service_config__ = {
     "service_name": "U-Next",
@@ -55,10 +58,10 @@ class downloader:
             sid_id = id[0]
             ed_id = id[1]
         else:
-            sid_id = re.search(r"(SID\d+)", url_input).group(1)
-            ed_id = re.search(r"(ED\d+)", url_input).group(1)
             if "/live/" in url_input:
                 return "special"
+            sid_id = re.search(r"(SID\d+)", url_input).group(1)
+            ed_id = re.search(r"(ED\d+)", url_input).group(1)
         
         status, title_info = self.get_title_info(sid_id)
         
@@ -564,6 +567,26 @@ class downloader:
     
     
     ### SPECIAL LOGIC HERE(LIVE)
+    def refresh_thread(self):
+        try:
+            while True:
+                # 5分（300秒）後にリフレッシュ
+                time.sleep(300)
+    
+                device_id = self.default_payload["common"]["deviceInfo"]["deviceUuid"]
+    
+                response = self.session.post(
+                    f"https://wabit-isem.ca.unext.jp/refresh_token?device_id={device_id}&overwrite=0",
+                ).json()
+    
+                refreshed_token = response["token"]
+    
+                # セッションヘッダーを更新
+                self.session.headers.update({
+                    "u-isem-token": refreshed_token
+                })
+        except Exception as e:
+            print(f"[ERROR] Token refresh thread: {e}")
     def special_logic(self, url_input):
         self.logger.info("Live Content Detect")
         
@@ -584,76 +607,92 @@ class downloader:
         playlist_info = self.get_playlist_api(liv_id)
         
         if data_info["result_status"] == 200:
-            dash_profile = data_info["endpoint_urls"][0]["playables"].get("dash")
+            dash_profile = data_info["endpoint_urls"][0]["playables"].get("dash")[0]
             mpd_link = dash_profile["playlist_url"]
+                
+            self.logger.debug("MPD LINK: "+mpd_link)
+
+            ### migrate token
+            payload = {
+                "client_id": "unextAndroidApp",
+                "scope": [
+                    "offline",
+                    "unext"
+                ],
+                "portal_user_info": {
+                    "securityToken": self.default_payload["common"]["userInfo"]["securityToken"]
+                }
+            }
+            response = self.session.post("https://oauth.unext.jp/oauth2/migration", json=payload)
+            
+            ### get token
+            payload = {
+                "client_id": "unextAndroidApp",
+                "client_secret": "unextAndroidApp",
+                "grant_type": "authorization_code",
+                "code": response.json()["auth_code"],
+                "redirect_uri": response.json()["redirect_uri"]
+            }
+            response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload, headers={"content-type": "application/x-www-form-urlencoded; charset=utf-8"})
+            
+            response = response.json()
+            
+            ### create live content play_token
+            payload = {
+                "_at": response["access_token"],
+                "title_id": liv_id,
+                "parent_title_id": "",
+                "content_type": "LIVE"
+            }
+            response = self.session.post("https://stunt-right.ca.unext.jp/PROD/llp", json=payload)
+            
+            play_token = response.json()["long_lived_playtoken"]
+            
             if dash_profile.get("license_url_list"):
                 widevine_url = dash_profile.get("license_url_list").get("widevine")+f"?play_token={play_token}"
                 playready_url = dash_profile.get("license_url_list").get("playready")+f"?play_token={play_token}"
-    
-                ### migrate token
-                payload = {
-                    "client_id": "unextAndroidApp",
-                    "scope": [
-                        "offline",
-                        "unext"
-                    ],
-                    "portal_user_info": {
-                        "securityToken": self.default_payload["common"]["userInfo"]["securityToken"]
-                    }
-                }
-                response = self.session.post("https://oauth.unext.jp/oauth2/migration", json=payload)
-                
-                ### get token
-                payload = {
-                    "client_id": "unextAndroidApp",
-                    "client_secret": "unextAndroidApp",
-                    "grant_type": "authorization_code",
-                    "code": response.json()["auth_code"],
-                    "redirect_uri": response.json()["redirect_uri"]
-                }
-                response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload, headers={"content-type": "application/x-www-form-urlencoded; charset=utf-8"})
-                
-                response = response.json()
-                
-                ### create live content play_token
-                payload = {
-                    "_at": response["access_token"]
-                }
-                response = self.session.post("https://stunt-right.ca.unext.jp/PROD/llp", json=payload)
-                
-                play_token = response.json()["long_lived_playtoken"]
-                
-                
-                ### get isem
-                payload = {
-                    "long_lived_playtoken": play_token,
-                    "device_id": self.default_payload["common"]["deviceInfo"]["deviceUuid"]
-                }
-                response = self.session.post("https://stunt-right.ca.unext.jp/PROD/isem", json=payload).json()
-                isem_token = response["isem_token"]
-                
-                ### activation isem
-                headers = {
-                    "u-isem-token": isem_token
-                }
-                response = self.session.post(f"https://wabit-isem.ca.unext.jp/activate_token?device_id={self.default_payload["common"]["deviceInfo"]["deviceUuid"]}&overwrite=1").json()
-                activate_isem_token = response["token"]
-                
-                #### 五分経ったら新しいの取得
-                # time.sleep(300)
-                headers = {
-                    "u-isem-token": activate_isem_token
-                }
-                response = self.session.post(f"https://wabit-isem.ca.unext.jp/refresh_token?device_id={self.default_payload["common"]["deviceInfo"]["deviceUuid"]}&overwrite=0").json()
-                activate_isem_token = response["token"]
-                
-                ### revoke isem
-                querystring = { "device_id": self.default_payload["common"]["deviceInfo"]["deviceUuid"] }
-                
-                headers = {
-                    "u-isem-token": isem_token,
-                }
-                self.session.post("https://wabit-isem.ca.unext.jp/discard_token", headers=headers, params=querystring)
+            
+            self.logger.debug("DRM WV: "+widevine_url)
+            self.logger.debug("DRM PR: "+playready_url)
+            
+            ### get isem
+            payload = {
+                "long_lived_playtoken": play_token,
+                "device_id": self.default_payload["common"]["deviceInfo"]["deviceUuid"]
+            }
+            response = self.session.post("https://stunt-right.ca.unext.jp/PROD/isem", json=payload).json()
+            isem_token = response["isem_token"]
+            
+            ### activation isem
+            self.session.headers.update({
+                "u-isem-token": isem_token
+            })
+            response = self.session.post(f"https://wabit-isem.ca.unext.jp/activate_token?device_id={self.default_payload["common"]["deviceInfo"]["deviceUuid"]}&overwrite=1").json()
+            activate_isem_token = response["token"]
+            
+            self.session.headers.update({
+                "u-isem-token": activate_isem_token
+            })                
+            
+            threading.Thread(target=self.refresh_thread, daemon=True).start()
+            
+            self.logger.info("Parsing MPD file")
+            Tracks = parser_util.global_parser()
+            transformed_data = Tracks.mpd_parser(self.session.get(mpd_link).text, debug=False)
+
+            track_data = Tracks.print_tracks(transformed_data)
+            print(track_data)
+            
+            select_track = Tracks.select_best_tracks(transformed_data)
+            print(select_track)
+
+            ### revoke isem
+            querystring = { "device_id": self.default_payload["common"]["deviceInfo"]["deviceUuid"] }
+            
+            headers = {
+                "u-isem-token": isem_token,
+            }
+            self.session.post("https://wabit-isem.ca.unext.jp/discard_token", headers=headers, params=querystring)
                 
     
     def get_live_info(self, liv_id):

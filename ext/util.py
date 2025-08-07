@@ -318,7 +318,7 @@ def download_command(input: str, command_list: Iterator):
             if "p" in command_list["resolution"]: # select user track
                 select_track = Tracks.select_special_week(command_list["resolution"], transformed_data)
             
-            yoimi_logger.info("Selected Best Quality Track:")
+            yoimi_logger.info("Selected Track:")
             yoimi_logger.info(f" + Video: [{select_track["video"]["codec"]}] [{select_track["video"]["resolution"]}] | {select_track["video"]["bitrate"]} kbps")
             yoimi_logger.info(f" + Audio: [{select_track["audio"]["codec"]}] | {select_track["audio"]["bitrate"]} kbps")
             

@@ -588,7 +588,10 @@ class global_parser:
             "text_track": text_tracks
         }
       
-        
+    def is_live_mpd(self, mpd_text: str) -> bool:
+        root = ET.fromstring(mpd_text.encode('utf-8'))
+        mpd_type = root.attrib.get('type', 'static')
+        return mpd_type == 'dynamic'
     def determine_mpd_type(self, mpd_text: str) -> str:
         """
         MPDのテキストを解析して、セグメント型か単体型かを判定する。
