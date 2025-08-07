@@ -279,6 +279,23 @@ class downloader:
                             "security_token": security_token,
                         }
                     }
+                    
+                    self.default_payload = {
+                        "common":{
+                            "userInfo":{
+                                "userToken":user_token,
+                                "service_name":"unext",
+                                "securityToken":security_token,
+                            },
+                            "deviceInfo":{
+                                "deviceType":"980",
+                                "appVersion":"1",
+                                "deviceUuid":device_uuid
+                            }
+                        },
+                        "data": {}
+                    }
+                    
                     return True, user_response["common"]["userInfo"], True, session_json
                 elif user_response["common"]["result"]["errorCode"] == "GUN8030006":
                     return False, 'Wrong Email or password', False, None
