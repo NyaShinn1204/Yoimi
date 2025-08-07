@@ -277,6 +277,10 @@ class segment_downloader:
             return False, "Download interrupted by user."
         except Exception as e:
             return False, f"Unexpected error: {str(e)}"
+ 
+class live_downloader:       
+    def __init__(self, logger):
+        self.logger = logger
         
 
 ########## TEST SCRIPT HERE ##########

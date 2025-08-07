@@ -288,6 +288,8 @@ def download_command(input: str, command_list: Iterator):
             if video_info["content_type"] == "special":
                 output_titlename = video_info["output_titlename"]
                 video_info["content_type"] = "movie"
+            elif video_info["content_type"] == "live":
+                output_titlename = video_info["output_titlename"]
             else:
                 output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
             service_logger.info(" + "+output_titlename)
@@ -349,8 +351,9 @@ def download_command(input: str, command_list: Iterator):
             
             yoimi_logger.info(" + " + str(output_path))
             
-            yoimi_logger.info("Calculate about Manifest")
-            duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+            if video_info["content_type"] != "live":
+                yoimi_logger.info("Calculate about Manifest")
+                duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
             
             if dl_type == "segment":                
                 yoimi_logger.debug(" + Episode Duration: "+str(int(duration)))
@@ -395,7 +398,14 @@ def download_command(input: str, command_list: Iterator):
                     audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
                                     
                     decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
-                
+            elif dl_type == "live":
+                # WTF THIS OPTION SO SICKKKKKKK
+                # FUCKING SHIT BRUH MOMENT BRUUUUUUHHHHHH
+                yoimi_logger.info("Checking manifest...")
+                base_url = manifest_link.replace("manifest.mpd")
+                seg_info = transformed_data
+            
+            
             yoimi_logger.info("Muxing Content")
             muxer = main_mux(yoimi_logger)
             muxer.mux_content(video_input=video_decrypt_output, audio_input=audio_decrypt_output, output_path=output_path, duration=int(duration), service_name="Yoimi")

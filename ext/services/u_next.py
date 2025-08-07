@@ -1,10 +1,13 @@
 import re
+import os
 import ast
 import uuid
 import time
 import hashlib
+import requests
 import threading
-
+from urllib.parse import urljoin
+import xml.etree.ElementTree as ET
 import ext.utils.parser_util as parser_util
 
 __service_config__ = {
@@ -59,7 +62,15 @@ class downloader:
             ed_id = id[1]
         else:
             if "/live/" in url_input:
-                return "special"
+                liv_id = re.search(r"(LIV\d+)", url_input).group(1)
+                get_data = self.get_live_info(liv_id)
+                return {
+                    "raw": get_data,
+                    "content_id": liv_id,
+                    "content_type": "live",
+                    "title_name": "",
+                    "output_titlename": get_data["live_name"] 
+                }
             sid_id = re.search(r"(SID\d+)", url_input).group(1)
             ed_id = re.search(r"(ED\d+)", url_input).group(1)
         
@@ -519,42 +530,117 @@ class downloader:
     
     def open_session_get_dl(self, video_info):
         global url_info, play_token
-        if video_info["raw_single"]["minimumPrice"] != -1:
-            self.logger.info(f" ! This contetn require {video_info["raw_single"]["minimumPrice"]} point")
-            is_buyed = self.check_buyed(video_info["series_id"])
-            if is_buyed == True:
-                self.logger.info(f" ! already purchased.")
-            else:
-                self.logger.error(" ! Please buy content at web.")
-                raise Exception("Require rental/buy")
+        if video_info["content_type"] == "live":
+            url_info = "live"
+            get_data = self.get_live_info(video_info["content_id"])
+            self.logger.info("Live Name: "+get_data["live_name"])
             
-        status, episode_type = self.judgment_sub_dub(video_info["raw_single"]["id"])
-        
-        status, play_token, url_info, additional_meta = self.get_play_token(video_info["raw_single"]["id"], episode_type)
-        
-        
-        if status == False:
-            self.logger.error("Failed to get play_token")
-            return None, None, None, None
-        else:
-            dash_profile = url_info["movie_profile"].get("dash")
-            mpd_link = dash_profile["playlist_url"]
-            if dash_profile.get("license_url_list"):
-                widevine_url = dash_profile.get("license_url_list").get("widevine")+f"?play_token={play_token}"
-                playready_url = dash_profile.get("license_url_list").get("playready")+f"?play_token={play_token}"
+            template_url, public_key = self.check_config()
+            template_url = template_url.format(titleId=video_info["content_id"])
+            
+            self.logger.info("Checking available watch")
+            available_watch, data_info = self.get_playlist(template_url)
+            self.logger.info(" + "+str(available_watch))
+            if available_watch == False:
+                return
+            
+            playlist_info = self.get_playlist_api(video_info["content_id"])
+            
+            if data_info["result_status"] == 200:
+                dash_profile = data_info["endpoint_urls"][0]["playables"].get("dash")[0]
+                mpd_link = dash_profile["playlist_url"]
+                    
+                self.logger.debug("MPD LINK: "+mpd_link)
+    
+                ### migrate token
+                payload = {
+                    "client_id": "unextAndroidApp",
+                    "scope": [
+                        "offline",
+                        "unext"
+                    ],
+                    "portal_user_info": {
+                        "securityToken": self.default_payload["common"]["userInfo"]["securityToken"]
+                    }
+                }
+                response = self.session.post("https://oauth.unext.jp/oauth2/migration", json=payload)
                 
-            mpd_response = self.session.get(mpd_link+f"&play_token={play_token}").text
-            license_header = {
-                "content-type": "application/octet-stream",
-                "user-agent": "Beautiful_Japan_TV_Android/1.0.6 (Linux;Android 10) ExoPlayerLib/2.12.0",
-                "accept-encoding": "gzip",
-                "host": "wvproxy.unext.jp",
-                "connection": "Keep-Alive"
-            }
-            return mpd_response, mpd_link+f"&play_token={play_token}", {"widevine": widevine_url, "playready": playready_url}, license_header 
+                ### get token
+                payload = {
+                    "client_id": "unextAndroidApp",
+                    "client_secret": "unextAndroidApp",
+                    "grant_type": "authorization_code",
+                    "code": response.json()["auth_code"],
+                    "redirect_uri": response.json()["redirect_uri"]
+                }
+                response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload, headers={"content-type": "application/x-www-form-urlencoded; charset=utf-8"})
+                
+                response = response.json()
+                
+                ### create live content play_token
+                payload = {
+                    "_at": response["access_token"],
+                    "title_id": video_info["content_id"],
+                    "parent_title_id": "",
+                    "content_type": "LIVE"
+                }
+                response = self.session.post("https://stunt-right.ca.unext.jp/PROD/llp", json=payload)
+                
+                play_token = response.json()["long_lived_playtoken"]
+                
+                if dash_profile.get("license_url_list"):
+                    widevine_url = dash_profile.get("license_url_list").get("widevine")+f"?play_token={play_token}"
+                    playready_url = dash_profile.get("license_url_list").get("playready")+f"?play_token={play_token}"
+                license_header = {
+                    "content-type": "application/octet-stream",
+                    "user-agent": "Beautiful_Japan_TV_Android/1.0.6 (Linux;Android 10) ExoPlayerLib/2.12.0",
+                    "accept-encoding": "gzip",
+                    "host": "wvproxy.unext.jp",
+                    "connection": "Keep-Alive"
+                }
+                return self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}, license_header 
+            else:
+                raise Exception("Content is unavailable")
+        else:
+            if video_info["raw_single"]["minimumPrice"] != -1:
+                self.logger.info(f" ! This contetn require {video_info["raw_single"]["minimumPrice"]} point")
+                is_buyed = self.check_buyed(video_info["series_id"])
+                if is_buyed == True:
+                    self.logger.info(f" ! already purchased.")
+                else:
+                    self.logger.error(" ! Please buy content at web.")
+                    raise Exception("Require rental/buy")
+                
+            status, episode_type = self.judgment_sub_dub(video_info["raw_single"]["id"])
+            
+            status, play_token, url_info, additional_meta = self.get_play_token(video_info["raw_single"]["id"], episode_type)
+            
+            
+            if status == False:
+                self.logger.error("Failed to get play_token")
+                return None, None, None, None
+            else:
+                dash_profile = url_info["movie_profile"].get("dash")
+                mpd_link = dash_profile["playlist_url"]
+                if dash_profile.get("license_url_list"):
+                    widevine_url = dash_profile.get("license_url_list").get("widevine")+f"?play_token={play_token}"
+                    playready_url = dash_profile.get("license_url_list").get("playready")+f"?play_token={play_token}"
+                    
+                mpd_response = self.session.get(mpd_link+f"&play_token={play_token}").text
+                license_header = {
+                    "content-type": "application/octet-stream",
+                    "user-agent": "Beautiful_Japan_TV_Android/1.0.6 (Linux;Android 10) ExoPlayerLib/2.12.0",
+                    "accept-encoding": "gzip",
+                    "host": "wvproxy.unext.jp",
+                    "connection": "Keep-Alive"
+                }
+                return mpd_response, mpd_link+f"&play_token={play_token}", {"widevine": widevine_url, "playready": playready_url}, license_header 
         
     def decrypt_done(self):
-        self.close_session(media_code=url_info["code"], play_token=play_token)    
+        if url_info == "live":
+            self.close_live_session(device_id=self.default_payload["common"]["deviceInfo"]["deviceUuid"], play_token=play_token)
+        else:
+            self.close_session(media_code=url_info["code"], play_token=play_token)    
     
     def close_session(self, media_code, play_token):
         signal_result = self.session.get(f"https://beacon.unext.jp/beacon/stop/{media_code}/0/?play_token={play_token}&last_viewing_flg=0")
@@ -563,10 +649,118 @@ class downloader:
             return True
         else:
             return False
+    def close_live_session(self, device_id, play_token):
+        signal_result = self.session.post(f"https://wabit-isem.ca.unext.jp/discard_token?device_id={device_id}", headers={"u-isem-token": play_token})
         
-    
+        if signal_result.status_code == 200:
+            return True
+        else:
+            return False
     
     ### SPECIAL LOGIC HERE(LIVE)
+    class live_downloader:
+        def __init__(self):
+            self.downloaded_segments = {
+                "video": set(),
+                "audio": set()
+            }
+        def download_segment(self, url, output_path):
+            response = requests.get(url, stream=True)
+            if response.status_code == 200:
+                with open(output_path, 'ab') as f:
+                    f.write(response.content)
+                print(f"Downloaded: {url}")
+            else:
+                print(f"Failed to download {url}: {response.status_code}")
+        
+        
+        def extract_segment_times(self, mpd_content, media_type):
+            times = []
+            try:
+                ns = {'mpd': 'urn:mpeg:dash:schema:mpd:2011'}
+                root = ET.fromstring(mpd_content)
+                period = root.find('mpd:Period', ns)
+                adaptation_sets = period.findall('mpd:AdaptationSet', ns)
+        
+                for aset in adaptation_sets:
+                    if media_type in aset.attrib.get("mimeType", ""):
+                        seg_template = aset.find('mpd:SegmentTemplate', ns)
+                        seg_timeline = seg_template.find('mpd:SegmentTimeline', ns)
+                        s_elements = seg_timeline.findall('mpd:S', ns)
+                        current_time = 0
+                        for s in s_elements:
+                            d = int(s.attrib['d'])
+                            if 't' in s.attrib:
+                                current_time = int(s.attrib['t'])
+                            times.append(current_time)
+                            current_time += d
+                        break
+            except Exception as e:
+                print(f"Error extracting segment times for {media_type}: {e}")
+            return times
+        
+        
+        def download_and_merge_segments(self, seg_info, mpd_content):
+            for media_type in ["video", "audio"]:
+                info = seg_info[media_type]
+        
+                # Initialization segment
+                init_url = urljoin(info["url_base"], info["url"])
+                init_filename = f"encrypt_{media_type}.mp4"
+                if not os.path.exists(init_filename):
+                    self.download_segment(init_url, init_filename)
+        
+                # Segment timeline from MPD
+                seg_times = self.extract_segment_times(mpd_content, media_type)
+        
+                for t in seg_times:
+                    if t in self.downloaded_segments[media_type]:
+                        continue  # skip already downloaded segment
+        
+                    seg_url = urljoin(info["url_base"], info["url_segment_base"].replace("$Time$", str(t)))
+                    self.download_segment(seg_url, init_filename)
+                    self.downloaded_segments[media_type].add(t)
+        
+        
+        def parse_minimum_update_period(self, mpd_content):
+            try:
+                ns = {'mpd': 'urn:mpeg:dash:schema:mpd:2011'}
+                root = ET.fromstring(mpd_content)
+                mup_str = root.attrib.get("minimumUpdatePeriod", "PT5S")
+                if mup_str.startswith("PT") and mup_str.endswith("S"):
+                    return float(mup_str[2:-1])
+            except Exception as e:
+                print(f"Error parsing minimumUpdatePeriod: {e}")
+            return 5.0  # fallback
+        
+        
+        def fetch_mpd_and_segment_info(self, mpd_url):
+            response = requests.get(mpd_url)
+            if response.status_code == 200:
+                return response.text
+            else:
+                print(f"Failed to fetch MPD: {response.status_code}")
+                return None
+        
+        
+        def main_loop(self, mpd_url, seg_info):
+            try:
+                while True:
+                    mpd_content = self.fetch_mpd_and_segment_info(mpd_url)
+                    if not mpd_content:
+                        time.sleep(5)
+                        continue
+            
+                    mup = self.parse_minimum_update_period(mpd_content)
+                    self.download_and_merge_segments(seg_info, mpd_content)
+            
+                    print(f"Sleeping for {mup} seconds before refreshing MPD...")
+                    time.sleep(mup)
+            except KeyboardInterrupt:
+                ### decrypt
+                ### muxing
+                pass
+                
     def refresh_thread(self):
         try:
             while True:
@@ -685,14 +879,17 @@ class downloader:
             
             select_track = Tracks.select_best_tracks(transformed_data)
             print(select_track)
-
-            ### revoke isem
-            querystring = { "device_id": self.default_payload["common"]["deviceInfo"]["deviceUuid"] }
             
-            headers = {
-                "u-isem-token": isem_token,
-            }
-            self.session.post("https://wabit-isem.ca.unext.jp/discard_token", headers=headers, params=querystring)
+            downlaoder = downloader.live_downloader()
+            downlaoder.main_loop(mpd_link, transformed_data)
+
+            #### revoke isem
+            #querystring = { "device_id": self.default_payload["common"]["deviceInfo"]["deviceUuid"] }
+            #
+            #headers = {
+            #    "u-isem-token": isem_token,
+            #}
+            #self.session.post("https://wabit-isem.ca.unext.jp/discard_token", headers=headers, params=querystring)
                 
     
     def get_live_info(self, liv_id):

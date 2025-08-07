@@ -601,6 +601,9 @@ class global_parser:
             'single'  - 単体型（BaseURL のみで構成されている場合など）
         """
         try:
+            mpd_type = self.is_live_mpd(mpd_text)
+            if mpd_type:
+                return "live"
             root = ET.fromstring(mpd_text)
             ns = {'mpd': root.tag.split('}')[0].strip('{')} if '}' in root.tag else {}
     
