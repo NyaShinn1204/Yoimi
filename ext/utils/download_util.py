@@ -279,10 +279,11 @@ class segment_downloader:
             return False, f"Unexpected error: {str(e)}"
  
 class live_downloader:       
+    """ライブコンテンツのダウンロード"""
     def __init__(self, logger):
         self.logger = logger
-        
-
+    def download(self, url: str, config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool, str]:
+        pass
 ########## TEST SCRIPT HERE ##########
 
 if __name__ == '__main__':
@@ -356,3 +357,64 @@ if __name__ == '__main__':
         print(f"\nDownload successful! File saved at: {test_filename}")
     else:
         print(f"\nDownload failed:\n{success}")
+
+if __name__ == '__main__':
+    
+    if os.name == 'nt':
+        os.system('') ## Bypass Fucking Idiot Windows Color Issue
+    
+    dummy_config = {
+        "directories": {
+            "Temp": "temp_dir",
+            "Binaries": "."
+        }
+    }
+    dummy_unixtime = str(int(datetime.now().timestamp()))
+    
+    test_url = "https://streaml01cf.nxtv.jp/p-checkch01-uni88978us/index2.ism/manifest.mpd"
+    test_info = {
+        'video': {
+            'url': 'segment_ua2anvupo_ctvideo_cfm4s_ridp0va0br2808000_cinit_mpd.m4s',
+            'url_base': '',
+            'url_segment_base': 'segment_ua2anvupo_ctvideo_cfm4s_ridp0va0br2808000_cs$Time$_mpd.m4s',
+            'seg_duration': '540000',
+            'seg_timescale': '90000',
+            'segment_count': 15,
+            'id': 'p0va0br2808000',
+            'bitrate': '2808',
+            'codec': 'avc1.64001f',
+            'type': 'video',
+            'resolution': '1280x720'
+        },
+        'audio': {
+            'url': 'segment_ua2anvupo_ctaudio_cfm4s_ridp0aa0br445189_cinit_mpd.m4s',
+            'url_base': '',
+            'url_segment_base': 'segment_ua2anvupo_ctaudio_cfm4s_ridp0aa0br445189_cs$Time$_mpd.m4s',
+            'seg_duration': '287712',
+            'seg_timescale': '48000',
+            'segment_count': 15,
+            'id': 'p0aa0br445189',
+            'bitrate': '445',
+            'codec': 'mp4a.40.2',
+            'type': 'audio',
+            'language': 'eng'
+        }
+    }
+    test_info["video"]["url_base"] = "https://streaml01cf.nxtv.jp/p-checkch01-uni88978us/index2.ism/"
+    test_info["audio"]["url_base"] = "https://streaml01cf.nxtv.jp/p-checkch01-uni88978us/index2.ism/"
+    downloader = live_downloader()
+
+    print("Download starting...")
+    success, result = downloader.download(
+        url=test_url,
+        res_info=test_info,
+        config=dummy_config,
+        unixtime=dummy_unixtime,
+        service_name="Yoimi-Test"
+    )
+
+    if success:
+        print(f"\nDownload successful! File saved at: {result}")
+    else:
+        print(f"\nDownload failed:\n{result}")
+        
