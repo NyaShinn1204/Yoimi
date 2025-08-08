@@ -451,7 +451,7 @@ class downloader:
         
         self.logger.info(" + Session Token: "+metadata["playback_session_id"][:10]+"*****")
         
-        if url_metadata["season_id"] == None:
+        if url_metadata["season_id"] == None and url_metadata["series_id"] == None:
             if url_metadata["season_meta_id"] == None:
                 episode_count = 1
             else:
@@ -483,7 +483,11 @@ class downloader:
                 else:
                     input_type = "episode"
                 
-            episode_count = self.get_total_episode(url_metadata["season_meta_id"], input_type)["total_count"]
+            episode_count = self.get_total_episode(url_metadata["season_meta_id"], input_type)
+            if episode_count == None:
+                episode_count = self.get_total_episode(url_metadata["series_meta_id"], input_type)
+                
+            episode_count = episode_count["total_count"]
             content_type = "anime"
             title_name = url_metadata["series_name"]
             

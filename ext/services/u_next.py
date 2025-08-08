@@ -1,14 +1,27 @@
+"""
+SERVICE INFO
+
+
+name: U-Next
+require_account: Yes
+enable_refresh: Yes
+support_qr: Yes
+is_drm: Yes
+cache_session: Yes
+use_tlsclient: No
+support_url: 
+   https://video-share.unext.jp/video/title/xxx
+   https://video.unext.jp/title/xxx
+   https://video.unext.jp/play/xxx/xxx
+   https://video.unext.jp/live/xxx (live&static)
+"""
+
 import re
-import os
 import ast
 import uuid
 import time
 import hashlib
-import requests
-import threading
-from urllib.parse import urljoin, urlparse
-import xml.etree.ElementTree as ET
-import ext.utils.parser_util as parser_util
+from urllib.parse import urlparse
 
 __service_config__ = {
     "service_name": "U-Next",

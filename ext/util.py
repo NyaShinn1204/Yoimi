@@ -284,7 +284,7 @@ def download_command(input: str, command_list: Iterator):
             if video_info == "special":
                service_downloader.special_logic(input)
                return
-            
+                        
             service_logger.info("Creating Content filename...") 
             if video_info["content_type"] == "special":
                 output_titlename = video_info["output_titlename"]
