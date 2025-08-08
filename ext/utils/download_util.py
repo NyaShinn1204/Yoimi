@@ -5,8 +5,10 @@ import logging
 import requests
 import threading
 import subprocess
+import xml.etree.ElementTree as ET
 from tqdm import tqdm
 from datetime import datetime
+from urllib.parse import urljoin
 from typing import Optional, Tuple, List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -179,10 +181,19 @@ class segment_downloader:
         for i, url in enumerate(segment_links):
             temp_path = os.path.join(output_temp_directory, f"{i:05d}.ts")
             if not os.path.exists(temp_path):
-                fetch_and_save((i, url))
-                self.logger.info(f" + Successfully downloaded segment {i}: {url}")
-                time.sleep(2)
+                try:
+                    result = fetch_and_save((i, url))
+                    if result is not None:
+                        self.logger.info(f" + Successfully downloaded segment {i}: {url}")
+                except Exception as e:
+                    # 404は無視
+                    if "404" in str(e):
+                        self.logger.warning(f" + Segment {i} not found (404), skipping.")
+                        continue
+                    else:
+                        raise
         self.logger.info(" + Completed file integrity verification.")
+    
     def download(self, segment_links: list, output_file_name: str, config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool]:
         """
         セグメントのURLリストから並列でダウンロードを行い、結合して1つのファイルに出力する。
@@ -204,23 +215,15 @@ class segment_downloader:
         stop_flag = threading.Event()
 
         def fetch_and_save(index_url):
-            """
-            セグメントを1つずつダウンロードして一時ファイルとして保存する内部関数。
-
-            Args:
-                index_url (tuple): (インデックス, URL) のタプル。
-
-            Returns:
-                int: 成功時はインデックスを返す。
-
-            Raises:
-                Exception: 3回のリトライでも失敗した場合に例外を送出。
-            """
             index, url = index_url
             retry = 0
             while retry < 3 and not stop_flag.is_set():
                 try:
                     response = requests.get(url.strip(), timeout=10)
+                    if response.status_code == 404:
+                        # 404は無視して終了
+                        self.logger.warning(f" + Segment {index} not found (404), skipping: {url}")
+                        return None
                     response.raise_for_status()
                     temp_path = os.path.join(output_temp_directory, f"{index:05d}.ts")
                     with open(temp_path, 'wb') as f:
@@ -229,7 +232,7 @@ class segment_downloader:
                 except requests.exceptions.RequestException:
                     retry += 1
                     time.sleep(2)
-
+        
             if not stop_flag.is_set():
                 raise Exception(f"Failed to download segment {index}: {url}")
 
@@ -256,9 +259,12 @@ class segment_downloader:
             with open(output_path, 'wb') as out_file:
                 for i in range(len(segment_links)):
                     temp_path = os.path.join(output_temp_directory, f"{i:05d}.ts")
-                    with open(temp_path, 'rb') as f:
-                        out_file.write(f.read())
-                    os.remove(temp_path)
+                    if os.path.exists(temp_path):
+                        with open(temp_path, 'rb') as f:
+                            out_file.write(f.read())
+                        os.remove(temp_path)
+                    else:
+                        self.logger.warning(f" + Segment {i:05d}.ts missing, skipping.")
                     
             return True, output_path
         
@@ -282,6 +288,82 @@ class live_downloader:
     """ライブコンテンツのダウンロード"""
     def __init__(self, logger):
         self.logger = logger
+        self.downloaded_segments = {
+            "video": set(),
+            "audio": set()
+        }
+    def _download_segment(self, url, output_path):
+        response = requests.get(url, stream=True)
+        if response.status_code == 200:
+            with open(output_path, 'ab') as f:
+                f.write(response.content)
+            self.logger.info(f" + Downloaded: {url}")
+        else:
+            self.logger.error(f"Failed to download {url}: {response.status_code}")
+    def _extract_segment_times(self, mpd_content, media_type):
+        times = []
+        try:
+            ns = {'mpd': 'urn:mpeg:dash:schema:mpd:2011'}
+            root = ET.fromstring(mpd_content)
+            period = root.find('mpd:Period', ns)
+            adaptation_sets = period.findall('mpd:AdaptationSet', ns)
+    
+            for aset in adaptation_sets:
+                if media_type in aset.attrib.get("mimeType", ""):
+                    seg_template = aset.find('mpd:SegmentTemplate', ns)
+                    seg_timeline = seg_template.find('mpd:SegmentTimeline', ns)
+                    s_elements = seg_timeline.findall('mpd:S', ns)
+                    current_time = 0
+                    for s in s_elements:
+                        d = int(s.attrib['d'])
+                        if 't' in s.attrib:
+                            current_time = int(s.attrib['t'])
+                        times.append(current_time)
+                        current_time += d
+                    break
+        except Exception as e:
+            self.logger.error(f"Error extracting segment times for {media_type}: {e}")
+        return times
+    def _download_and_merge_segments(self, seg_info, mpd_content, video_output, audio_output):
+        for media_type in ["video", "audio"]:
+            info = seg_info[media_type]
+    
+            # Initialization segment
+            init_url = urljoin(info["url_base"], info["url"])
+            if media_type == "video":
+                init_filename = video_output
+            elif media_type == "audio":
+                init_filename = audio_output
+            if not os.path.exists(init_filename):
+                self._download_segment(init_url, init_filename)
+    
+            # Segment timeline from MPD
+            seg_times = self._extract_segment_times(mpd_content, media_type)
+    
+            for t in seg_times:
+                if t in self.downloaded_segments[media_type]:
+                    continue  # skip already downloaded segment
+    
+                seg_url = urljoin(info["url_base"], info["url_segment_base"].replace("$Time$", str(t)))
+                self._download_segment(seg_url, init_filename)
+                self.downloaded_segments[media_type].add(t)
+    
+    def _parse_minimum_update_period(self, mpd_content):
+        try:
+            root = ET.fromstring(mpd_content)
+            mup_str = root.attrib.get("minimumUpdatePeriod", "PT5S")
+            if mup_str.startswith("PT") and mup_str.endswith("S"):
+                return float(mup_str[2:-1])
+        except Exception as e:
+            self.logger.error(f"Error parsing minimumUpdatePeriod: {e}")
+        return 5.0  # nothing found/ return 5.0
+    def _fetch_mpd_segment_info(self, mpd_url: str):
+        response = requests.get(mpd_url)
+        if response.status_code == 200:
+            return response.text
+        else:
+            self.logger.error(f"Failed to fetch MPD: {response.status_code}")
+            return None
     def download(self, url: str, res_info: Dict[str, Any], config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool]:
         try:
             output_temp_directory = os.path.join(config["directories"]["Temp"], "content", unixtime)
@@ -293,20 +375,20 @@ class live_downloader:
                 output_audio = os.path.join(output_temp_directory, "download_encrypt_audio.mp4")
                 
                 ### check mpd content
-                mpd_content = self.fetch_mpd_and_segment_info(url)
+                mpd_content = self._fetch_mpd_segment_info(url)
                 if not mpd_content:
                     time.sleep(5)
                     continue
         
-                mup = self.parse_minimum_update_period(mpd_content)
-                self.download_and_merge_segments(res_info, mpd_content)
+                mup = self._parse_minimum_update_period(mpd_content)
+                self._download_and_merge_segments(res_info, mpd_content, output_video, output_audio)
         
-                print(f"Sleeping for {mup} seconds before refreshing MPD...")
+                self.logger.info(f"Sleeping for {mup} seconds before refreshing MPD...")
                 time.sleep(mup)
         except KeyboardInterrupt:
             return True
-        except:
-            return False
+        except Exception:
+            return True # ライブ終了時の判別ができていないので仮
 ########## TEST SCRIPT HERE ##########
 
 if __name__ == '__main__':
