@@ -6,7 +6,7 @@ import time
 import hashlib
 import requests
 import threading
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 import xml.etree.ElementTree as ET
 import ext.utils.parser_util as parser_util
 
@@ -56,6 +56,7 @@ class downloader:
         self.session.headers.update(self.default_headers)
     
     def parse_input(self, url_input, id = None):        
+        global liv_id
         if id:
             id = ast.literal_eval(id)
             sid_id = id[0]
@@ -529,7 +530,7 @@ class downloader:
             return False, None
     
     def open_session_get_dl(self, video_info):
-        global url_info, play_token
+        global url_info, play_token, validate_info
         if video_info["content_type"] == "live":
             url_info = "live"
             get_data = self.get_live_info(video_info["content_id"])
@@ -546,51 +547,70 @@ class downloader:
             
             playlist_info = self.get_playlist_api(video_info["content_id"])
             
-            if data_info["result_status"] == 200:
-                dash_profile = data_info["endpoint_urls"][0]["playables"].get("dash")[0]
-                mpd_link = dash_profile["playlist_url"]
-                    
-                self.logger.debug("MPD LINK: "+mpd_link)
-    
-                ### migrate token
-                payload = {
-                    "client_id": "unextAndroidApp",
-                    "scope": [
-                        "offline",
-                        "unext"
-                    ],
-                    "portal_user_info": {
-                        "securityToken": self.default_payload["common"]["userInfo"]["securityToken"]
+            if playlist_info["play_token"] == "":
+                validate_info = "live"
+                if data_info["result_status"] == 200:
+                    dash_profile = data_info["endpoint_urls"][0]["playables"].get("dash")[0]
+                    mpd_link = dash_profile["playlist_url"]
+                        
+                    self.logger.debug("MPD LINK: "+mpd_link)
+        
+                    ### migrate token
+                    payload = {
+                        "client_id": "unextAndroidApp",
+                        "scope": [
+                            "offline",
+                            "unext"
+                        ],
+                        "portal_user_info": {
+                            "securityToken": self.default_payload["common"]["userInfo"]["securityToken"]
+                        }
                     }
-                }
-                response = self.session.post("https://oauth.unext.jp/oauth2/migration", json=payload)
-                
-                ### get token
-                payload = {
-                    "client_id": "unextAndroidApp",
-                    "client_secret": "unextAndroidApp",
-                    "grant_type": "authorization_code",
-                    "code": response.json()["auth_code"],
-                    "redirect_uri": response.json()["redirect_uri"]
-                }
-                response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload, headers={"content-type": "application/x-www-form-urlencoded; charset=utf-8"})
-                
-                response = response.json()
-                
-                ### create live content play_token
-                payload = {
-                    "_at": response["access_token"],
-                    "title_id": video_info["content_id"],
-                    "parent_title_id": "",
-                    "content_type": "LIVE"
-                }
-                response = self.session.post("https://stunt-right.ca.unext.jp/PROD/llp", json=payload)
-                
-                play_token = response.json()["long_lived_playtoken"]
-                
+                    response = self.session.post("https://oauth.unext.jp/oauth2/migration", json=payload)
+                    
+                    ### get token
+                    payload = {
+                        "client_id": "unextAndroidApp",
+                        "client_secret": "unextAndroidApp",
+                        "grant_type": "authorization_code",
+                        "code": response.json()["auth_code"],
+                        "redirect_uri": response.json()["redirect_uri"]
+                    }
+                    response = self.session.post("https://oauth.unext.jp/oauth2/token", data=payload, headers={"content-type": "application/x-www-form-urlencoded; charset=utf-8"})
+                    
+                    response = response.json()
+                    
+                    ### create live content play_token
+                    payload = {
+                        "_at": response["access_token"],
+                        "title_id": video_info["content_id"],
+                        "parent_title_id": "",
+                        "content_type": "LIVE"
+                    }
+                    response = self.session.post("https://stunt-right.ca.unext.jp/PROD/llp", json=payload)
+                    
+                    play_token = response.json()["long_lived_playtoken"]
+                    
+                    if dash_profile.get("license_url_list"):
+                        widevine_url = dash_profile.get("license_url_list").get("widevine")+f"?play_token={play_token}"
+                        playready_url = dash_profile.get("license_url_list").get("playready")+f"?play_token={play_token}"
+                    license_header = {
+                        "content-type": "application/octet-stream",
+                        "user-agent": "Beautiful_Japan_TV_Android/1.0.6 (Linux;Android 10) ExoPlayerLib/2.12.0",
+                        "accept-encoding": "gzip",
+                        "host": "wvproxy.unext.jp",
+                        "connection": "Keep-Alive"
+                    }
+                    return self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}, license_header 
+                else:
+                    raise Exception("Content is unavailable")
+            else:
+                validate_info = "static"
+                dash_profile = playlist_info["endpoint_urls"][0]["playables"].get("dash")[0]
+                play_token = playlist_info["play_token"]
                 if dash_profile.get("license_url_list"):
-                    widevine_url = dash_profile.get("license_url_list").get("widevine")+f"?play_token={play_token}"
-                    playready_url = dash_profile.get("license_url_list").get("playready")+f"?play_token={play_token}"
+                    widevine_url = dash_profile.get("license_url_list").get("widevine")+f"&play_token={play_token}"
+                    playready_url = dash_profile.get("license_url_list").get("playready")+f"&play_token={play_token}"
                 license_header = {
                     "content-type": "application/octet-stream",
                     "user-agent": "Beautiful_Japan_TV_Android/1.0.6 (Linux;Android 10) ExoPlayerLib/2.12.0",
@@ -598,9 +618,7 @@ class downloader:
                     "host": "wvproxy.unext.jp",
                     "connection": "Keep-Alive"
                 }
-                return self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}, license_header 
-            else:
-                raise Exception("Content is unavailable")
+                return self.session.get(dash_profile["playlist_url"]).text, dash_profile["playlist_url"], {"widevine": widevine_url, "playready": playready_url}, license_header 
         else:
             if video_info["raw_single"]["minimumPrice"] != -1:
                 self.logger.info(f" ! This contetn require {video_info["raw_single"]["minimumPrice"]} point")
@@ -650,12 +668,65 @@ class downloader:
         else:
             return False
     def close_live_session(self, device_id, play_token):
-        signal_result = self.session.post(f"https://wabit-isem.ca.unext.jp/discard_token?device_id={device_id}", headers={"u-isem-token": play_token})
-        
-        if signal_result.status_code == 200:
-            return True
+        ### get isem
+        if validate_info == "live":
+            payload = {
+                "long_lived_playtoken": play_token,
+                "device_id": self.default_payload["common"]["deviceInfo"]["deviceUuid"]
+            }
+            response = self.session.post("https://stunt-right.ca.unext.jp/PROD/isem", json=payload).json()
+            response = self.session.post(f"https://wabit-isem.ca.unext.jp/activate_token?device_id={self.default_payload["common"]["deviceInfo"]["deviceUuid"]}&overwrite=1", headers={"u-isem-token": response["isem_token"]}).json()
+            signal_result = self.session.post(f"https://wabit-isem.ca.unext.jp/discard_token?device_id={device_id}", headers={"u-isem-token": response["token"]})
+            
+            if signal_result.status_code == 200:
+                return True
+            else:
+                return False
         else:
-            return False
+            signal_result = self.session.get(f"https://lcms-beacon.unext.jp/lcms-beacon/v00001/live/beacon/stop/{play_token}")
+            
+            if signal_result.status_code == 200:
+                return True
+            else:
+                return False
+    
+        # セグメントのリンクを作成
+    def create_segment_links(self, get_best_track, manifest_link, video_segment_list, audio_segment_list):
+        # https://dvkwf8p2fon0q.cloudfront.net/out/v1/f26e3da9d5a8415a87b7f82d944ec6b1/8f476866b1f7449ba4d2797bbd6775d5/
+        # 536dabf86a9e4c3c8fed60bef93ad728/index.mpd
+        
+        # https://dvkwf8p2fon0q.cloudfront.net/out/v1/f26e3da9d5a8415a87b7f82d944ec6b1/8f476866b1f7449ba4d2797bbd6775d5/
+        # fd4d2fcf112c43cf8e48581fc3fe1b75/fcbd565a4fb34ddc9dd724ad06076842/index_video_5_0_init.mp4
+        # https://dvkwf8p2fon0q.cloudfront.net/out/v1/f26e3da9d5a8415a87b7f82d944ec6b1/8f476866b1f7449ba4d2797bbd6775d5/
+        # fd4d2fcf112c43cf8e48581fc3fe1b75/fcbd565a4fb34ddc9dd724ad06076842/index_video_5_0_1.mp4
+        
+        parsed = urlparse(manifest_link)
+        path_parts = parsed.path.strip("/").split("/")
+        base_path = "/".join(path_parts[:4])  # out/v1/<hash1>/<hash2> まで
+        base_url = f"{parsed.scheme}://{parsed.netloc}/{base_path}/"
+    
+        def full_url(relative_url):
+            return relative_url.replace("../", base_url)
+    
+        video_segment_links = []
+        audio_segment_links = []
+    
+        # init セグメント
+        video_segment_links.append(full_url(get_best_track["video"]["url"]))
+        audio_segment_links.append(full_url(get_best_track["audio"]["url"]))
+    
+        # normal セグメント
+        for single_segment in range(1, video_segment_list+1) :
+            temp_link = full_url(get_best_track["video"]["url_segment_base"])
+            temp_link = temp_link.replace("$Number$", str(single_segment))
+            video_segment_links.append(temp_link)
+    
+        for single_segment in range(1, audio_segment_list+1) :
+            temp_link = full_url(get_best_track["audio"]["url_segment_base"])
+            temp_link = temp_link.replace("$Number$", str(single_segment))
+            audio_segment_links.append(temp_link)
+    
+        return audio_segment_links, video_segment_links
     
     ### SPECIAL LOGIC HERE(LIVE)
     class live_downloader:

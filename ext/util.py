@@ -1,5 +1,6 @@
 import re
 import os
+import cv2
 import json
 import time
 import shutil
@@ -16,7 +17,7 @@ from urllib.parse import urlparse, parse_qs
 
 import ext.utils.parser_util as parser_util
 
-from ext.utils.download_util import (aria2c_downloader, segment_downloader)
+from ext.utils.download_util import (aria2c_downloader, segment_downloader, live_downloader)
 from ext.utils.decrypt_util import main_decrypt
 from ext.utils.mux_util import main_mux
 
@@ -351,11 +352,10 @@ def download_command(input: str, command_list: Iterator):
             
             yoimi_logger.info(" + " + str(output_path))
             
-            if video_info["content_type"] != "live":
+            if dl_type == "segment":                
                 yoimi_logger.info("Calculate about Manifest")
                 duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
-            
-            if dl_type == "segment":                
+                
                 yoimi_logger.debug(" + Episode Duration: "+str(int(duration)))
                 
                 yoimi_logger.info("Video, Audio Segment Count")
@@ -363,8 +363,8 @@ def download_command(input: str, command_list: Iterator):
                 yoimi_logger.info(" + Video Segments: "+str(int(video_segment_list)))                 
                 audio_segment_list = Tracks.calculate_segments(duration, int(select_track["audio"]["seg_duration"]), int(select_track["audio"]["seg_timescale"]))
                 yoimi_logger.info(" + Audio Segments: "+str(int(audio_segment_list)))
-                
-                audio_segment_links, video_segment_links = service_downloader.create_segment_links(select_track, video_segment_list, audio_segment_list)
+                                
+                audio_segment_links, video_segment_links = service_downloader.create_segment_links(select_track, manifest_link, video_segment_list, audio_segment_list)
                 
                 yoimi_logger.info("Downloading Segments...")
                 downloader = segment_downloader(yoimi_logger)
@@ -380,7 +380,9 @@ def download_command(input: str, command_list: Iterator):
                     decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
             
             elif dl_type == "single":
-                # maybe this option is unext, h-next
+                yoimi_logger.info("Calculate about Manifest")
+                duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+                
                 yoimi_logger.info("Downloading Files...")
                 
                 video_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_encrypt_video.mp4")
@@ -402,9 +404,35 @@ def download_command(input: str, command_list: Iterator):
                 # WTF THIS OPTION SO SICKKKKKKK
                 # FUCKING SHIT BRUH MOMENT BRUUUUUUHHHHHH
                 yoimi_logger.info("Checking manifest...")
-                base_url = manifest_link.replace("manifest.mpd")
-                seg_info = transformed_data
+                seg_info = {}
+                base_url = manifest_link.replace("manifest.mpd", "")
+                
+                seg_info["video"] = transformed_data["video_track"][0]
+                seg_info["audio"] = transformed_data["audio_track"][0]
+                seg_info["video"]["url_base"] = base_url
+                seg_info["audio"]["url_base"] = base_url
             
+                video_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_encrypt_video.mp4")
+                audio_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4")
+                
+                downloader = live_downloader(yoimi_logger)
+                
+                status = downloader.download(manifest_link, seg_info, loaded_config, unixtime, "Yoimi")
+                
+                ## Get Video Duration
+                video = cv2.VideoCapture(video_output)
+                fps = video.get(cv2.CAP_PROP_FPS)
+                frame_count = video.get(cv2.CAP_PROP_FRAME_COUNT)
+                duration = duration = frame_count / fps
+                            
+                if service_config["is_drm"]:
+                    yoimi_logger.info("Decrypting Files...")
+                    decryptor = main_decrypt(yoimi_logger)
+                    video_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_video.mp4")
+                    audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
+                                    
+                    decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
+ 
             
             yoimi_logger.info("Muxing Content")
             muxer = main_mux(yoimi_logger)
