@@ -296,7 +296,7 @@ class downloader:
                     response = response.json()
                     
                     session_json = {
-                        "method": "LOGIN",
+                        "method": "QR_LOGIN",
                         "email": None,
                         "password": None,
                         "access_token": response["access_token"],

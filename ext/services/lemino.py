@@ -15,6 +15,7 @@ support_url:
    https://lemino.docomo.ne.jp/contents/xxx (season)
 """
 
+import time
 import base64
 import string
 import secrets
@@ -105,7 +106,7 @@ class downloader:
         payload = {
             "operationName":"authenticationIdConfirm",
             "variables":{
-                "tempSessionId":temp_session_id,
+                "tempSessionId": temp_session_id,
                 "dAccountId": email_or_id
             },
             "query":"mutation authenticationIdConfirm($tempSessionId: String!, $dAccountId: String!) {\n  authenticationIdConfirm(\n    input: {tempSessionId: $tempSessionId, dAccountId: $dAccountId}\n  ) {\n    code\n    errorReason\n    resultData {\n      authList\n      twoStepAuthMethod\n      activationFlg\n      __typename\n    }\n    __typename\n  }\n}"}
@@ -113,13 +114,125 @@ class downloader:
         if email_check.json()["data"]["authenticationIdConfirm"]["code"] == "1001":
             if email_check.json()["data"]["authenticationIdConfirm"]["errorReason"] == "B0001":
                return False, "Wrong Email or ID", None, None
-            if email_check.json()["data"]["authenticationIdConfirm"]["errorReason"] == "00007":
+            elif email_check.json()["data"]["authenticationIdConfirm"]["errorReason"] == "00007":
                 return False, "User Locked", None, None
             elif email_check.json()["data"]["authenticationIdConfirm"]["errorReason"] == "00008":
                 return False, "Force User Locked", None, None
             elif email_check.json()["data"]["authenticationIdConfirm"]["errorReason"] == "00009":
                 return False, "Auth User Locked", None, None
-        if email_check.json()["data"]["authenticationIdConfirm"]["code"] == "1000" and email_check.json()["data"]["authenticationIdConfirm"]["resultData"]["twoStepAuthMethod"] != "A4":
+        elif email_check.json()["data"]["authenticationIdConfirm"]["code"] == "1000" and email_check.json()["data"]["authenticationIdConfirm"]["resultData"]["twoStepAuthMethod"] != "A4":
             return False, "Require 2fa, and doesn't support! lol!", None, None
-        if email_check.json()["data"]["authenticationIdConfirm"]["code"] == "1000":
+        elif email_check.json()["data"]["authenticationIdConfirm"]["code"] == "1000":
             pass
+        
+        payload = {
+            "operationName":"authenticationPwdAuth",
+            "variables":{
+                "tempSessionId": temp_session_id,
+                "dAccountPwd": password
+            },
+            "query":"mutation authenticationPwdAuth($tempSessionId: String!, $dAccountPwd: String!) {\n  authenticationPwdAuth(\n    input: {tempSessionId: $tempSessionId, dAccountPwd: $dAccountPwd}\n  ) {\n    code\n    errorReason\n    resultData {\n      jwt\n      __typename\n    }\n    __typename\n  }\n}"
+        }
+        password_check = self.session.post("https://cfg.smt.docomo.ne.jp/aif/pub/flow/v1.0/bff/graphql", json=payload)
+        if password_check.json()["data"]["authenticationPwdAuth"]["code"] == "1001":
+            if password_check.json()["data"]["authenticationPwdAuth"]["errorReason"] == "A0002":
+               return False, "Wrong Password", None, None
+            elif password_check.json()["data"]["authenticationPwdAuth"]["errorReason"] == "A0007":
+                return False, "User Locked", None, None
+            elif password_check.json()["data"]["authenticationPwdAuth"]["errorReason"] == "A0006":
+                return False, "Force User Locked", None, None
+            elif password_check.json()["data"]["authenticationPwdAuth"]["errorReason"] == "A0005":
+                return False, "Auth User Locked", None, None
+            elif password_check.json()["data"]["authenticationPwdAuth"]["errorReason"] == "A0004":
+                return False, "Temp User Locked", None, None
+            
+        elif password_check.json()["data"]["authenticationPwdAuth"]["code"] == "1000":
+            pass
+        
+        password_response_return = password_check.json()["data"]["authenticationPwdAuth"]["resultData"]
+        if password_response_return == None:
+            return False, "Unknown Error", None, None
+    def authorize_qr(self):
+        status, temp_token = self.get_temp_token()
+        
+        default_headers = {
+            "x-service-token": temp_token
+        }
+        
+        self.session.headers.update(default_headers)
+        
+        """
+        Get QR login pass key
+        """
+        
+        get_loginurl = self.session.post("https://if.lemino.docomo.ne.jp/v1/user/auth/loginkey/create")
+        if get_loginurl.status_code != 200:
+            return False, "Authentication Failed: Failed to get QR login pass key", None, None
+        else:
+            request_login_json = get_loginurl.json()
+            print("Login URL:", "https://lemino.docomo.ne.jp/tv")
+            print("Code:", request_login_json["loginkey"])
+            
+            start_time = time.time()
+            
+            while True:
+                if time.time() - start_time >= 900: # Expire: 15 minitus 
+                    print("Code Expired. Please Re-try")
+                    break
+                send_checkping = self.session.post(f"https://if.lemino.docomo.ne.jp/v1/user/loginkey/userinfo/profile", json={"member": True, "profile": True})         
+                if send_checkping.status_code == 200:
+                    if send_checkping.json()["member"]["account_type"] == None:
+                        print("Waiting Login...")
+                        time.sleep(5)
+                    else:
+                        print("Login Accept")
+                        
+                        update_token = self.session.post("https://if.lemino.docomo.ne.jp/v1/session/update").headers["x-service-token"]
+                        
+                        self.session.headers.update({"x-service-token": update_token})
+                      
+                        status, message = self.get_userinfo()
+                        
+                        session_json = {
+                            "method": "QR_LOGIN",
+                            "email": None,
+                            "password": None,
+                            "access_token": update_token,
+                            "refresh_token": None
+                        }
+                        
+                        return True, message, True, session_json
+    def get_temp_token(self):
+        self.session.headers.update({
+            "user-agent": "Lemino/7.2.2(71) A7S;AndroidTV;10",
+            "accept-encoding": "gzip",
+            "charset": "UTF-8",
+            "content-type": "application/json",
+            "x-service-token": None
+        })
+        
+        terminal_type = {
+            "android_tv": "1",
+            "android": "3"
+        }
+        
+        temp_token = self.session.post("https://if.lemino.docomo.ne.jp/v1/session/init", json={"terminal_type": terminal_type["android_tv"]})
+        
+        if temp_token.status_code == 200:
+            return True, temp_token.headers["x-service-token"]
+        else:
+            return False, None
+    def get_userinfo(self):
+        url = "https://if.lemino.docomo.ne.jp/v1/user/loginkey/userinfo/profile"
+                    
+        response = self.session.post(url, json={"member": True, "profile": True})
+        if response.status_code == 200:
+            return True, response.json()
+        else:
+            return False, None
+        
+    def show_userinfo(self, user_data):
+        profile_id = user_data["profile"]["profile_id"]
+        self.logger.info("Logged-in Account")
+        self.logger.info(" + id: " + profile_id)
+        
