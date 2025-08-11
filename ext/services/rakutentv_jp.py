@@ -5,7 +5,8 @@ SERVICE INFO
 name: RakutenTV-JP
 require_account: No
 enable_refresh: No
-support_qr: No
+support_normal: No
+support_qr: Yes
 is_drm: Yes
 cache_session: Yes
 use_tlsclient: No
@@ -19,7 +20,8 @@ __service_config__ = {
     "service_name": "RakutenTV-JP",
     "require_account": False,
     "enable_refresh": False,
-    "support_qr": False,
+    "support_normal": False,
+    "support_qr": True,
     "is_drm": True,
     "cache_session": True,
     "use_tls": False,
@@ -143,7 +145,19 @@ class downloader:
                     print("Waiting Login...")
                     time.sleep(5)
     def check_token(self, token):
-        pass
+        self.session.headers.update({
+            "Authorization": token,
+            "Access-Token": token
+        })
+        
+        check_response = self.session.get(f"https://api.tv.rakuten.co.jp/member/mobile_menu.json?device_id={str(self.device_id)}&point_flag=1")
+        if check_response.status_code == 200:
+            status, user_info = self.get_userinfo()
+            return True, user_info
+        elif check_response.status_code == 400:
+            return False, None
+        else:
+            return False, None
     def get_userinfo(self):
         _USER_INFO_API = "https://auth.tv.rakuten.co.jp/app_auth/user_info.json"
         

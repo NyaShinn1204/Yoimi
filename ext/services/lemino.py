@@ -25,10 +25,11 @@ from bs4 import BeautifulSoup
 __service_config__ = {
     "service_name": "Lemino",
     "require_account": True,
+    "enable_refresh": False,
+    "support_normal": True, # WIP
     "support_qr": True,
     "is_drm": True,
     "cache_session": True,
-    "enable_refresh": False,
     "use_tls": False,
 }
 

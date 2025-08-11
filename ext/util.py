@@ -244,22 +244,39 @@ def download_command(input: str, command_list: Iterator):
                         service_logger.error("This service doesn't support qr login")
                         return None
                 else:
-                    method = "normal"
+                    if service_config["support_normal"]:
+                        method = "normal"
+                    else:
+                        service_logger.error("This service doesn't support normal login")
+                        return None
                 login_status, user_info, session_data = session_manager.login_with_credentials(email, password, login_method=method)
                 if login_status == False:
                     service_logger.error(user_info)
                     return None
-                else:
-                    session_status = True
-                    with open(os.path.join("cache", "session", service_label.lower(), "session_"+str(int(time.time()))+".json"), "w", encoding="utf-8") as f:
-                        json.dump(session_data, f, ensure_ascii=False, indent=4)
         elif service_config["require_account"]:
-            if not email or not password:
-                service_logger.error(f"{service_label} is require account login.")
-                return None
+            if session_status:
+                pass
             else:
-                if not session_status:
-                    login_status, user_info = service_downloader.authorize(email, password)
+                if not email or not password:
+                    service_logger.error(f"{service_label} is require account login.")
+                    return None
+                else:
+                    if email == "QR_LOGIN":
+                        if service_config["support_qr"]:
+                            method = "qr"
+                        else:
+                            service_logger.error("This service doesn't support qr login")
+                            return None
+                    else:
+                        if service_config["support_normal"]:
+                            method = "normal"
+                        else:
+                            service_logger.error("This service doesn't support normal login")
+                            return None
+                    login_status, user_info, session_data = session_manager.login_with_credentials(email, password, login_method=method)
+                    if login_status == False:
+                        service_logger.error(user_info)
+                        return None
         
         if user_info == None:
             return None
