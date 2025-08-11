@@ -14,6 +14,7 @@ support_url:
    WIP
 """
 
+import re
 import time
 
 __service_config__ = {
@@ -173,3 +174,34 @@ class downloader:
         profile_id = user_data["encrypt_member_id"]
         self.logger.info("Logged-in Account")
         self.logger.info(" + enc_id: " + profile_id)
+        
+    def judgment_watchtype(self, url):
+        match = re.search(r'/content/(\d+)/', url)
+        if match:
+            content_id = match.group(1)
+            status, content_info = self.get_id_info(content_id)
+            
+            if content_info["id"] == match:
+                return "season"
+            else:
+                return "single"
+            
+            
+    def get_id_info(self, content_id):
+        querystring = {
+            "device_id": str(self.device_id),
+            "isp_id": "1",
+            "rating_type": "18",
+            "content_id": content_id,
+            "promotion_disp_flag": "1"
+        }
+        
+        try:
+            info_response = self.session.get("https://api.tv.rakuten.co.jp/content/detailInfoMulti.json", params=querystring)
+            info_response = info_response.json()
+            if info_response["status"] == "success":
+                return True, info_response["result"]
+            else:
+                return False, None
+        except:
+            return False, None
