@@ -296,12 +296,14 @@ def download_command(input: str, command_list: Iterator):
             
             if video_info == "unexception_type_content":
                 service_logger.error("Please report content url!")
-                service_logger.error("URL: "+input)
+                if input != None:
+                    service_logger.error("URL: "+input)
                 return None
             
             if video_info == "not_availiable_content":
-                service_logger.error("Please check content url cam playable")
-                service_logger.error("URL: "+input)
+                service_logger.error("Please check content url can playable")
+                if input != None:
+                    service_logger.error("URL: "+input)
                 return None
             if video_info == "special":
                service_downloader.special_logic(input)

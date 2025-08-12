@@ -74,7 +74,9 @@ class downloader:
         
         self.device_id = self.device_list["Android TV"]
         
-    def parse_input(self, url_input):
+    def parse_input(self, url_input, id = None):
+        if id != None:
+            url_input = f"https://tv.rakuten.co.jp/content/{id}/"
         match = re.search(r'/content/(\d+)/', url_input)
         if match:
             content_id = match.group(1)
@@ -109,8 +111,35 @@ class downloader:
         
         return video_info
         
-    def parse_input_season(self):
-        pass
+    def parse_input_season(self, url_input):
+        match = re.search(r'/content/(\d+)/', url_input)
+        if match:
+            season_id = match.group(1)
+        
+        status, content_info = self.get_id_info(season_id)
+        status, all_info = self.get_title_info(season_id)
+        
+        episode_singles = []
+        for single in all_info:
+            temp = {}
+            temp = single
+            temp["id_in_schema"] = single["id"]
+            
+            if temp["is_play"] == "1":
+                self.logger.info(" + "+temp["name_title"])
+            else:
+                self.logger.info(" - "+temp["name_title"])
+            
+            episode_singles.append(temp)
+        
+        video_info = {
+            "raw": all_info,
+            "episode_list":{
+                "metas": episode_singles
+            }
+        }
+        
+        return "", content_info["name"], video_info
     
     def authorize(self, email_or_id, password):
         pass
@@ -214,7 +243,7 @@ class downloader:
             content_id = match.group(1)
             status, content_info = self.get_id_info(content_id)
             
-            if content_info["id"] == match:
+            if content_info["id"] == content_id:
                 return "season"
             else:
                 return "single"
