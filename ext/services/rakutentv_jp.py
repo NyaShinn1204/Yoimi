@@ -16,6 +16,7 @@ support_url:
 
 import re
 import time
+from urllib.parse import urlparse
 
 __service_config__ = {
     "service_name": "RakutenTV-JP",
@@ -394,20 +395,35 @@ class downloader:
         pass
     
     def create_segment_links(self, get_best_track, manifest_link, video_segment_list, audio_segment_list, seg_timeline):
-        print(get_best_track)
-        print(manifest_link)
-        print(video_segment_list)
-        print(audio_segment_list)
-        #video_segment_links = []
-        #audio_segment_links = []
-        #video_segment_links.append(get_best_track["video"]["url"])
-        #audio_segment_links.append(get_best_track["audio"]["url"])
-        #
-        #for single_segment in range(video_segment_list):
-        #    temp_link = get_best_track["video"]["url_base"]+get_best_track["video"]["url_segment_base"].replace("$Number$", str(single_segment))
-        #    video_segment_links.append(temp_link)
-        #for single_segment in range(audio_segment_list):
-        #    temp_link = get_best_track["audio"]["url_base"]+get_best_track["audio"]["url_segment_base"].replace("$Number$", str(single_segment))
-        #    audio_segment_links.append(temp_link)
-        #    
-        #return audio_segment_links, video_segment_links
+        parsed = urlparse(manifest_link)
+        
+        path_parts = parsed.path.split("/")
+        base_path = "/".join(path_parts[:-1]) + "/"
+        
+        base_url = f"{parsed.scheme}://{parsed.netloc}{base_path}"
+        
+        get_best_track["video"]["url_base"] = base_url
+        get_best_track["audio"]["url_base"] = base_url
+
+        def build_segment_links(track):
+            """映像または音声の完全なセグメントURLリストを作る"""
+            base = get_best_track[track]['url_base']
+            if track == "video":
+                init_url = get_best_track[track]['url'].replace('$Bandwidth$', get_best_track[track]['id'].replace("video_", ""))
+                segment_base = get_best_track[track]['url_segment_base'].replace('$Bandwidth$', get_best_track[track]['id'].replace("video_", ""))
+            else:
+                init_url = get_best_track[track]['url'].replace('$Bandwidth$', get_best_track[track]['bitrate'])
+                segment_base = get_best_track[track]['url_segment_base'].replace('$Bandwidth$', get_best_track[track]['bitrate'])
+            links = []
+            links.append(base + init_url)
+            
+            for t in seg_timeline[track]:
+                seg_url = segment_base.replace('$Time$', str(t))
+                links.append(base + seg_url)
+            
+            return links
+        
+        audio_segment_links = build_segment_links('video')
+        video_segment_links = build_segment_links('audio')
+        
+        return audio_segment_links, video_segment_links
