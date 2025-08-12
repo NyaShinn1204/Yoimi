@@ -19,7 +19,7 @@ import time
 
 __service_config__ = {
     "service_name": "RakutenTV-JP",
-    "require_account": False,
+    "require_account": True,
     "enable_refresh": False,
     "support_normal": False,
     "support_qr": True,
@@ -34,10 +34,9 @@ class downloader:
         self.logger = logger
 
         self.default_headers = {
-            "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; A7S Build/QP1A.190711.020) Rakuten TV AndroidTV/2.2.5-edce7eacd6-P (Linux;Android 10) AndroidXMedia3/1.4.1",
-            "host": "api.tv.rakuten.co.jp",
+            "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; sdk_google_atv_x86 Build/QTU1.200805.001) Rakuten TV AndroidTV/2.2.5-edce7eacd6-P (Linux;Android 10) AndroidXMedia3/1.4.1",
             "connection": "Keep-Alive",
-            "accept-encoding": "gzip",
+            "accept-encoding": "gzip"
         }
         self.session.headers.update(self.default_headers)
 
@@ -74,8 +73,41 @@ class downloader:
         
         self.device_id = self.device_list["Android TV"]
         
-    def parse_input(self):
-        pass
+    def parse_input(self, url_input):
+        match = re.search(r'/content/(\d+)/', url_input)
+        if match:
+            content_id = match.group(1)
+        status, content_info = self.get_id_info(content_id)
+        
+        season_id = content_info["id"]
+        
+        status, single_info = self.get_title_info_single(season_id, content_id)
+        
+        content_type = self.get_genre_jpname(single_info["genre"]["id"])
+                
+        if single_info["is_play"] == "1":
+            is_play = True
+        else:
+            is_play = False
+        
+        if is_play == False:
+            self.logger.info("This content is not playble.")
+            return "not_availiable_content"
+        
+        video_info = {
+            "raw": content_info,
+            "raw_single": single_info,
+            "content_type": content_type,
+            "episode_count": content_info["child_count"],
+            "title_name": content_info["name"],
+            "episode_num": "",
+            "episode_name": single_info["name"],
+            "is_play": is_play,
+            "support_device_list": content_info["supported_device_list"]
+        }
+        
+        return video_info
+        
     def parse_input_season(self):
         pass
     
@@ -102,22 +134,21 @@ class downloader:
             print("Login URL:", "https://r10.to/hifxfW")
             print("Code:", login_key["result"]["code"])
             
+            self.session.get("https://privacy.rakuten.co.jp/date/jp_utf8.txt")
+            
             while True:
                 querystring = {
                     "grant_type": "authorization_code",
                     "code": login_key["result"]["code"],
                     "polling": "1",
                     "issue_sec_cookie": "0",
-                    "device_name": "sdk_google_atv_x86",
+                    "device_name": "Yoimi",
                     "device_id": str(self.device_id)
                 }
                 headers = {
-                    "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; sdk_google_atv_x86 Build/QTU1.200805.001) Rakuten TV AndroidTV/2.2.5-edce7eacd6-P (Linux;Android 10) AndroidXMedia3/1.4.1",
-                    "authorization": auth_basic,
-                    "connection": "Keep-Alive",
-                    "accept-encoding": "gzip"
+                    "Authorization": auth_basic,
                 }
-                send_checkping = self.session.post(f"https://auth.tv.rakuten.co.jp/oauth/token.json", params=querystring, headers=headers)         
+                send_checkping = self.session.get(f"https://auth.tv.rakuten.co.jp/oauth/token.json", params=querystring, headers=headers)         
                 if send_checkping.status_code == 200:
                     print("Login Accept")
                     
@@ -138,16 +169,17 @@ class downloader:
                         "email": None,
                         "password": None,
                         "access_token": access_token,
-                        "refresh_token": refresh_token
+                        "refresh_token": refresh_token,
+                        "additional_info": {}
                     }
                     
                     return True, message, True, session_json
-                elif send_checkping.status_code == 403:
+                else:
                     print("Waiting Login...")
                     time.sleep(5)
     def check_token(self, token):
         self.session.headers.update({
-            "Authorization": token,
+            "Authorization": "Bearer "+token,
             "Access-Token": token
         })
         
@@ -205,3 +237,177 @@ class downloader:
                 return False, None
         except:
             return False, None
+        
+    def get_title_info(self, series_id):
+        querystring = {
+            "device_id": str(self.device_id),
+            "isp_id": "1",
+            "rating_type": "18",
+            "content_id": series_id,
+            "offset": "0",
+            "count": "24",
+            "default_order": "0",
+            "parent_flag": "0",
+            "pack_id": ""
+        }
+        try:
+            info_response = self.session.get("https://api.tv.rakuten.co.jp/content/child_listmulti.json", params=querystring)
+            info_response = info_response.json()
+            if info_response["status"] == "success":
+                return True, info_response["result"]["content_list"]
+            else:
+                return False, None
+        except:
+            return False, None
+    def get_title_info_single(self, series_id, content_id):
+        querystring = {
+            "device_id": str(self.device_id),
+            "isp_id": "1",
+            "rating_type": "18",
+            "content_id": series_id,
+            "offset": "0",
+            "count": "24",
+            "default_order": "0",
+            "parent_flag": "0",
+            "pack_id": ""
+        }
+        try:
+            info_response = self.session.get("https://api.tv.rakuten.co.jp/content/child_listmulti.json", params=querystring)
+            info_response = info_response.json()
+            if info_response["status"] == "success":
+                for single in info_response["result"]["content_list"]:
+                    if single["id"] == content_id:
+                        return True, single
+                return False, None
+            else:
+                return False, None
+        except:
+            return False, None
+        
+    def get_genre_jpname(self, genre_id):
+        querystring = {
+            "device_id": str(self.device_id),
+            "adult_flg": "0"
+        }
+        try:
+            genre_response = self.session.get("https://api.tv.rakuten.co.jp/web/genre.json", params=querystring)
+            genre_response = genre_response.json()
+            if genre_response["status"] == "success":
+                for single in genre_response["result"]["genre_list"]:
+                    if single["id"] == str(genre_id):
+                        return single["name"]
+            else:
+                return None
+        except:
+            return None
+        
+    def open_session_get_dl(self, video_info):
+        ### if you want check support device, please you self
+        # video_info["supported_device_list"]
+        
+        querystring = {
+            "device_id": str(self.device_id),
+            "content_id": video_info["raw_single"]["id"],
+            "position": "",
+            "flagged_aes": "",
+            "trailer": "0",
+            "auth": "1",
+            "log": "1",
+            "multi_audio_support": "1"
+        }
+        
+        session_response = self.session.get("https://api.tv.rakuten.co.jp/content/playinfo.json", params=querystring)
+        session_response = session_response.json()
+        if session_response["status"] == "success":
+            pass
+        else:
+            return None, None, None, None, None
+        
+        paths = session_response["result"]["paths"][0]
+        found_hls = bool(paths.get("path_hls"))
+        found_dash = bool(paths.get("path_dash"))
+        
+        if found_hls and found_dash:
+            mpd_link = paths.get("path_dash")
+            
+            if paths.get("widevine"):
+                widevine_url = paths["widevine"]["license_url"]
+                wv_license_header = {
+                    "authorization": paths["widevine"]["ams_token"],
+                    "accept-encoding": "gzip",
+                    "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; sdk_google_atv_x86 Build/QTU1.200805.001)",
+                    "connection": "Keep-Alive"
+                }
+            if paths.get("playready"):
+                playready_url = paths["playready"]["license_url"]
+                pr_license_header = {
+                    "accept-encoding": "gzip",
+                    "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; sdk_google_atv_x86 Build/QTU1.200805.001)",
+                    "connection": "Keep-Alive"
+                }
+                
+            mpd_response = self.session.get(mpd_link).text
+            return "mpd", mpd_response, mpd_link, {"widevine": widevine_url, "playready": playready_url}, {"widevine": wv_license_header, "playready": pr_license_header}
+        elif not found_hls and found_dash:
+            mpd_link = paths.get("path_dash")
+            
+            if paths.get("widevine"):
+                widevine_url = paths["widevine"]["license_url"]
+                wv_license_header = {
+                    "authorization": paths["widevine"]["ams_token"],
+                    "accept-encoding": "gzip",
+                    "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; sdk_google_atv_x86 Build/QTU1.200805.001)",
+                    "connection": "Keep-Alive"
+                }
+            if paths.get("playready"):
+                playready_url = paths["playready"]["license_url"]
+                pr_license_header = {
+                    "accept-encoding": "gzip",
+                    "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; sdk_google_atv_x86 Build/QTU1.200805.001)",
+                    "connection": "Keep-Alive"
+                }
+                
+            mpd_response = self.session.get(mpd_link).text
+            return "mpd", mpd_response, mpd_link, {"widevine": widevine_url, "playready": playready_url}, {"widevine": wv_license_header, "playready": pr_license_header}
+        else:
+            mpd_link = paths.get("path_hls")
+            
+            if paths.get("widevine"):
+                widevine_url = paths["widevine"]["license_url"]
+                wv_license_header = {
+                    "authorization": paths["widevine"]["ams_token"],
+                    "accept-encoding": "gzip",
+                    "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; sdk_google_atv_x86 Build/QTU1.200805.001)",
+                    "connection": "Keep-Alive"
+                }
+            if paths.get("playready"):
+                playready_url = paths["playready"]["license_url"]
+                pr_license_header = {
+                    "accept-encoding": "gzip",
+                    "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; sdk_google_atv_x86 Build/QTU1.200805.001)",
+                    "connection": "Keep-Alive"
+                }
+                
+            mpd_response = self.session.get(mpd_link).text
+            return "mpd", mpd_response, mpd_link, {"widevine": widevine_url, "playready": playready_url}, {"widevine": wv_license_header, "playready": pr_license_header}
+    def decrypt_done(self):
+        pass
+    
+    def create_segment_links(self, get_best_track, manifest_link, video_segment_list, audio_segment_list):
+        print(get_best_track)
+        print(manifest_link)
+        print(video_segment_list)
+        print(audio_segment_list)
+        #video_segment_links = []
+        #audio_segment_links = []
+        #video_segment_links.append(get_best_track["video"]["url"])
+        #audio_segment_links.append(get_best_track["audio"]["url"])
+        #
+        #for single_segment in range(video_segment_list):
+        #    temp_link = get_best_track["video"]["url_base"]+get_best_track["video"]["url_segment_base"].replace("$Number$", str(single_segment))
+        #    video_segment_links.append(temp_link)
+        #for single_segment in range(audio_segment_list):
+        #    temp_link = get_best_track["audio"]["url_base"]+get_best_track["audio"]["url_segment_base"].replace("$Number$", str(single_segment))
+        #    audio_segment_links.append(temp_link)
+        #    
+        #return audio_segment_links, video_segment_links

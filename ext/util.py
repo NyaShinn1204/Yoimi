@@ -85,6 +85,7 @@ def get_parser(url):
         (re.compile(r'^https?://tv\.dmm\.com/vod/restrict/.+season=([^&]+)'), lambda u: check_dmm_content_type(re.match(r'.*season=([^&]+)', u).group(1)) == "VOD_2D", 'ext.services.fanza', 'Fanza'),
         (re.compile(r'^https?://(?:www\.)?hiyahtv\.com/.+'), None, 'ext.services.hiyahtv', 'Hi-YAH!'),
         (re.compile(r'^https?://lemino\.docomo\.ne\.jp/.+'), None, 'ext.services.lemino', 'Lemino'),
+        (re.compile(r'^https?://tv\.rakuten\.co\.jp/content/\d+/?'), None, 'ext.services.rakutentv_jp', 'RakutenTV-JP'),
     ]
 
     for pattern, condition, module_name, label in patterns:
@@ -253,12 +254,12 @@ def download_command(input: str, command_list: Iterator):
                 if login_status == False:
                     service_logger.error(user_info)
                     return None
-        elif service_config["require_account"]:
+        if service_config["require_account"]:
             if session_status:
                 pass
             else:
                 if not email or not password:
-                    service_logger.error(f"{service_label} is require account login.")
+                    yoimi_logger.error(f"{service_label} is require account login.")
                     return None
                 else:
                     if email == "QR_LOGIN":
@@ -298,6 +299,10 @@ def download_command(input: str, command_list: Iterator):
                 service_logger.error("URL: "+input)
                 return None
             
+            if video_info == "not_availiable_content":
+                service_logger.error("Please check content url cam playable")
+                service_logger.error("URL: "+input)
+                return None
             if video_info == "special":
                service_downloader.special_logic(input)
                return
@@ -312,11 +317,11 @@ def download_command(input: str, command_list: Iterator):
                 output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
             service_logger.info(" + "+output_titlename)
             
-            manifest_respnse, manifest_link, manifest_info, license_header = service_downloader.open_session_get_dl(video_info)
+            deliviery_type, manifest_response, manifest_link, manifest_info, license_header = service_downloader.open_session_get_dl(video_info)
             
             Tracks = parser_util.global_parser()
-            dl_type = Tracks.determine_mpd_type(manifest_respnse)
-            transformed_data = Tracks.mpd_parser(manifest_respnse, debug=enable_verbose)
+            dl_type = Tracks.determine_mpd_type(manifest_response)
+            transformed_data = Tracks.mpd_parser(manifest_response, debug=enable_verbose)
             
             yoimi_logger.debug("Get Manifest Dl Type")
             yoimi_logger.debug(" + "+dl_type)
@@ -350,7 +355,7 @@ def download_command(input: str, command_list: Iterator):
                     yoimi_logger.info(" + Playready: "+ transformed_data["pssh_list"]["playready"][:35]+"...")
                 
                 yoimi_logger.info("Decrypting License")
-                license_return = license_logic.decrypt_license(transformed_data, manifest_info, {}, session, loaded_config, yoimi_logger, debug=enable_verbose)
+                license_return = license_logic.decrypt_license(transformed_data, manifest_info, license_header, session, loaded_config, yoimi_logger, debug=enable_verbose)
                 if license_return["type"] == "widevine":
                     yoimi_logger.info(f"Decrypt License (Widevine):")
                     for license_key in license_return["key"]:

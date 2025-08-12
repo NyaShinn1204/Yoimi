@@ -242,7 +242,7 @@ class downloader:
                 "host": "wvproxy.unext.jp",
                 "connection": "Keep-Alive"
             }
-            return mpd_response, mpd_link+f"&play_token={play_token}", {"widevine": widevine_url, "playready": playready_url}, license_header 
+            return "mpd", mpd_response, mpd_link+f"&play_token={play_token}", {"widevine": widevine_url, "playready": playready_url}, {"widevine": license_header, "playready": license_header}  
     
     def decrypt_done(self):
         self.close_session(media_code=url_info["code"], play_token=play_token)    

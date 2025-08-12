@@ -587,7 +587,10 @@ class global_parser:
             "audio_track": audio_tracks,
             "text_track": text_tracks
         }
-      
+    
+    
+    
+    # MISC
     def is_live_mpd(self, mpd_text: str) -> bool:
         root = ET.fromstring(mpd_text.encode('utf-8'))
         mpd_type = root.attrib.get('type', 'static')
@@ -679,6 +682,7 @@ class global_parser:
     
         return output.strip()
     
+    # SELECT TRACK MISC
     def select_best_tracks(self, tracks_json):
         """利用可能なトラックの中から最もビットレートが高いものを選択"""
         if not tracks_json or not isinstance(tracks_json, dict):

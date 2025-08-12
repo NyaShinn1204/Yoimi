@@ -554,10 +554,10 @@ class downloader:
             self.logger.debug(" + "+mpd_link)
             
             self.logger.info(f" + MPD_link: {mpd_link[:15] + '*****'}")
-            return self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}, {}
+            return "mpd", self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}, {}
         else:
             self.logger.warning("No suitable MPD link found")
-            return None, None, None, None
+            return None, None, None, None, None
     
     # ライセンス処理後の処理
     def decrypt_done(self):

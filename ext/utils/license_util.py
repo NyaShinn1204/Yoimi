@@ -13,6 +13,8 @@ class license_logic:
         playready_pssh = transformed_data.get("pssh_list", {}).get("playready")
     
         if widevine_pssh and (config["cdms"]["widevine"] != ""):
+            if headers != {}:
+                headers = headers["widevine"]
             widevine_result = license_logic.widevine_license(widevine_pssh, manifest_info["widevine"], headers, session, config, debug=debug)
             if widevine_result and all(v is not None for v in widevine_result.values()):
                 return widevine_result
@@ -20,6 +22,8 @@ class license_logic:
                 logger.error("Widevine Decrypt Failed")
     
         if playready_pssh and (config["cdms"]["playready"] != ""):
+            if headers != {}:
+                headers = headers["playready"]
             playready_result = license_logic.playready_license(playready_pssh, manifest_info["playready"], headers, session, config, debug=debug)
             if playready_result and all(v is not None for v in playready_result.values()):
                 return playready_result

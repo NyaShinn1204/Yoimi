@@ -557,7 +557,7 @@ class downloader:
             available_watch, data_info = self.get_playlist(template_url)
             self.logger.info(" + "+str(available_watch))
             if available_watch == False:
-                return
+                return None, None, None, None, None
             
             playlist_info = self.get_playlist_api(video_info["content_id"])
             
@@ -615,7 +615,7 @@ class downloader:
                         "host": "wvproxy.unext.jp",
                         "connection": "Keep-Alive"
                     }
-                    return self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}, license_header 
+                    return "mpd", self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}, license_header 
                 else:
                     raise Exception("Content is unavailable")
             else:
@@ -632,7 +632,7 @@ class downloader:
                     "host": "wvproxy.unext.jp",
                     "connection": "Keep-Alive"
                 }
-                return self.session.get(dash_profile["playlist_url"]).text, dash_profile["playlist_url"], {"widevine": widevine_url, "playready": playready_url}, license_header 
+                return "mpd", self.session.get(dash_profile["playlist_url"]).text, dash_profile["playlist_url"], {"widevine": widevine_url, "playready": playready_url}, {"widevine": license_header, "playready": license_header}  
         else:
             if video_info["raw_single"]["minimumPrice"] != -1:
                 self.logger.info(f" ! This contetn require {video_info["raw_single"]["minimumPrice"]} point")
@@ -650,7 +650,7 @@ class downloader:
             
             if status == False:
                 self.logger.error("Failed to get play_token")
-                return None, None, None, None
+                return None, None, None, None, None
             else:
                 dash_profile = url_info["movie_profile"].get("dash")
                 mpd_link = dash_profile["playlist_url"]
@@ -666,7 +666,7 @@ class downloader:
                     "host": "wvproxy.unext.jp",
                     "connection": "Keep-Alive"
                 }
-                return mpd_response, mpd_link+f"&play_token={play_token}", {"widevine": widevine_url, "playready": playready_url}, license_header 
+                return "mpd", mpd_response, mpd_link+f"&play_token={play_token}", {"widevine": widevine_url, "playready": playready_url}, {"widevine": license_header, "playready": license_header} 
         
     def decrypt_done(self):
         if url_info == "live":
