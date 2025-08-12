@@ -705,7 +705,7 @@ class downloader:
             return False, close_response.json()
         
     # セグメントのリンクを作成
-    def create_segment_links(self, get_best_track, manifest_link, video_segment_list, audio_segment_list):
+    def create_segment_links(self, get_best_track, manifest_link, video_segment_list, audio_segment_list, seg_timeline):
         video_segment_links = []
         audio_segment_links = []
         video_segment_links.append(get_best_track["video"]["url"])

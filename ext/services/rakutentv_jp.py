@@ -393,7 +393,7 @@ class downloader:
     def decrypt_done(self):
         pass
     
-    def create_segment_links(self, get_best_track, manifest_link, video_segment_list, audio_segment_list):
+    def create_segment_links(self, get_best_track, manifest_link, video_segment_list, audio_segment_list, seg_timeline):
         print(get_best_track)
         print(manifest_link)
         print(video_segment_list)

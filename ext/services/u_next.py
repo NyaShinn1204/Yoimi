@@ -705,7 +705,7 @@ class downloader:
                 return False
     
         # セグメントのリンクを作成
-    def create_segment_links(self, get_best_track, manifest_link, video_segment_list, audio_segment_list):
+    def create_segment_links(self, get_best_track, manifest_link, video_segment_list, audio_segment_list, seg_timeline):
         # https://dvkwf8p2fon0q.cloudfront.net/out/v1/f26e3da9d5a8415a87b7f82d944ec6b1/8f476866b1f7449ba4d2797bbd6775d5/
         # 536dabf86a9e4c3c8fed60bef93ad728/index.mpd
         

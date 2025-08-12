@@ -118,9 +118,4 @@ times_dict = obj.get_segment_times_from_mpd(mpd_str)
 if times_dict is None:
     print("SegmentTimeline は存在しません。")
 else:
-    # 例: video の先頭5個
-    if "video" in times_dict:
-        print(times_dict["video"])
-    # 例: audio の先頭5個
-    if "audio" in times_dict:
-        print(times_dict["audio"])
+    print(times_dict)

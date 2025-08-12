@@ -380,13 +380,15 @@ def download_command(input: str, command_list: Iterator):
                 
                 yoimi_logger.debug(" + Episode Duration: "+str(int(duration)))
                 
+                have_timeline, timeline_dict = Tracks.is_have_timeline(manifest_response)
+                
                 yoimi_logger.info("Video, Audio Segment Count")
                 video_segment_list = Tracks.calculate_segments(duration, int(select_track["video"]["seg_duration"]), int(select_track["video"]["seg_timescale"]))
                 yoimi_logger.info(" + Video Segments: "+str(int(video_segment_list)))                 
                 audio_segment_list = Tracks.calculate_segments(duration, int(select_track["audio"]["seg_duration"]), int(select_track["audio"]["seg_timescale"]))
                 yoimi_logger.info(" + Audio Segments: "+str(int(audio_segment_list)))
                                 
-                audio_segment_links, video_segment_links = service_downloader.create_segment_links(select_track, manifest_link, video_segment_list, audio_segment_list)
+                audio_segment_links, video_segment_links = service_downloader.create_segment_links(select_track, manifest_link, video_segment_list, audio_segment_list, timeline_dict)
                 
                 yoimi_logger.info("Downloading Segments...")
                 downloader = segment_downloader(yoimi_logger)
