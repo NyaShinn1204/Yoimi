@@ -21,7 +21,7 @@ from urllib.parse import urlparse
 __service_config__ = {
     "service_name": "RakutenTV-JP",
     "require_account": True,
-    "enable_refresh": False,
+    "enable_refresh": True,
     "support_normal": False,
     "support_qr": True,
     "is_drm": True,
@@ -221,6 +221,27 @@ class downloader:
             return False, None
         else:
             return False, None
+    def refresh_token(self, refresh_token, session_data):
+        try:
+            payload = {
+                "grant_type": "refresh_token",
+                "refresh_token": refresh_token,
+            }
+            refresh_response = self.session.get("https://auth.tv.rakuten.co.jp/oauth/token.json", params=payload, headers={"Authorization": "Basic ejZSWVZQZ3BKRDZGdUQ1NzVqYnk6dUphczl5NHFrcmN1RngwRENwV2w2ZnEz"}).json()
+            
+            access_token = refresh_response["result"]["access_token"]
+            refresh_token = refresh_token
+            session_data["access_token"] = access_token
+            session_data["refresh_token"] = refresh_token
+            
+            self.session.headers.update({
+                "Authorization": "Bearer "+access_token,
+                "Access-Token": access_token
+            })
+            
+            return session_data
+        except:
+            return None
     def get_userinfo(self):
         _USER_INFO_API = "https://auth.tv.rakuten.co.jp/app_auth/user_info.json"
         
