@@ -14,6 +14,7 @@ support_url:
    WIP
 """
 
+import re
 import uuid
 import time
 import hashlib
@@ -63,7 +64,7 @@ class downloader:
             "client_id": "wod-tv",
             "app_id": 5,
             "device_code": 8,
-            "vuid": uuid.uuid4()
+            "vuid": str(uuid.uuid4())
         }
         login_response = self.session.post(_USER_AUTH_API, json=payload).json()
         try:
@@ -72,13 +73,14 @@ class downloader:
         except:
             pass
         
-        user_info = self.get_userinfo()
-        
         self.session.headers.update({
             "Authorization": "Bearer "+login_response["access_token"],
             "X-Token-Id": str(login_response["token_id"]),
+            "X-User-Id": str(login_response["token_id"]),
             "X-Session-Token": session_token
         })
+        
+        user_info = self.get_userinfo()
         
         session_json = {
             "method": "LOGIN",
@@ -101,7 +103,7 @@ class downloader:
         _PIN_SESSION_CHECK = "https://session-manager.wowow.co.jp/pin/check"
         _SESSION_TOKEN_CHECK = "https://session-manager.wowow.co.jp/token/check"
         
-        temp_vuid = uuid.uuid4()
+        temp_vuid = str(uuid.uuid4())
         
         payload = {
             "vuid": temp_vuid
@@ -133,6 +135,12 @@ class downloader:
                     access_token = login_status["access_token"]
                     refresh_token = login_status["refresh_token"]
                     
+                    self.session.headers.update({
+                        "Authorization": "Bearer "+access_token,
+                        "X-Token-Id": str(login_status["token_id"]),
+                        "X-User-Id": str(login_status["token_id"]),
+                        "X-Session-Token": session_token
+                    })
                     
                     check_response = self.session.post(_SESSION_TOKEN_CHECK, json={}).json()
                     if check_response["result"]:
@@ -141,12 +149,6 @@ class downloader:
                         return False, "Auth Success, But failed to get another cert", False, None
                       
                     status, message = self.get_userinfo()
-                    
-                    self.session.headers.update({
-                        "Authorization": "Bearer "+access_token,
-                        "X-Token-Id": str(login_status["token_id"]),
-                        "X-Session-Token": session_token
-                    })
                     
                     session_json = {
                         "method": "QR_LOGIN",
@@ -180,7 +182,7 @@ class downloader:
               "device_model": "A7S",
               "device_higher_category": "android_tv",
               "device_lower_category": "android_tv",
-              "user_agent": "Mozilla\/5.0 (Linux; Android 10; A7S Build\/QP1A.190711.020; wv) AppleWebKit\/537.36 (KHTML, like Gecko) Version\/4.0 Chrome\/138.0.7204.179 Mobile Safari\/537.36 jp.ne.wowow.vod.androidtv\/3.8.3"
+              "user_agent": "Mozilla\\/5.0 (Linux; Android 10; A7S Build\\/QP1A.190711.020; wv) AppleWebKit\\/537.36 (KHTML, like Gecko) Version\\/4.0 Chrome\\/138.0.7204.179 Mobile Safari\\/537.36 jp.ne.wowow.vod.androidtv\\/3.8.3"
             }
             response = self.session.post(url, json=payload).json()
                         
@@ -238,3 +240,11 @@ class downloader:
         profile_id = user_data["user"]["uuid"]
         self.logger.info("Logged-in Account")
         self.logger.info(" + id: " + profile_id)
+        
+    # 単体かシーズンかをチェック
+    def judgment_watchtype(self, url):
+        match = re.search(r'/content/(\d+)', url)
+        if match:
+            return "single"
+        else:
+            return "season"

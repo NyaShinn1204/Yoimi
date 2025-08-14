@@ -95,16 +95,16 @@ def get_parser(url):
                 return module, label
 
     if "plus.nhk.jp" in url:
-        from ext import nhk_plus
+        from ext.services import nhk_plus
         return nhk_plus, "NHK+"
     elif "jff.jpf.go.jp" in url:
-        from ext import jff_theater
+        from ext.services import jff_theater
         return jff_theater, "Jff Theater"
     elif "wod.wowow.co.jp" in url:
-        from ext import wowow
-        return wowow, "WOD-WOWOW"
+        from ext.services import wowow_ondemand
+        return wowow_ondemand, "WOWOW-Ondemand"
     elif "dmmvrplayerstreaming" in url or "vr-sample-player" in url:
-        from ext import fanza
+        from ext.services import fanza
         return fanza.Fanza_VR, "Fanza-VR"
 
     return None, None
