@@ -35,11 +35,12 @@ class downloader:
         self.session = session
         self.logger = logger
         
-        
+        self.vuid = None # this value is random
         self.x_user_id = None
         self.x_session_token = None
         self.wip_access_token = None
         self.wip_refresh_token = None
+        self.normal_refresh_token = None
         
         self.default_headers = {
             "user-agent": "Mozilla/5.0 (Linux; Android 10; A7S Build/QP1A.190711.020; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/138.0.7204.179 Mobile Safari/537.36 jp.ne.wowow.vod.androidtv/3.8.3",
@@ -51,12 +52,39 @@ class downloader:
         self.session.headers.update(self.default_headers)
         
     def parse_input(self, url_input):
-        pass
+        match = re.search(r'/content/(\d+)', url_input)
+        if match:
+            content_id = match.group(1)
+            
+        status, content_info = self.get_title_info(content_id)
+        
+        status, content_list = self.get_content_list(content_info["series_meta"]["meta_id"])
+        
+        if status == False:
+            return "not_availiable_content"
+        
+        genre_list = []
+        for single in content_info["genres"]:
+            genre_list.append(single["name"])
+        
+        video_info = {
+            "raw": content_info,
+            "content_id": str(content_id),
+            "content_type": genre_list,
+            "title_name": content_info["series_meta"]["name"],
+            "episode_count": len(content_list),
+            "episode_name": single["episodeName"],
+            "episode_num": single["displayNo"],
+        }
+        
+        return video_info
     def parse_input_season(self, url_input):
         pass
     def authorize(self, email_or_id, password):
         status, session_token = self.create_device_session()
         _USER_AUTH_API = "https://custom-api.wowow.co.jp/api/v1/wip/users/auth"
+        
+        temp_vuid = str(uuid.uuid4()).replace("-", "")
         
         payload = {
             "online_id": email_or_id,
@@ -64,7 +92,7 @@ class downloader:
             "client_id": "wod-tv",
             "app_id": 5,
             "device_code": 8,
-            "vuid": str(uuid.uuid4())
+            "vuid": temp_vuid
         }
         login_response = self.session.post(_USER_AUTH_API, json=payload).json()
         try:
@@ -89,21 +117,22 @@ class downloader:
             "access_token": login_response["access_token"],
             "refresh_token": login_response["refresh_token"],
             "additional_info": {
+                "vuid": temp_vuid,
                 "x_user_id": str(login_response["id"]),
                 "x_session_token": session_token,
                 "wip_access_token": login_response["wip_access_token"],
-                "wip_refresh_token": login_response["wip_refresh_token"]
+                "wip_refresh_token": login_response["wip_refresh_token"],
+                "normal_refresh_token": login_response["refresh_token"],
             }
         }
-        return True, user_info, True, session_json
-        
+        return True, user_info, True, session_json   
     def authorize_qr(self):
         status, session_token = self.create_device_session()
         _PIN_SESSION_CREATE = "https://session-manager.wowow.co.jp/pin/publish"
         _PIN_SESSION_CHECK = "https://session-manager.wowow.co.jp/pin/check"
         _SESSION_TOKEN_CHECK = "https://session-manager.wowow.co.jp/token/check"
         
-        temp_vuid = str(uuid.uuid4())
+        temp_vuid = str(uuid.uuid4()).replace("-", "")
         
         payload = {
             "vuid": temp_vuid
@@ -157,10 +186,12 @@ class downloader:
                         "access_token": access_token,
                         "refresh_token": refresh_token,
                         "additional_info": {
+                            "vuid": temp_vuid,
                             "x_user_id": str(login_status["token_id"]),
                             "x_session_token": session_token,
                             "wip_access_token": check_response["custom_data"]["wip_access_token"],
-                            "wip_refresh_token": check_response["custom_data"]["wip_refresh_token"]
+                            "wip_refresh_token": check_response["custom_data"]["wip_refresh_token"],
+                            "normal_refresh_token": refresh_token
                         }
                     }
                     
@@ -248,3 +279,78 @@ class downloader:
             return "single"
         else:
             return "season"
+        
+    def get_title_info(self, content_id):
+        querystring = {
+            "expand_object_flag": "0",
+            "app_id": "5",
+            "device_code": "8",
+            "datasource": "decorator",
+            "user_status": "2"
+        }
+        try:
+            metadata_response = self.session.post(f"https://mapi.wowow.co.jp/api/v1/metas/{content_id}", params=querystring)
+            return_json = metadata_response.json()
+            if metadata_response.status_code != 204:
+                return True, return_json
+            else:
+                return False, None
+        except:
+            return False, None
+    def get_content_list(self, series_id):
+        querystring = {
+            "expand_object_flag": "0",
+            "app_id": "5",
+            "device_code": "8",
+            "datasource": "decorator",
+            "user_status": "2"
+        }
+        try:
+            metadata_response = self.session.post(f"https://mapi.wowow.co.jp/api/v1/metas/{series_id}/children", params=querystring)
+            return_json = metadata_response.json()
+            if metadata_response.status_code != 204:
+                return True, return_json
+            else:
+                return False, None
+        except:
+            return False, None
+        
+    def open_session_get_dl(self, video_info):
+        try:
+            payload = {}
+            payload["meta_id"] = str(video_info["content_id"]) # 152181
+            payload["vuid"] = self.vuid
+            payload["user_id"] = self.x_user_id
+            payload["refresh_token"] = self.normal_refresh_token
+            payload["wip_access_token"] = self.wip_access_token
+            payload["wip_refresh_token"] = self.wip_refresh_token
+            payload["client_id"] = "wod-tv"
+            payload["ua"] = "Mozilla\\/5.0 (Linux; Android 10; A7S Build\\/QP1A.190711.020; wv) AppleWebKit\\/537.36 (KHTML, like Gecko) Version\\/4.0 Chrome\\/138.0.7204.179 Mobile Safari\\/537.36 jp.ne.wowow.vod.androidtv\\/3.8.3"
+            payload["app_id"] = "5"
+            payload["device_code"] = "8"
+            payload["device_localized_model"] = "Yoimi V2" #BRAVIA 4K GB
+            payload["localized_model"] = "Yoimi V2" #BRAVIA 4K GB
+            payload["device_system_name"] = "AndroidTV"
+            payload["system_name"] = "AndroidTV"
+            payload["device_manufacturer"] = "Sony"
+            payload["manufacturer"] = "Sony"
+            payload["device_hw_machine"] = ""
+            payload["hw_machine"] = ""
+            payload["system_version"] = "10"
+            payload["device_system_version"] = "10"
+            payload["device_mccmnc"] = ""
+            payload["mccmnc"] = ""
+            payload["device_model"] = "Yoimi V2" #BRAVIA 4K GB
+            payload["model"] = "Yoimi V2" #BRAVIA 4K GB
+            payload["device_display_name"] = "Yoimi V2" #BRAVIA 4K GB
+            payload["display_name"] = "Yoimi V2" #BRAVIA 4K GB
+            payload["device_app_version"] = "3.8.3"
+            payload["app_version"] = "3.8.3"
+            payload["device_app_build_version"] = 243
+            payload["app_build_version"] = 243
+            playback_auth = self.session.post("https://mapi.wowow.co.jp/api/v1/playback/auth", json=payload).json()
+            playback_session_id = playback_auth["playback_session_id"]
+            playback_access_token = playback_auth["access_token"]
+            ovp_video_id = playback_auth["media"]["ovp_video_id"]
+        except:
+            return None, None, None, None, {}
