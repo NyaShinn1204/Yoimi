@@ -5,6 +5,7 @@ SERVICE INFO
 name: Lemino
 require_account: Yes
 enable_refresh: No
+support_normal: Yes WIP
 support_qr: Yes
 is_drm: Yes
 cache_session: Yes

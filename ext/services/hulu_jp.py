@@ -5,6 +5,7 @@ SERVICE INFO
 name: Hulu-jp
 require_account: Yes
 enable_refresh: Yes
+support_normal: Yes
 support_qr: No
 is_drm: Yes
 cache_session: Yes

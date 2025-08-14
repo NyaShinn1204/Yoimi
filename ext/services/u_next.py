@@ -5,6 +5,7 @@ SERVICE INFO
 name: U-Next
 require_account: Yes
 enable_refresh: Yes
+support_normal: Yes
 support_qr: Yes
 is_drm: Yes
 cache_session: Yes
