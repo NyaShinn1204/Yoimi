@@ -66,6 +66,9 @@ class downloader:
         genre_list = []
         for single in content_info["genres"]:
             genre_list.append(single["name"])
+            
+        if content_info["schema_name"] == "ライブ":
+            genre_list = "live"
         
         if content_info["name"] == content_info["short_name"]:
             episode_name = None
@@ -80,6 +83,7 @@ class downloader:
             "episode_count": len(content_list),
             "episode_name": episode_name,
             "episode_num": content_info["episode_number_title"],
+            "output_titlename": content_info["name"]
         }
         
         return video_info
