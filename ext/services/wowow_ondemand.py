@@ -69,12 +69,12 @@ class downloader:
         
         video_info = {
             "raw": content_info,
-            "content_id": str(content_id),
+            "content_id": str(content_info["meta_id"]),
             "content_type": genre_list,
             "title_name": content_info["series_meta"]["name"],
             "episode_count": len(content_list),
-            "episode_name": single["episodeName"],
-            "episode_num": single["displayNo"],
+            "episode_name": content_info["lead_episode"]["name"].replace(content_info["name"]+" ", ""),
+            "episode_num": content_info["episode_number_title"],
         }
         
         return video_info
@@ -237,18 +237,26 @@ class downloader:
             payload = {
                 "refresh_token": refresh_token,
                 "app_id": 5,
-                "device_code": 8
+                "device_code": 8,
+                "vuid": self.vuid,
+                "wip_access_token": self.wip_access_token,
+                "wip_refresh_token": self.wip_refresh_token
             }
-            refresh_response = self.session.post("https://token.prod.hjholdings.tv/token/refresh", json=payload).json()
+            refresh_response = self.session.post("https://session-manager.wowow.co.jp/token/refresh", json=payload).json()
             
-            #refresh_response["token_id"]
-            access_token = refresh_response["access_token"]
-            refresh_token = refresh_response["refresh_token"]
-            session_data["access_token"] = access_token
-            session_data["refresh_token"] = refresh_token
+            session_data["access_token"] = refresh_response["access_token"]
+            session_data["refresh_token"] = refresh_response["refresh_token"]
+            session_data["additional_info"]["vuid"] = self.vuid
+            session_data["additional_info"]["x_user_id"] = str(refresh_response["token_id"]),
+            session_data["additional_info"]["wip_access_token"] = refresh_response["wip_access_token"]
+            session_data["additional_info"]["wip_refresh_token"] = refresh_response["wip_refresh_token"]
+            session_data["additional_info"]["normal_refresh_token"] = refresh_response["refresh_token"]
             
             self.session.headers.update({
-                "authorization": "Bearer "+access_token
+                "Authorization": "Bearer "+refresh_response["access_token"],
+                "X-Token-Id": self.x_user_id,
+                "X-User-Id": self.x_user_id,
+                "X-Session-Token": self.x_session_token
             })
             
             return session_data
@@ -289,12 +297,17 @@ class downloader:
             "user_status": "2"
         }
         try:
-            metadata_response = self.session.post(f"https://mapi.wowow.co.jp/api/v1/metas/{content_id}", params=querystring)
-            return_json = metadata_response.json()
-            if metadata_response.status_code != 204:
-                return True, return_json
+            metadata_response = self.session.get(f"https://mapi.wowow.co.jp/api/v1/metas/ref:{content_id}", params=querystring)
+            if metadata_response.status_code == 204:
+                metadata_response = self.session.get(f"https://mapi.wowow.co.jp/api/v1/metas/ref:C{content_id}", params=querystring)
+                if metadata_response.status_code != 204:
+                    return_json = metadata_response.json()
+                    return True, return_json
+                else:
+                    return False, None
             else:
-                return False, None
+                return_json = metadata_response.json()
+                return True, return_json
         except:
             return False, None
     def get_content_list(self, series_id):
@@ -306,9 +319,9 @@ class downloader:
             "user_status": "2"
         }
         try:
-            metadata_response = self.session.post(f"https://mapi.wowow.co.jp/api/v1/metas/{series_id}/children", params=querystring)
-            return_json = metadata_response.json()
+            metadata_response = self.session.get(f"https://mapi.wowow.co.jp/api/v1/metas/{series_id}/children", params=querystring)
             if metadata_response.status_code != 204:
+                return_json = metadata_response.json()
                 return True, return_json
             else:
                 return False, None
@@ -352,5 +365,25 @@ class downloader:
             playback_session_id = playback_auth["playback_session_id"]
             playback_access_token = playback_auth["access_token"]
             ovp_video_id = playback_auth["media"]["ovp_video_id"]
+            headers = self.session.headers.copy()
+            headers["authorization"] = playback_access_token
+            headers["x-playback-session-id"] = playback_session_id
+            response = self.session.get(f"https://playback-engine.wowow.co.jp/session/open/v1/projects/wod-prod/medias/{ovp_video_id}?codecs=avc", headers=headers).json()
+            duration = response["duration"]
+            sources = response["sources"]
+            print(duration, sources)
+            print(response)
+            
+            self.send_stop_signal(playback_access_token, playback_session_id)
         except:
             return None, None, None, None, {}
+        
+    def send_stop_signal(self, access_token, playback_session_id):
+        headers = self.session.headers.copy()
+        headers["authorization"] = access_token
+        headers["x-playback-session-id"] = playback_session_id
+        response = self.session.post("https://playback-engine.wowow.co.jp/session/close", headers=headers).json()
+        if response["result"]:
+            return True
+        else:
+            return False
