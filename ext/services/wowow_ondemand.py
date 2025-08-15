@@ -73,13 +73,41 @@ class downloader:
             "content_type": genre_list,
             "title_name": content_info["series_meta"]["name"],
             "episode_count": len(content_list),
-            "episode_name": content_info["name"].replace(content_info["series_meta"]["name"]+" ", ""),
+            "episode_name": content_info["short_name"],
             "episode_num": content_info["episode_number_title"],
         }
         
         return video_info
     def parse_input_season(self, url_input):
-        pass
+        match = re.search(r'/program/(\d+)', url_input)
+        if match:
+            program_id = match.group(1)
+            
+        status, real_program = self.get_title_info(program_id)
+        real_program_id = real_program["id"]
+        
+        status, content_list = self.get_content_list(real_program_id)
+        
+        temp_list = []
+        
+        content_list = sorted(content_list, key=lambda x: x["episode_id_name"])
+        
+        for single in content_list:
+            temp_json = {}
+            temp_json["raw"] = single
+            temp_json["episode_name"] = single["short_name"]
+            temp_json["episode_num"] = single["episode_number_title"]
+            self.logger.info(" - "+single["name"])
+            
+        video_info = {
+            "raw": real_program,
+            "episode_list": {
+                "metas": temp_list
+            }
+        }
+                
+        return None, real_program["name"], video_info
+        
     def authorize(self, email_or_id, password):
         status, session_token = self.create_device_session()
         _USER_AUTH_API = "https://custom-api.wowow.co.jp/api/v1/wip/users/auth"
