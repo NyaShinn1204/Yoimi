@@ -73,7 +73,7 @@ class downloader:
             "content_type": genre_list,
             "title_name": content_info["series_meta"]["name"],
             "episode_count": len(content_list),
-            "episode_name": content_info["lead_episode"]["name"].replace(content_info["name"]+" ", ""),
+            "episode_name": content_info["name"].replace(content_info["series_meta"]["name"]+" ", ""),
             "episode_num": content_info["episode_number_title"],
         }
         
@@ -329,6 +329,12 @@ class downloader:
             return False, None
         
     def open_session_get_dl(self, video_info):
+        def resolution_to_pixels(resolution_str):
+            match = re.match(r"(\d+)x(\d+)", resolution_str)
+            if match:
+                width, height = map(int, match.groups())
+                return width * height
+            return 0
         try:
             payload = {}
             payload["meta_id"] = str(video_info["content_id"]) # 152181
@@ -365,16 +371,52 @@ class downloader:
             playback_session_id = playback_auth["playback_session_id"]
             playback_access_token = playback_auth["access_token"]
             ovp_video_id = playback_auth["media"]["ovp_video_id"]
+            
+            
             headers = self.session.headers.copy()
             headers["authorization"] = playback_access_token
             headers["x-playback-session-id"] = playback_session_id
+            
+            self.logger.info("Open Video Session")
+            
             response = self.session.get(f"https://playback-engine.wowow.co.jp/session/open/v1/projects/wod-prod/medias/{ovp_video_id}?codecs=avc", headers=headers).json()
-            duration = response["duration"]
-            sources = response["sources"]
-            print(duration, sources)
-            print(response)
             
             self.send_stop_signal(playback_access_token, playback_session_id)
+            self.logger.info("Close Video Session")
+            
+            self.logger.info("Get MPD Link")
+            
+            urls = []
+            widevine_url = None
+            playready_url = None
+            
+            sorted_sources = sorted(
+                response["sources"],
+                key=lambda s: resolution_to_pixels(s.get("resolution", "0x0")),
+                reverse=True
+            )
+            
+            self.logger.debug("Source List")
+            
+            for source in sorted_sources:
+                if "manifest.mpd" in source.get("src", ""):
+                    self.logger.debug(" + "+source.get("src", ""))
+                    urls.append(source["src"])
+                    if source.get("key_systems"):
+                        widevine_url = source["key_systems"].get("com.widevine.alpha", {}).get("license_url")
+                        playready_url = source["key_systems"].get("com.microsoft.playready", {}).get("license_url")
+                    break
+            if urls:
+                mpd_link = urls[0].replace("jp/v4", "jp/v6")
+                
+                self.logger.debug("Select Best quality mpd")
+                self.logger.debug(" + "+mpd_link)
+                
+                self.logger.info(f" + MPD_link: {mpd_link[:15] + '*****'}")
+                return "mpd", self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}, {}
+            else:
+                self.logger.warning("No suitable MPD link found")
+                return None, None, None, None, None
         except:
             return None, None, None, None, {}
         
@@ -387,3 +429,24 @@ class downloader:
             return True
         else:
             return False
+        
+    # ライセンス処理後の処理
+    def decrypt_done(self):
+        # 今回は特になし
+        pass
+    
+    # セグメントのリンクを作成
+    def create_segment_links(self, get_best_track, manifest_link, video_segment_list, audio_segment_list, seg_timeline):
+        video_segment_links = []
+        audio_segment_links = []
+        video_segment_links.append(get_best_track["video"]["url"])
+        audio_segment_links.append(get_best_track["audio"]["url"])
+        
+        for single_segment in range(video_segment_list):
+            temp_link = get_best_track["video"]["url_base"]+get_best_track["video"]["url_segment_base"].replace("$Number$", str(single_segment))
+            video_segment_links.append(temp_link)
+        for single_segment in range(audio_segment_list):
+            temp_link = get_best_track["audio"]["url_base"]+get_best_track["audio"]["url_segment_base"].replace("$Number$", str(single_segment))
+            audio_segment_links.append(temp_link)
+            
+        return audio_segment_links, video_segment_links
