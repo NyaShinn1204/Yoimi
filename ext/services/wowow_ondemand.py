@@ -67,13 +67,18 @@ class downloader:
         for single in content_info["genres"]:
             genre_list.append(single["name"])
         
+        if content_info["name"] == content_info["short_name"]:
+            episode_name = None
+        else:
+            episode_name = content_info["short_name"]
+        
         video_info = {
             "raw": content_info,
             "content_id": str(content_info["meta_id"]),
             "content_type": genre_list,
             "title_name": content_info["series_meta"]["name"],
             "episode_count": len(content_list),
-            "episode_name": content_info["short_name"],
+            "episode_name": episode_name,
             "episode_num": content_info["episode_number_title"],
         }
         
@@ -95,7 +100,10 @@ class downloader:
         for single in content_list:
             temp_json = {}
             temp_json["raw"] = single
-            temp_json["episode_name"] = single["short_name"]
+            if single["name"] == single["short_name"]:
+                temp_json["episode_name"] = ""
+            else:
+                temp_json["episode_name"] = single["short_name"]
             temp_json["episode_num"] = single["episode_number_title"]
             self.logger.info(" - "+single["name"])
             
