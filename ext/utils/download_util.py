@@ -500,7 +500,7 @@ class live_downloader:
                     self.logger.info("Live Stream Ended")
                     return True
                 if not mpd_content:
-                    not_found_mpd+=1
+                    not_found_mpd = not_found_mpd + 1
                     time.sleep(5)
                     continue
         
