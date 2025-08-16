@@ -324,30 +324,149 @@ class live_downloader:
         except Exception as e:
             self.logger.error(f"Error extracting segment times for {media_type}: {e}")
         return times
+    def _fill_template(self, template: str, values: dict) -> str:
+        # よく使う置換トークンに対応（足りない場合は随時追加）
+        out = template
+        for k, v in values.items():
+            out = out.replace(f"${k}$", str(v))
+        return out
+    
+    def _extract_segment_plan(self, mpd_content: str, media_type: str):
+        """
+        MPD からダウンロード計画を抽出して返す
+        return:
+          {
+            "media": "<media template>",
+            "init": "<initialization template or None>",
+            "uses_time": bool,
+            "uses_number": bool,
+            "start_number": int|None,
+            "timescale": int,
+            "timeline": [{"t":int,"d":int}],  # r 展開後
+            "rep": { "id":str|None, "bandwidth":int|None, ... }  # Representation属性
+          }
+        """
+        try:
+            ns = {'mpd': 'urn:mpeg:dash:schema:mpd:2011'}
+            root = ET.fromstring(mpd_content)
+            period = root.find('mpd:Period', ns)
+            if period is None:
+                return None
+    
+            for aset in period.findall('mpd:AdaptationSet', ns):
+                if media_type not in aset.attrib.get("mimeType", ""):
+                    continue
+    
+                reps = aset.findall('mpd:Representation', ns)
+                if not reps:
+                    continue
+    
+                # 帯域が最大の Representation を採用（任意の選び方でOK）
+                def bw(x): return int(x.attrib.get("bandwidth", "0"))
+                rep = max(reps, key=bw)
+    
+                seg_template = rep.find('mpd:SegmentTemplate', ns)
+                if seg_template is None:
+                    seg_template = aset.find('mpd:SegmentTemplate', ns)  # 保険
+    
+                if seg_template is None:
+                    continue
+    
+                media = seg_template.attrib.get('media')
+                init  = seg_template.attrib.get('initialization')
+                timescale = int(seg_template.attrib.get('timescale', '1'))
+                start_number = seg_template.attrib.get('startNumber')
+                start_number = int(start_number) if start_number is not None else None
+    
+                uses_time = ('$Time$' in (media or '')) or ('$Time$' in (init or ''))
+                uses_number = ('$Number$' in (media or '')) or ('$Number$' in (init or ''))
+    
+                # SegmentTimeline 展開
+                timeline = []
+                st = seg_template.find('mpd:SegmentTimeline', ns)
+                if st is not None:
+                    current_time = None
+                    for s in st.findall('mpd:S', ns):
+                        d = int(s.attrib['d'])
+                        r = int(s.attrib.get('r', '0'))
+                        if 't' in s.attrib:
+                            current_time = int(s.attrib['t'])
+                        if current_time is None:
+                            current_time = 0
+                        for _ in range(r + 1):
+                            timeline.append({"t": current_time, "d": d})
+                            current_time += d
+    
+                # Representation 属性を値埋め込み用に保持
+                rep_info = {
+                    "RepresentationID": rep.attrib.get("id"),
+                    "Bandwidth": rep.attrib.get("bandwidth")
+                }
+    
+                return {
+                    "media": media,
+                    "init": init,
+                    "uses_time": uses_time,
+                    "uses_number": uses_number,
+                    "start_number": start_number,
+                    "timescale": timescale,
+                    "timeline": timeline,
+                    "rep": rep_info,
+                }
+        except Exception as e:
+            self.logger.error(f"Error extracting plan for {media_type}: {e}")
+        return None
     def _download_and_merge_segments(self, seg_info, mpd_content, video_output, audio_output):
         for media_type in ["video", "audio"]:
             info = seg_info[media_type]
     
-            # Initialization segment
-            init_url = urljoin(info["url_base"], info["url"])
-            if media_type == "video":
-                init_filename = video_output
-            elif media_type == "audio":
-                init_filename = audio_output
-            if not os.path.exists(init_filename):
-                self._download_segment(init_url, init_filename)
+            plan = self._extract_segment_plan(mpd_content, media_type)
+            if not plan:
+                self.logger.error(f"No segment plan found in MPD for {media_type}")
+                continue
     
-            # Segment timeline from MPD
-            seg_times = self._extract_segment_times(mpd_content, media_type)
+            # === 初期化セグメント ===
+            init_filename = video_output if media_type == "video" else audio_output
+            if plan["init"]:
+                init_path = self._fill_template(plan["init"], plan["rep"])
+                init_url = urljoin(info["url_base"], init_path)
+                if not os.path.exists(init_filename):
+                    self._download_segment(init_url, init_filename)
     
-            for t in seg_times:
-                if t in self.downloaded_segments[media_type]:
-                    continue  # skip already downloaded segment
+            # === 本編セグメント ===
+            media_tpl = plan["media"]
+            if not media_tpl:
+                self.logger.error("media template missing.")
+                continue
     
-                seg_url = urljoin(info["url_base"], info["url_segment_base"].replace("$Time$", str(t)))
-                self._download_segment(seg_url, init_filename)
-                self.downloaded_segments[media_type].add(t)
+            if plan["uses_time"]:
+                for item in plan["timeline"]:
+                    t = item["t"]
+                    if t in self.downloaded_segments[media_type]:
+                        continue
+                    seg_path = self._fill_template(media_tpl, {**plan["rep"], "Time": t})
+                    seg_url = urljoin(info["url_base"], seg_path)
+                    self._download_segment(seg_url, init_filename)
+                    self.downloaded_segments[media_type].add(t)
     
+            elif plan["uses_number"]:
+                if plan["start_number"] is None:
+                    self.logger.error("startNumber is missing for $Number$ addressing.")
+                    continue
+                count = len(plan["timeline"]) if plan["timeline"] else 0
+                # SegmentTimeline が無い $Number$ の場合はライブでは「増える」ので、
+                # 既に落とした最大番号+1 から順に試すなどの戦略が必要。ここでは TL 長に合わせる簡易版。
+                for i in range(count):
+                    n = plan["start_number"] + i
+                    if n in self.downloaded_segments[media_type]:
+                        continue
+                    seg_path = self._fill_template(media_tpl, {**plan["rep"], "Number": n})
+                    seg_url = urljoin(info["url_base"], seg_path)
+                    self._download_segment(seg_url, init_filename)
+                    self.downloaded_segments[media_type].add(n)
+    
+            else:
+                self.logger.error("Unknown addressing mode (neither $Time$ nor $Number$).")
     def _parse_minimum_update_period(self, mpd_content):
         try:
             root = ET.fromstring(mpd_content)
@@ -375,8 +494,13 @@ class live_downloader:
                 output_audio = os.path.join(output_temp_directory, "download_encrypt_audio.mp4")
                 
                 ### check mpd content
+                not_found_mpd = 0
                 mpd_content = self._fetch_mpd_segment_info(url)
+                if not_found_mpd == 5:
+                    self.logger.info("Live Stream Ended")
+                    return True
                 if not mpd_content:
+                    not_found_mpd+=1
                     time.sleep(5)
                     continue
         

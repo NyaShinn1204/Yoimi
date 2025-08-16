@@ -52,6 +52,8 @@ class downloader:
         self.session.headers.update(self.default_headers)
         
     def parse_input(self, url_input):
+        global live_mode
+        live_mode = False
         match = re.search(r'/content/(\d+)', url_input)
         if match:
             content_id = match.group(1)
@@ -68,6 +70,7 @@ class downloader:
             genre_list.append(single["name"])
             
         if content_info["schema_name"] == "ライブ":
+            live_mode = True
             genre_list = "live"
         
         if content_info["name"] == content_info["short_name"]:
@@ -369,6 +372,7 @@ class downloader:
             return False, None
         
     def open_session_get_dl(self, video_info):
+         
         def resolution_to_pixels(resolution_str):
             match = re.match(r"(\d+)x(\d+)", resolution_str)
             if match:
@@ -453,7 +457,10 @@ class downloader:
                 self.logger.debug(" + "+mpd_link)
                 
                 self.logger.info(f" + MPD_link: {mpd_link[:15] + '*****'}")
-                return "mpd", self.session.get(mpd_link).text, mpd_link, {"widevine": widevine_url, "playready": playready_url}, {}
+                mpd_link_response = self.session.get(mpd_link).text
+                if live_mode:
+                    mpd_link = mpd_link.replace("dash/main/", "").replace("manifest.streaks.jp/v6/wod-prod", "jo-streakslive-prod.wowow.co.jp")
+                return "mpd", mpd_link_response, mpd_link, {"widevine": widevine_url, "playready": playready_url}, {}
             else:
                 self.logger.warning("No suitable MPD link found")
                 return None, None, None, None, None
