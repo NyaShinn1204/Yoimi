@@ -1,0 +1,10 @@
+rich
+tqdm
+click
+tls_client
+pywidevine
+pyplayready
+ruamel.yaml
+opencv-python
+beautifulsoup4
+typing-extensions
