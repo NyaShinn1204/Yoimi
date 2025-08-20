@@ -36,8 +36,6 @@ def cli(version=False):
 @click.option("--directory", "--d", "--path", required=False, default=None, help="Output directory")
 @click.option('--keep', '-k', is_flag=True, help="Keep temp file")
 @click.option('--verbose', '-v', is_flag=True, help="Enable verbosity")
-@click.option('--random-directory', '-rd', 'use_rd', is_flag=True, default=True, help="Make temp a random directory")
-
 
 
 @click.option('--get-subtitle', '-gsub', 'get_sub', is_flag=True, default=False, help="Coming soon")
@@ -47,7 +45,7 @@ def cli(version=False):
 @click.option('--embed-thumbnail', '-ebthumb', 'embed_thumbnail', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-metadata', '-ebmeta', 'embed_metadata', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-chapters', '-ebchap', 'embed_chapters', is_flag=True, default=False, help="Coming soon")
-def main_downloader(input, username, password, proxy, res, resR, output, extension, directory, keep, verbose, use_rd, get_sub, embed_sub, write_thumbnail, embed_thumbnail, embed_metadata, embed_chapters):
+def main_downloader(input, username, password, proxy, res, resR, output, extension, directory, keep, verbose, get_sub, embed_sub, write_thumbnail, embed_thumbnail, embed_metadata, embed_chapters):
     
     command = {
         "version": __version__,
@@ -61,7 +59,6 @@ def main_downloader(input, username, password, proxy, res, resR, output, extensi
         "output_directory": directory,
         "keep": keep,
         "verbose": verbose,
-        "random_directory": use_rd,
         "get_subtitle": get_sub,
         "embed_subtitle": embed_sub,
         "write_thumbnail": write_thumbnail,

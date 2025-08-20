@@ -27,7 +27,7 @@ __service_config__ = {
     "service_name": "Lemino",
     "require_account": True,
     "enable_refresh": False,
-    "support_normal": True, # WIP
+    "support_normal": False, # WIP, Bruh I cann't check 2fa code.
     "support_qr": True,
     "is_drm": True,
     "cache_session": True,
@@ -200,7 +200,8 @@ class downloader:
                             "email": None,
                             "password": None,
                             "access_token": update_token,
-                            "refresh_token": None
+                            "refresh_token": None,
+                            "additional_info": {}
                         }
                         
                         return True, message, True, session_json
@@ -224,8 +225,14 @@ class downloader:
             return True, temp_token.headers["x-service-token"]
         else:
             return False, None
+    def check_token(self, token):
+        self.session.headers.update({
+            "x-service-token": token,
+        })
+        status, profile = self.get_userinfo()
+        return status, profile
     def get_userinfo(self):
-        url = "https://if.lemino.docomo.ne.jp/v1/user/loginkey/userinfo/profile"
+        url = "https://if.lemino.docomo.ne.jp/v1/user/userinfo/profile"
                     
         response = self.session.post(url, json={"member": True, "profile": True})
         if response.status_code == 200:
