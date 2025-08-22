@@ -1,4 +1,4 @@
-// Bypass jp.ne.wowow.vod.android
+// Bypass jp.ne.wowow.vod.androidtv
 Java.perform(function () {
     var SettingsSecure = Java.use("android.provider.Settings$Secure");
 
