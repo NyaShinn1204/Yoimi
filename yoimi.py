@@ -76,10 +76,13 @@ def main_downloader(input, username, password, proxy, res, resR, output, extensi
     check_status = path_check(input)
     if check_status == True:
         if os.path.isfile(input):
-            with open(input, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                for line in lines:
-                    download_command(line.strip(), command)
+            if "wsdcf" in os.path.basename(input):
+                download_command(input, command)
+            else:
+                with open(input, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        download_command(line.strip(), command)
         else:
             print("Invalid file path.")
             exit(1)
