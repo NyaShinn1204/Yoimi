@@ -206,7 +206,7 @@ class normal:
                 self.session.headers.update(
                     {
                         "x-app-name": "android_2d",
-                        "x-app-ver": "v4.1.0",
+                        "x-app-ver": "v4.1.3",
                         "x-exploit-id": "uid:"+user_id,
                         "connection": "Keep-Alive",
                         "accept-encoding": "gzip",
@@ -244,7 +244,7 @@ class normal:
                 self.session.headers.update(
                     {
                         "x-app-name": "android_2d",
-                        "x-app-ver": "v4.1.0",
+                        "x-app-ver": "v4.1.3",
                         "x-exploit-id": "uid:"+profile_resposne.json()["data"]["user"]["id"],
                         "connection": "Keep-Alive",
                         "accept-encoding": "gzip",
@@ -252,6 +252,12 @@ class normal:
                     }
                 )
                 return True, profile_resposne.json()["data"]["user"]
+            
+        def show_userinfo(self, user_data):
+            profile_id = user_data["id"]
+            self.logger.info("Logged-in Account")
+            self.logger.info(" + id: " + profile_id)
+
 class vr:
     class downloader:
         def __init__(self, session, logger):
