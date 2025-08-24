@@ -37,15 +37,17 @@ def cli(version=False):
 @click.option('--keep', '-k', is_flag=True, help="Keep temp file")
 @click.option('--verbose', '-v', is_flag=True, help="Enable verbosity")
 
+### downloader option
+@click.option('--use-hls', 'useHLS', required=False, is_flag=True, help="Use HLS downloader preferentially")
 
 @click.option('--get-subtitle', '-gsub', 'get_sub', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-sub', '-esub', 'embed_sub', is_flag=True, default=False, help="Coming soon")
-
 @click.option('--write-thumbnail', '-wthumb', 'write_thumbnail', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-thumbnail', '-ebthumb', 'embed_thumbnail', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-metadata', '-ebmeta', 'embed_metadata', is_flag=True, default=False, help="Coming soon")
 @click.option('--embed-chapters', '-ebchap', 'embed_chapters', is_flag=True, default=False, help="Coming soon")
-def main_downloader(input, username, password, proxy, res, resR, output, extension, directory, keep, verbose, get_sub, embed_sub, write_thumbnail, embed_thumbnail, embed_metadata, embed_chapters):
+
+def main_downloader(input, username, password, proxy, res, resR, output, extension, directory, keep, verbose, useHLS, get_sub, embed_sub, write_thumbnail, embed_thumbnail, embed_metadata, embed_chapters):
     
     command = {
         "version": __version__,
@@ -59,6 +61,9 @@ def main_downloader(input, username, password, proxy, res, resR, output, extensi
         "output_directory": directory,
         "keep": keep,
         "verbose": verbose,
+        "downloader_option": {
+            "use_hls": useHLS
+        },
         "get_subtitle": get_sub,
         "embed_subtitle": embed_sub,
         "write_thumbnail": write_thumbnail,

@@ -1,4 +1,6 @@
 import os
+import re
+import requests
 from pathlib import Path
 from ruamel.yaml import YAML
 
@@ -143,3 +145,42 @@ class other_util:
                 "shaka_path": None,
                 "mp4_path": None
             }
+            
+    def bypass_recapcha_v3(anchor_url):
+        session = requests.Session()
+        session.headers.update({
+            "Content-Type": "application/x-www-form-urlencoded"
+        })
+
+        match = re.search(r"(api2|enterprise)/anchor\?(.*)", anchor_url)
+        if not match:
+            return None
+        
+        mode, param_str = match.groups()
+        base_url = f"https://www.google.com/recaptcha/{mode}/"
+
+        params = dict(pair.split("=") for pair in param_str.split("&"))
+
+        response = session.get(base_url + "anchor", params=params)
+        token_match = re.search(r'"recaptcha-token" value="(.*?)"', response.text)
+        if not token_match:
+            return None
+        
+        token = token_match.group(1)
+        
+        post_data = {
+            "v": params.get("v"),
+            "reason": "q",
+            "c": token,
+            "k": params.get("k"),
+            "co": params.get("co"),
+        }
+
+        response = session.post(
+            base_url + "reload",
+            params={"k": params.get("k")},
+            data=post_data
+        )
+
+        rresp_match = re.search(r'"rresp","(.*?)"', response.text)
+        return rresp_match.group(1) if rresp_match else None
