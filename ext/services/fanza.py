@@ -195,14 +195,9 @@ class normal:
                         }
                     )
                 
-                user_info_query = {
-                    "operationName": "GetServicePlan",
-                    "variables": {},
-                    "query": "query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }",
-                }
-                user_info_res = self.session.post(_ENDPOINT_CC, json=user_info_query, headers={"authorization": "Bearer "+token})
-    
-                user_id = user_info_res.json()["data"]["user"]["id"]
+                status, profile = self.get_userinfo()
+
+                user_id = profile["id"]
                 self.session.headers.update(
                     {
                         "x-app-name": "android_2d",
@@ -223,7 +218,7 @@ class normal:
                     "additional_info": {}
                 }
                 
-                return True, user_info_res.json()["data"]["user"], True, session_json
+                return True, profile, True, session_json
             except Exception as e:
                 return False, e, False, None
         def check_token(self, token):
@@ -422,14 +417,9 @@ class vr:
                         }
                     )
                 
-                user_info_query = {
-                    "operationName": "GetServicePlan",
-                    "variables": {},
-                    "query": "query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }",
-                }
-                user_info_res = self.session.post(_ENDPOINT_CC, json=user_info_query, headers={"authorization": "Bearer "+token})
-    
-                user_id = user_info_res.json()["data"]["user"]["id"]
+                status, profile = self.get_userinfo()
+
+                user_id = profile["id"]
                 self.session.headers.update(
                     {
                         "x-app-name": "android_vr_store",
@@ -450,6 +440,6 @@ class vr:
                     "additional_info": {}
                 }
                 
-                return True, user_info_res.json()["data"]["user"], True, session_json
+                return True, profile, True, session_json
             except Exception as e:
                 return False, e, False, None

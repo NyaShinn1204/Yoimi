@@ -67,3 +67,9 @@ def extract_pssh_array(buffer: bytes) -> PsshArray:
         pssh_array.append({"type": drm_type, "data": pssh_b64})
 
     return pssh_array
+
+def return_pssh_json(input_path: str):
+    with open(input_path, "rb") as f:
+        pssh_byte = f.read()
+    result = extract_pssh_array(pssh_byte)
+    return result
