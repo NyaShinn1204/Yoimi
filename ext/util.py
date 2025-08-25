@@ -106,6 +106,9 @@ def get_parser(url):
     elif "dmmvrplayerstreaming" in url or "vr-sample-player" in url or ".wsdcf" in url:
         from ext.services import fanza
         return fanza.vr, "Fanza-VR"
+    elif ".dcv" in url:
+        from ext.services import fanza
+        return fanza.normal, "Fanza"
 
     return None, None
 
@@ -210,7 +213,7 @@ def download_command(input: str, command_list: Iterator):
             session.proxies = {'http': proxy, 'https': proxy}
         titlename_manager = titlename_logic(config=loaded_config)
             
-        service_downloader = module_service.downloader(session=session, logger=service_logger)
+        service_downloader = module_service.downloader(session=session, logger=service_logger, config=loaded_config)
         
         ### check session
         if service_config["cache_session"] and loaded_config["authorization"]["use_cache"]:
@@ -482,7 +485,9 @@ def download_command(input: str, command_list: Iterator):
                 yoimi_logger.info("Decrypting Files...")
                 decryptor = main_decrypt(yoimi_logger)
                 content_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "local_decrypt.mp4")
-                                    
+
+                os.makedirs(os.path.dirname(content_decrypt_output), exist_ok=True)
+                       
                 decryptor.decrypt(license_keys=decrypt_license, input_path=[content_output], output_path=[content_decrypt_output], config=loaded_config, service_name="Yoimi")
                 
             

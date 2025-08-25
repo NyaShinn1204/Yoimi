@@ -130,9 +130,7 @@ class main_decrypt:
     def __init__(self, logger):
         self.logger = logger
     
-    def _decrypt_single_aes(self, license_keys, input_path, output_path, config, service_name):
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    
+    def _decrypt_single_aes(self, license_keys, input_path, output_path, config, service_name):    
         self.logger.debug(f"[Single] input: {input_path}, output: {output_path}", extra={"service_name": service_name})
     
         method = license_keys.get("method", "").upper()
@@ -254,7 +252,7 @@ class main_decrypt:
     
     
     def decrypt(self, license_keys: list, input_path: Union[os.PathLike, List[os.PathLike]], output_path: Union[os.PathLike, List[os.PathLike]], config: Dict[str, Any], service_name: str = ""):
-        if license_keys["key"] != int:
+        if license_keys["type"] == "AES":
             if license_keys["iv"] != None and license_keys["key"] != None:
                 pass
 

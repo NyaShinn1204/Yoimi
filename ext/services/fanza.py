@@ -17,10 +17,13 @@ support_url:
 
 import re
 import os
+import json
 import base64
 import hashlib
 import requests
 import xml.etree.ElementTree as ET
+from ext.utils.license_util import license_logic
+from ext.utils.pssh_util import return_pssh_json
 from ext.utils.zzz_other_util import other_util
 
 class normal:
@@ -35,9 +38,10 @@ class normal:
         "use_tls": False,
     }
     class downloader:
-        def __init__(self, session, logger):
+        def __init__(self, session, logger, config):
             self.session = session
             self.logger = logger
+            self.config = config
             
             self.default_headers = {
                 "user-agent": "UnityPlayer/2020.3.48f1 (UnityWebRequest/1.0, libcurl/7.84.0-DEV)",
@@ -50,10 +54,96 @@ class normal:
             self.session.headers.update(self.default_headers)
     
         def parse_input(self, url_input, id = None):
-            pass
+            global pssh_extract_result
+            if os.path.isfile(url_input) and url_input.endswith(".dcv"):
+                file_path = os.path.abspath(url_input)
+                with open(file_path, "rb") as f:
+                    header_text = f.read(1024).decode("utf-8", errors="ignore")
+        
+                pssh_extract_result = return_pssh_json(file_path)
+                single_pssh = pssh_extract_result.get(next(iter(pssh_extract_result)))
+                    
+                decoded_bytes = base64.b64decode(single_pssh)
+                decoded_str = decoded_bytes.decode('utf-8', errors='ignore') 
+                self.logger.debug("Decode PSSH: "+decoded_str)
+                match = re.search(r'\{.*\}', decoded_str)
+                if match:
+                    json_str = match.group(0)
+                    self.logger.debug("Get Content Json: "+json_str)
+                    json_data = json.loads(json_str)
+                    content_info = self.find_content_from_id(json_data["fid"])
+                else:
+                    self.logger.error("Invalid PSSH")
+                
+                content_name = content_info["title"]
+                
+                video_info = {
+                    "title_name": "",
+                    "output_titlename": content_name+"["+os.path.splitext(os.path.basename(file_path))[0]+"]",
+                    "content_type": "offline"
+                }
+                return video_info
         def parse_input_season(self, url_input):
             pass
-        
+
+        def parse_offline_content(self, url_input):
+            file_path = os.path.abspath(url_input)
+
+            self.logger.info("Get License UID")
+            license_uid = self.get_license_uid()
+            self.logger.info(" + "+license_uid)
+
+            self.logger.info("Get Video, Audio PSSH")
+            if pssh_extract_result.get("widevine"):
+                self.logger.info(" + Widevine: "+ pssh_extract_result["widevine"][:35]+"...")
+            if pssh_extract_result.get("playready"):
+                self.logger.info(" + Playready: "+ pssh_extract_result["playready"][:35]+"...")
+            
+            self.logger.info("Decrypting License")
+
+            fake_json = {"pssh_list": pssh_extract_result}
+            manifest_info = {
+                "widevine": "https://mlic.dmm.com/drm/widevine/license",
+                "playready": "https://mlic.dmm.co.jp/drm/playready/rightsmanager.asmx",
+                "fairplay": "https://mlic.dmm.com/drm/fairplay/license",
+                "clearkey": "https://mlic.dmm.com/drm/clearkey/license"
+            }
+            temp_headers = {
+                "host": "mlic.dmm.com",
+                "accept": "*/*",
+                "accept-encoding": "gzip, deflate, br, zstd",
+                "accept-language": "ja",
+                "sec-fetch-dest": "empty",
+                "sec-fetch-mode": "cors",
+                "sec-fetch-site": "cross-site",
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) DMMPlayerv2/2.5.0 Chrome/134.0.6998.179 Electron/35.1.5 Safari/537.36",
+                "authorization": self.session.headers["authorization"],
+                "sec-ch-ua": "\"Not:A-Brand\";v=\"24\", \"Chromium\";v=\"134\"",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": "\"Windows\"",
+                "priority": "u=1, i",
+                "cookie": f"licenseUID={license_uid}"
+            }
+            decrypt_headers = {
+                "widevine": temp_headers, "playready": temp_headers
+            }
+
+            license_return = license_logic.decrypt_license(fake_json, manifest_info, decrypt_headers, self.session, self.config, self.logger, debug=False)
+            if license_return == None:
+                self.logger.error("both license decrypt failed")
+                return None, None
+            if license_return["type"] == "widevine":
+                self.logger.info(f"Decrypt License (Widevine):")
+                for license_key in license_return["key"]:
+                    if license_key["type"] == "CONTENT":
+                        self.logger.info(" + "+license_key['kid_hex']+":"+license_key['key_hex']) 
+            elif license_return["type"] == "playready":
+                self.logger.info(f"Decrypt License (PlayReady):")
+                for license_key in license_return["key"]:
+                    self.logger.info(" + "+license_key) 
+            
+            return file_path, license_return
+
         def authorize(self, email, password):
             _ENDPOINT_RES = "https://accounts.dmm.com/app/service/login/password"
             _ENDPOINT_TOKEN = "https://gw.dmmapis.com/connect/v1/token"
@@ -249,10 +339,37 @@ class normal:
             else:
                 return False, None
         def show_userinfo(self, user_data):
+            global profile_id
             profile_id = user_data["id"]
             self.logger.info("Logged-in Account")
             self.logger.info(" + id: " + profile_id)
-
+        def judgment_watchtype(self, url):
+            if os.path.isfile(url) and ".dvc" in url:
+                return "single" ## offline-decrypt
+            else:
+                return "single"
+            
+        def find_content_from_id(self, id):
+            res = self.session.get("https://video.digapi.dmm.com/purchased/list/text?limit=1000&page=1&order=new&hidden_filter=")
+            if res.status_code == 200:
+                for single in res.json()["list_info"]:
+                    if id in single["product_id"]:
+                        return single
+                    else:
+                        continue
+            else:
+                return None
+            
+        def get_license_uid(self):
+            payload = {
+                "oid": profile_id
+            }
+            res = self.session.post("https://www.dmm.com/service/digitalapi/digital/-/get_license_uid", data=payload)
+            if res.status_code == 200:
+                return res.json()["license_uid"]
+            else:
+                return None
+            
 class vr:
     __service_config__ = {
         "service_name": "Fanza-VR",
@@ -265,9 +382,10 @@ class vr:
         "use_tls": False,
     }
     class downloader:
-        def __init__(self, session, logger):
+        def __init__(self, session, logger, config):
             self.session = session
             self.logger = logger
+            self.config = config
             
             self.default_headers = {
                 "user-agent": "UnityPlayer/2020.3.48f1 (UnityWebRequest/1.0, libcurl/7.84.0-DEV)",
@@ -293,7 +411,7 @@ class vr:
         
                 video_info = {
                     "title_name": "",
-                    "output_titlename": content_name,
+                    "output_titlename": content_name+"["+os.path.splitext(os.path.basename(file_path))[0]+"]",
                     "content_type": "offline"
                 }
                 return video_info
@@ -422,6 +540,7 @@ class vr:
             self.logger.info(" + IV: "+base64.b64encode(iv).decode())
             
             decrypt_license = {
+                "type": "AES",
                 "method": method,
                 "key": base64.b64decode(key_value),
                 "iv": iv

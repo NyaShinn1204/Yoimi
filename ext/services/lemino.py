@@ -35,9 +35,10 @@ __service_config__ = {
 }
 
 class downloader:
-    def __init__(self, session, logger):
+    def __init__(self, session, logger, config):
         self.session = session
         self.logger = logger
+        self.config = config
         
         self.default_headers = {
             "user-agent": "Lemino/7.2.2(71) A7S;AndroidTV;10",

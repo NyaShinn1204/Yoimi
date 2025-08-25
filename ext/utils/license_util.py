@@ -14,8 +14,8 @@ class license_logic:
     
         if widevine_pssh and (config["cdms"]["widevine"] != ""):
             if headers != {}:
-                headers = headers["widevine"]
-            widevine_result = license_logic.widevine_license(widevine_pssh, manifest_info["widevine"], headers, session, config, debug=debug)
+                use_headers = headers["widevine"]
+            widevine_result = license_logic.widevine_license(widevine_pssh, manifest_info["widevine"], use_headers, session, config, debug=debug)
             if widevine_result and all(v is not None for v in widevine_result.values()):
                 return widevine_result
             else:
@@ -23,8 +23,8 @@ class license_logic:
     
         if playready_pssh and (config["cdms"]["playready"] != ""):
             if headers != {}:
-                headers = headers["playready"]
-            playready_result = license_logic.playready_license(playready_pssh, manifest_info["playready"], headers, session, config, debug=debug)
+                use_headers = headers["playready"]
+            playready_result = license_logic.playready_license(playready_pssh, manifest_info["playready"], use_headers, session, config, debug=debug)
             if playready_result and all(v is not None for v in playready_result.values()):
                 return playready_result
             else:

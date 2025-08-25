@@ -30,9 +30,10 @@ __service_config__ = {
 }
 
 class downloader:
-    def __init__(self, session, logger):
+    def __init__(self, session, logger, config):
         self.session = session
         self.logger = logger
+        self.config = config
 
         self.default_headers = {
             "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; sdk_google_atv_x86 Build/QTU1.200805.001) Rakuten TV AndroidTV/2.2.5-edce7eacd6-P (Linux;Android 10) AndroidXMedia3/1.4.1",
