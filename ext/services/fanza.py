@@ -20,18 +20,17 @@ import base64
 import hashlib
 from ext.utils.zzz_other_util import other_util
 
-__service_config__ = {
-    "service_name": "Fanza",
-    "require_account": True,
-    "enable_refresh": False,
-    "support_normal": True,
-    "support_qr": False,
-    "is_drm": False,
-    "cache_session": True,
-    "use_tls": False,
-}
-
 class normal:
+    __service_config__ = {
+        "service_name": "Fanza",
+        "require_account": True,
+        "enable_refresh": False,
+        "support_normal": True,
+        "support_qr": False,
+        "is_drm": False,
+        "cache_session": True,
+        "use_tls": False,
+    }
     class downloader:
         def __init__(self, session, logger):
             self.session = session
@@ -53,7 +52,6 @@ class normal:
             pass
         
         def authorize(self, email, password):
-            _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
             _ENDPOINT_RES = "https://accounts.dmm.com/app/service/login/password"
             _ENDPOINT_TOKEN = "https://gw.dmmapis.com/connect/v1/token"
             _CLIENT_ID = "0lvBFN830altTCMZnTYpYPoioUcrhR"
@@ -254,6 +252,16 @@ class normal:
             self.logger.info(" + id: " + profile_id)
 
 class vr:
+    __service_config__ = {
+        "service_name": "Fanza-VR",
+        "require_account": True,
+        "enable_refresh": False,
+        "support_normal": True,
+        "support_qr": False,
+        "is_drm": False,
+        "cache_session": True,
+        "use_tls": False,
+    }
     class downloader:
         def __init__(self, session, logger):
             self.session = session
@@ -275,7 +283,6 @@ class vr:
             pass
         
         def authorize(self, email, password):
-            _ENDPOINT_CC = 'https://api.tv.dmm.com/graphql'
             _ENDPOINT_RES = "https://accounts.dmm.com/app/service/login/password"
             _ENDPOINT_TOKEN = "https://gw.dmmapis.com/connect/v1/token"
             _CLIENT_ID = "Ozqufo77TdOALdbSv1OLW3E8I"

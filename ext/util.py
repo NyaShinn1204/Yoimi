@@ -105,7 +105,7 @@ def get_parser(url):
         return wowow_ondemand, "WOWOW-Ondemand"
     elif "dmmvrplayerstreaming" in url or "vr-sample-player" in url or ".wsdcf" in url:
         from ext.services import fanza
-        return fanza.Fanza_VR, "Fanza-VR"
+        return fanza.vr, "Fanza-VR"
 
     return None, None
 
