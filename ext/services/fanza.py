@@ -16,8 +16,11 @@ support_url:
 """
 
 import re
+import os
 import base64
 import hashlib
+import requests
+import xml.etree.ElementTree as ET
 from ext.utils.zzz_other_util import other_util
 
 class normal:
@@ -277,10 +280,133 @@ class vr:
             self.session.headers.update(self.default_headers)
     
         def parse_input(self, url_input, id = None):
-            pass
+            if os.path.isfile(url_input) and ".wsdcf" in url_input:
+                file_path = os.path.abspath(url_input)
+                with open(file_path, "rb") as f:
+                    header_text = f.read().decode("utf-8", errors="ignore")
+
+                for line in header_text.splitlines():
+                    if line.startswith("Content-Name:"):
+                        content_name = line.split(":", 1)[1].strip()
+                video_info = {
+                    "output_titlename": content_name,
+                    "content_type": "offline"
+                }
+                return video_info
         def parse_input_season(self, url_input):
             pass
         
+        def parse_offline_content(self, url_input):
+            def create_session(token: str, user_id: str) -> requests.Session:
+                """
+                認証付きセッションを作成し、Cookie を更新して返す
+                """
+                session = requests.Session()
+            
+                # 初期ヘッダー
+                session.headers.update({
+                    "authorization": f"Bearer {token}",
+                    "accept": "application/json",
+                    "content-type": "application/json",
+                    "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; A7S Build/QP1A.190711.020)",
+                    "host": "gw.dmmapis.com",
+                    "connection": "Keep-Alive",
+                    "accept-encoding": "gzip"
+                })
+            
+                # セッション発行
+                payload = {"user_id": user_id}
+                resp = session.post("https://gw.dmmapis.com/connect/v1/issueSessionId", json=payload).json()
+            
+                # Cookie 更新
+                session.cookies.update({
+                    "secid": resp["body"]["secure_id"],
+                    "dmm_app_uid": resp["body"]["unique_id"]
+                })
+            
+                return session
+            
+            
+            def request_with_headers(session: requests.Session, url: str, headers: dict) -> requests.Response:
+                """
+                任意のヘッダーを付けて GET リクエストを行う
+                """
+                return session.get(url, allow_redirects=False, headers=headers)
+            file_path = os.path.abspath(url_input)
+            with open(file_path, "rb") as f:
+                # ヘッダ部分（テキスト部）を一旦 str として読む
+                header_text = f.read().decode("utf-8", errors="ignore")
+
+            # Content-Name
+            for line in header_text.splitlines():
+                if line.startswith("Content-Name:"):
+                    content_name = line.split(":", 1)[1].strip()
+
+                if line.startswith("Rights-Issuer:"):
+                    match = re.search(r"urn:uuid:([0-9a-fA-F\-]+)", line)
+                    if match:
+                        rights_issuer_id = match.group(1)
+
+                if line.startswith("Encryption-Method:"):
+                    m = re.search(r"Encryption-Method:\s*([A-Za-z0-9]+)(?:;padding=([A-Za-z0-9]+))?", line)
+                    if m:
+                        method = m.group(1)
+                        padding = m.group(2)
+
+            lines = header_text.split("\n", 7)
+            if len(lines) >= 8:
+                iv_bytes = lines[7].encode("utf-8", errors="ignore")[:16]
+                if len(iv_bytes) == 16:
+                    iv = iv_bytes
+                    TOKEN = self.session.headers["x-authorization"]
+                    USER_ID = profile_id
+                    TARGET_URL = f"https://api.webstream.ne.jp/rights/urn:uuid:{rights_issuer_id}"
+                    session = create_session(TOKEN, USER_ID)
+
+            # WebStream API を呼び出して8kのlicense keyをraid
+            webstream_headers = {
+                "host": "api.webstream.ne.jp",
+                "user-agent": "Mozilla/5.0 (Linux; Android 10; A7S Build/QP1A.190711.020; wv) "
+                              "AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 "
+                              "Chrome/139.0.7258.95 Mobile Safari/537.36 "
+                              "AndroidToaster/com.dmm.app.player.vr/2.0.5 "
+                              "(app/a45c1b62-1cd9-479c-a8f2-137bf5fb7520; ) "
+                              "WebStream DRM ({46bc2e5f-19a2-45b1-9b7e-13bf40633269})",
+                "x-requested-with": "com.dmm.app.player.vr",
+                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                          "image/avif,image/webp,image/apng,*/*;q=0.8,"
+                          "application/signed-exchange;v=b3;q=0.7",
+                "accept-language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+            }
+            response = request_with_headers(session, TARGET_URL, webstream_headers)
+
+            # DMMのリダイレクト用アナルバイブヘッダーを挿入
+            dmm_headers = {
+                "host": "www.dmm.com",
+                "user-agent": webstream_headers["user-agent"],
+                "x-requested-with": "com.dmm.app.player.vr",
+                "accept": webstream_headers["accept"],
+                "accept-language": webstream_headers["accept-language"],
+            }
+
+            # リダイレクトをやりまくって、ヤリ中毒
+            for _ in range(4):
+                next_url = response.headers.get("Location")
+                if not next_url:
+                    break
+                response = request_with_headers(session, next_url, dmm_headers)
+
+            root = ET.fromstring(response.text)
+            key_value = root.find(".//KeyValue").text.strip()
+            
+            decrypt_license = {
+                "method": method,
+                "key": base64.b64decode(key_value),
+                "iv": iv
+            }
+
+            return file_path, decrypt_license
+
         def authorize(self, email, password):
             _ENDPOINT_RES = "https://accounts.dmm.com/app/service/login/password"
             _ENDPOINT_TOKEN = "https://gw.dmmapis.com/connect/v1/token"
@@ -418,8 +544,8 @@ class vr:
                     token = token_response.json()["body"]["access_token"]
                     self.session.headers.update(
                         {
-                            "x-authorization": "Bearer "
-                            + token
+                            "x-authorization": "Bearer "+ token,
+                            "Authorization": "Bearer "+ token
                         }
                     )
                 
@@ -450,7 +576,12 @@ class vr:
             except Exception as e:
                 return False, e, False, None
         def check_token(self, token):
-            self.session.headers.update({"x-authorization": "Bearer "+ token})
+            self.session.headers.update(
+                {
+                    "x-authorization": "Bearer "+ token,
+                    "Authorization": "Bearer "+ token
+                }
+            )
             status, profile = self.get_userinfo()
             return status, profile
         def get_userinfo(self):
@@ -476,6 +607,13 @@ class vr:
             else:
                 return False, None
         def show_userinfo(self, user_data):
+            global profile_id
             profile_id = user_data["id"]
             self.logger.info("Logged-in Account")
             self.logger.info(" + id: " + profile_id)
+
+        def judgment_watchtype(self, url):
+            if os.path.isfile(url) and ".wsdcf" in url:
+                return "single" ## offline-decrypt
+            else:
+                return "single"

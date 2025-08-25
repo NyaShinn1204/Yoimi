@@ -313,68 +313,79 @@ def download_command(input: str, command_list: Iterator):
             if video_info["content_type"] == "special":
                 output_titlename = video_info["output_titlename"]
                 video_info["content_type"] = "movie"
-            elif video_info["content_type"] == "live":
+            elif video_info["content_type"] in ["live", "offline"]:
                 output_titlename = video_info["output_titlename"]
             else:
                 output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
             service_logger.info(" + "+output_titlename)
-            
-            deliviery_type, manifest_response, manifest_link, manifest_info, license_header = service_downloader.open_session_get_dl(video_info)
-            
-            Tracks = parser_util.global_parser()
-            dl_type = Tracks.determine_mpd_type(manifest_response)
-            transformed_data = Tracks.mpd_parser(manifest_response, debug=enable_verbose)
-            
-            yoimi_logger.debug("Get Manifest Dl Type")
-            yoimi_logger.debug(" + "+dl_type)
-            
-            yoimi_logger.info("Parsing MPD file")
-            
-            track_data = Tracks.print_tracks(transformed_data)
-            print(track_data)
-            
-            if command_list["show_resolution"]:
-                service_downloader.decrypt_done()
-                return
-            
-            
-            if command_list["resolution"] == "best":
-                select_track = Tracks.select_best_tracks(transformed_data)
-            if command_list["resolution"] == "worst":
-                select_track = Tracks.select_worst_tracks(transformed_data)
-            if "p" in command_list["resolution"]: # select user track
-                select_track = Tracks.select_special_week(command_list["resolution"], transformed_data)
-            
-            yoimi_logger.info("Selected Track:")
-            yoimi_logger.info(f" + Video: [{select_track["video"]["codec"]}] [{select_track["video"]["resolution"]}] | {select_track["video"]["bitrate"]} kbps")
-            yoimi_logger.info(f" + Audio: [{select_track["audio"]["codec"]}] | {select_track["audio"]["bitrate"]} kbps")
-            
-            if service_config["is_drm"]:
-                yoimi_logger.info("Get Video, Audio PSSH")
-                if transformed_data["pssh_list"].get("widevine"):
-                    yoimi_logger.info(" + Widevine: "+ transformed_data["pssh_list"]["widevine"][:35]+"...")
-                if transformed_data["pssh_list"].get("playready"):
-                    yoimi_logger.info(" + Playready: "+ transformed_data["pssh_list"]["playready"][:35]+"...")
+
+            if video_info["content_type"] != "offline":
+                deliviery_type, manifest_response, manifest_link, manifest_info, license_header = service_downloader.open_session_get_dl(video_info)
                 
-                yoimi_logger.info("Decrypting License")
-                license_return = license_logic.decrypt_license(transformed_data, manifest_info, license_header, session, loaded_config, yoimi_logger, debug=enable_verbose)
-                if license_return["type"] == "widevine":
-                    yoimi_logger.info(f"Decrypt License (Widevine):")
-                    for license_key in license_return["key"]:
-                        if license_key["type"] == "CONTENT":
-                            yoimi_logger.info(" + "+license_key['kid_hex']+":"+license_key['key_hex']) 
-                elif license_return["type"] == "playready":
-                    yoimi_logger.info(f"Decrypt License (PlayReady):")
-                    for license_key in license_return["key"]:
-                        yoimi_logger.info(" + "+license_key) 
-            
-            service_downloader.decrypt_done()
-            
-            yoimi_logger.info("Setting output filename")
-            
-            output_filename, output_path = titlename_manager.create_output_filename(video_info, command_list, season_title, output_titlename)
-            
-            yoimi_logger.info(" + " + str(output_path))
+                Tracks = parser_util.global_parser()
+                dl_type = Tracks.determine_mpd_type(manifest_response)
+                transformed_data = Tracks.mpd_parser(manifest_response, debug=enable_verbose)
+                
+                yoimi_logger.debug("Get Manifest Dl Type")
+                yoimi_logger.debug(" + "+dl_type)
+                
+                yoimi_logger.info("Parsing MPD file")
+                
+                track_data = Tracks.print_tracks(transformed_data)
+                print(track_data)
+                
+                if command_list["show_resolution"]:
+                    service_downloader.decrypt_done()
+                    return
+                
+                
+                if command_list["resolution"] == "best":
+                    select_track = Tracks.select_best_tracks(transformed_data)
+                if command_list["resolution"] == "worst":
+                    select_track = Tracks.select_worst_tracks(transformed_data)
+                if "p" in command_list["resolution"]: # select user track
+                    select_track = Tracks.select_special_week(command_list["resolution"], transformed_data)
+                
+                yoimi_logger.info("Selected Track:")
+                yoimi_logger.info(f" + Video: [{select_track["video"]["codec"]}] [{select_track["video"]["resolution"]}] | {select_track["video"]["bitrate"]} kbps")
+                yoimi_logger.info(f" + Audio: [{select_track["audio"]["codec"]}] | {select_track["audio"]["bitrate"]} kbps")
+                
+                if service_config["is_drm"]:
+                    yoimi_logger.info("Get Video, Audio PSSH")
+                    if transformed_data["pssh_list"].get("widevine"):
+                        yoimi_logger.info(" + Widevine: "+ transformed_data["pssh_list"]["widevine"][:35]+"...")
+                    if transformed_data["pssh_list"].get("playready"):
+                        yoimi_logger.info(" + Playready: "+ transformed_data["pssh_list"]["playready"][:35]+"...")
+                    
+                    yoimi_logger.info("Decrypting License")
+                    license_return = license_logic.decrypt_license(transformed_data, manifest_info, license_header, session, loaded_config, yoimi_logger, debug=enable_verbose)
+                    if license_return["type"] == "widevine":
+                        yoimi_logger.info(f"Decrypt License (Widevine):")
+                        for license_key in license_return["key"]:
+                            if license_key["type"] == "CONTENT":
+                                yoimi_logger.info(" + "+license_key['kid_hex']+":"+license_key['key_hex']) 
+                    elif license_return["type"] == "playready":
+                        yoimi_logger.info(f"Decrypt License (PlayReady):")
+                        for license_key in license_return["key"]:
+                            yoimi_logger.info(" + "+license_key) 
+                
+                service_downloader.decrypt_done()
+                
+                yoimi_logger.info("Setting output filename")
+                
+                output_filename, output_path = titlename_manager.create_output_filename(video_info, command_list, season_title, output_titlename)
+                
+                yoimi_logger.info(" + " + str(output_path))
+            else:
+                yoimi_logger.info("Parsing Offline content file")
+
+                # vrであればここでファイルからの処理を行う。
+                # ノーマルもファイルからpssh取り出すから、ここでファイルの処理しようかな？
+
+                content_output, decrypt_license = service_downloader.parse_offline_content(input)
+                output_filename, output_path = titlename_manager.create_output_filename(video_info, command_list, season_title, output_titlename)
+                
+                yoimi_logger.info(" + " + str(output_path))
             
             if dl_type == "segment":                
                 yoimi_logger.info("Calculate about Manifest")
@@ -458,7 +469,15 @@ def download_command(input: str, command_list: Iterator):
                     audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
                                     
                     decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
- 
+            
+            elif dl_type == "offline":
+                if service_config["is_drm"]:
+                    yoimi_logger.info("Decrypting Files...")
+                    decryptor = main_decrypt(yoimi_logger)
+                    content_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "local_decrypt.mp4")
+                                    
+                    decryptor.decrypt(license_keys=decrypt_license, input_path=[content_output], output_path=[content_decrypt_output], config=loaded_config, service_name="Yoimi")
+                
             
             yoimi_logger.info("Muxing Content")
             muxer = main_mux(yoimi_logger)

@@ -1,8 +1,8 @@
 import os
 import re
-import binascii
 import subprocess
 from tqdm import tqdm
+from Crypto.Cipher import AES
 from datetime import datetime
 from typing import Union, List, Dict, Any
 
@@ -130,6 +130,62 @@ class main_decrypt:
     def __init__(self, logger):
         self.logger = logger
     
+    def _decrypt_single_aes(self, license_keys, input_path, output_path, config, service_name):
+        def _unpad_pkcs7(data: bytes) -> bytes:
+            pad = data[-1]
+            if pad < 1 or pad > 16:
+                return data
+            if data[-pad:] != bytes([pad]) * pad:
+                raise ValueError("PKCS#7 Padding is invalid.")
+            return data[:-pad]
+        self.logger.debug(f"[Single] input: {input_path}, output: {output_path}", extra={"service_name": service_name})
+
+
+        method = license_keys.get("method", "").upper()
+        key = license_keys.get("key")
+        iv  = license_keys.get("iv")
+
+        if method not in ("AES128CBC", "AES192CBC", "AES256CBC", "AESCBC"):
+            self.logger.error(f"Unsupported Encryption type: {method}", extra={"service_name": service_name})
+            return
+        
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        file_size = os.path.getsize(input_path)
+        desc = (
+            f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} "
+            f"[{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : "
+        )
+    
+        block_size = 16
+        buf_tail = b""
+    
+        with open(input_path, "rb") as fin, open(output_path, "wb") as fout, tqdm(total=file_size, desc=desc, leave=False) as pbar:
+            while True:
+                chunk = fin.read(1024 * 1024)  # 1MB
+                if not chunk:
+                    break
+    
+                data = buf_tail + chunk
+                cut = len(data) - (len(data) % block_size)
+                if cut > 0:
+                    fout.write(cipher.decrypt(data[:cut]))
+                    pbar.update(cut)
+                buf_tail = data[cut:]
+    
+            # 最後のブロックを復号してパディング除去 nice だね
+            if buf_tail:
+                last = cipher.decrypt(buf_tail)
+            else:
+                last = b""
+    
+            try:
+                last = _unpad_pkcs7(last)
+            except Exception as e:
+                self.logger.warning(f"Failed unpadding: {e}", extra={"service_name": service_name})
+    
+            fout.write(last)
+            pbar.n = pbar.total
+            pbar.refresh()
     def _decrypt_single(self, license_keys, input_path, output_path, config, service_name):
         self.logger.debug(f"[Single] input: {input_path}, output: {output_path}", extra={"service_name": service_name})
         status = comamnd_util.check_command(config)
@@ -208,9 +264,16 @@ class main_decrypt:
     
     
     def decrypt(self, license_keys: list, input_path: Union[os.PathLike, List[os.PathLike]], output_path: Union[os.PathLike, List[os.PathLike]], config: Dict[str, Any], service_name: str = ""):
-        if isinstance(input_path, (str, os.PathLike)) and isinstance(output_path, (str, os.PathLike)):
-            self._decrypt_single(license_keys, input_path, output_path, config, service_name)
-        elif isinstance(input_path, (list, tuple)) and isinstance(output_path, (list, tuple)):
-            self._decrypt_multi(license_keys, input_path, output_path, config, service_name)
-        else:
-            raise ValueError("Input or Output Path is invalid")
+        try:
+            if license_keys["iv"] != None and license_keys["key"] != None:
+                pass
+
+            if "aes" in license_keys["method"].lower():
+                self._decrypt_single_aes(license_keys, input_path, output_path, config, service_name)
+        except:
+            if isinstance(input_path, (str, os.PathLike)) and isinstance(output_path, (str, os.PathLike)):
+                self._decrypt_single(license_keys, input_path, output_path, config, service_name)
+            elif isinstance(input_path, (list, tuple)) and isinstance(output_path, (list, tuple)):
+                self._decrypt_multi(license_keys, input_path, output_path, config, service_name)
+            else:
+                raise ValueError("Input or Output Path is invalid")
