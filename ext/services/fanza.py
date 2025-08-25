@@ -232,8 +232,6 @@ class normal:
             
             profile_resposne = self.session.post(_GRAPQL_API, json=_PAYLOAD)
             if profile_resposne.status_code == 200 and profile_resposne.json()["data"] != None:
-                return False, None
-            else:
                 self.session.headers.update(
                     {
                         "x-app-name": "android_2d",
@@ -245,7 +243,8 @@ class normal:
                     }
                 )
                 return True, profile_resposne.json()["data"]["user"]
-            
+            else:
+                return False, None
         def show_userinfo(self, user_data):
             profile_id = user_data["id"]
             self.logger.info("Logged-in Account")
@@ -382,7 +381,7 @@ class vr:
                 _auth = {
                     "grant_type": "authorization_code",
                     "code": redirect_auth_url.replace(
-                        "dmmvrplayer://android/auth?code=", ""
+                        "dmmvrplayer://androidstore/auth/?code=", ""
                     ),
                     "redirect_uri": "dmmvrplayer://androidstore/auth/?",
                 }
@@ -450,3 +449,33 @@ class vr:
                 return True, profile, True, session_json
             except Exception as e:
                 return False, e, False, None
+        def check_token(self, token):
+            self.session.headers.update({"x-authorization": "Bearer "+ token})
+            status, profile = self.get_userinfo()
+            return status, profile
+        def get_userinfo(self):
+            _GRAPQL_API = "https://api.tv.dmm.com/graphql"
+            _PAYLOAD = {
+                "operationName": "GetServicePlan",
+                "query": "query GetServicePlan { user { id planStatus { __typename ...planStatusFragments } } }  fragment paymentStatusFragment on PaymentStatus { isRenewalFailure failureCode message }  fragment planStatusFragments on PlanStatus { provideEndDate nextBillingDate status paymentType paymentStatus(id: DMM_PREMIUM) { __typename ...paymentStatusFragment } isSubscribed planType }",
+            }
+            
+            profile_resposne = self.session.post(_GRAPQL_API, json=_PAYLOAD)
+            if profile_resposne.status_code == 200 and profile_resposne.json()["data"] != None:
+                self.session.headers.update(
+                    {
+                        "x-app-name": "android_2d",
+                        "x-app-ver": "v4.1.3",
+                        "x-exploit-id": "uid:"+profile_resposne.json()["data"]["user"]["id"],
+                        "connection": "Keep-Alive",
+                        "accept-encoding": "gzip",
+                        "user-agent": "okhttp/4.12.0",
+                    }
+                )
+                return True, profile_resposne.json()["data"]["user"]
+            else:
+                return False, None
+        def show_userinfo(self, user_data):
+            profile_id = user_data["id"]
+            self.logger.info("Logged-in Account")
+            self.logger.info(" + id: " + profile_id)
