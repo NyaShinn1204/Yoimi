@@ -280,15 +280,19 @@ class vr:
             self.session.headers.update(self.default_headers)
     
         def parse_input(self, url_input, id = None):
-            if os.path.isfile(url_input) and ".wsdcf" in url_input:
+            if os.path.isfile(url_input) and url_input.endswith(".wsdcf"):
                 file_path = os.path.abspath(url_input)
                 with open(file_path, "rb") as f:
-                    header_text = f.read().decode("utf-8", errors="ignore")
-
+                    header_text = f.read(1024).decode("utf-8", errors="ignore")
+        
+                content_name = None
                 for line in header_text.splitlines():
                     if line.startswith("Content-Name:"):
                         content_name = line.split(":", 1)[1].strip()
+                        break  # 見つけたら即終了
+        
                 video_info = {
+                    "title_name": "",
                     "output_titlename": content_name,
                     "content_type": "offline"
                 }
@@ -305,7 +309,7 @@ class vr:
             
                 # 初期ヘッダー
                 session.headers.update({
-                    "authorization": f"Bearer {token}",
+                    "authorization": token,
                     "accept": "application/json",
                     "content-type": "application/json",
                     "user-agent": "Dalvik/2.1.0 (Linux; U; Android 10; A7S Build/QP1A.190711.020)",
@@ -332,10 +336,12 @@ class vr:
                 任意のヘッダーを付けて GET リクエストを行う
                 """
                 return session.get(url, allow_redirects=False, headers=headers)
+            
+            self.logger.info("Get media info from file")
+
             file_path = os.path.abspath(url_input)
             with open(file_path, "rb") as f:
-                # ヘッダ部分（テキスト部）を一旦 str として読む
-                header_text = f.read().decode("utf-8", errors="ignore")
+                header_text = f.read(1024).decode("utf-8", errors="ignore")
 
             # Content-Name
             for line in header_text.splitlines():
@@ -347,11 +353,14 @@ class vr:
                     if match:
                         rights_issuer_id = match.group(1)
 
-                if line.startswith("Encryption-Method:"):
+                if "Encryption-Method:" in line:
                     m = re.search(r"Encryption-Method:\s*([A-Za-z0-9]+)(?:;padding=([A-Za-z0-9]+))?", line)
                     if m:
                         method = m.group(1)
                         padding = m.group(2)
+            
+            self.logger.info(" + Method: "+method)
+            self.logger.info(" + Padding: "+padding)
 
             lines = header_text.split("\n", 7)
             if len(lines) >= 8:
@@ -394,10 +403,19 @@ class vr:
                 next_url = response.headers.get("Location")
                 if not next_url:
                     break
+
+                if "code=D0010001" in next_url:
+                    self.logger.error("This content is not buyed. please check account")
+                    exit("Error Code: D0010001")
+
                 response = request_with_headers(session, next_url, dmm_headers)
 
             root = ET.fromstring(response.text)
             key_value = root.find(".//KeyValue").text.strip()
+
+            self.logger.info("Decrypt License")
+            self.logger.info(" + KEY: "+key_value)
+            self.logger.info(" + IV: "+base64.b64encode(iv).decode())
             
             decrypt_license = {
                 "method": method,

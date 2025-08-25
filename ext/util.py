@@ -383,9 +383,14 @@ def download_command(input: str, command_list: Iterator):
                 # ノーマルもファイルからpssh取り出すから、ここでファイルの処理しようかな？
 
                 content_output, decrypt_license = service_downloader.parse_offline_content(input)
+
+                yoimi_logger.info("Setting output filename")
+                
                 output_filename, output_path = titlename_manager.create_output_filename(video_info, command_list, season_title, output_titlename)
                 
                 yoimi_logger.info(" + " + str(output_path))
+
+                dl_type = "offline"
             
             if dl_type == "segment":                
                 yoimi_logger.info("Calculate about Manifest")
@@ -471,18 +476,20 @@ def download_command(input: str, command_list: Iterator):
                     decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
             
             elif dl_type == "offline":
-                if service_config["is_drm"]:
-                    yoimi_logger.info("Decrypting Files...")
-                    decryptor = main_decrypt(yoimi_logger)
-                    content_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "local_decrypt.mp4")
+                yoimi_logger.info("Decrypting Files...")
+                decryptor = main_decrypt(yoimi_logger)
+                content_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "local_decrypt.mp4")
                                     
-                    decryptor.decrypt(license_keys=decrypt_license, input_path=[content_output], output_path=[content_decrypt_output], config=loaded_config, service_name="Yoimi")
+                decryptor.decrypt(license_keys=decrypt_license, input_path=[content_output], output_path=[content_decrypt_output], config=loaded_config, service_name="Yoimi")
                 
             
-            yoimi_logger.info("Muxing Content")
-            muxer = main_mux(yoimi_logger)
-            muxer.mux_content(video_input=video_decrypt_output, audio_input=audio_decrypt_output, output_path=output_path, duration=int(duration), service_name="Yoimi")
-                
+            
+            if dl_type != "offline":
+                yoimi_logger.info("Muxing Content")
+                muxer = main_mux(yoimi_logger)
+                muxer.mux_content(video_input=video_decrypt_output, audio_input=audio_decrypt_output, output_path=output_path, duration=int(duration), service_name="Yoimi")
+            else:
+                shutil.copy2(content_decrypt_output, output_path)
             if command_list["keep"] or enable_verbose:
                 yoimi_logger.warn("Enable Keep temp flag")
             else:
