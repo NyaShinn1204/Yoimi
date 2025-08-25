@@ -399,6 +399,7 @@ class vr:
             }
 
             # リダイレクトをやりまくって、ヤリ中毒
+            force_exit = False
             for _ in range(4):
                 next_url = response.headers.get("Location")
                 if not next_url:
@@ -406,9 +407,12 @@ class vr:
 
                 if "code=D0010001" in next_url:
                     self.logger.error("This content is not buyed. please check account")
-                    exit("Error Code: D0010001")
+                    force_exit = True
 
                 response = request_with_headers(session, next_url, dmm_headers)
+
+            if force_exit:
+                return None, None
 
             root = ET.fromstring(response.text)
             key_value = root.find(".//KeyValue").text.strip()

@@ -384,6 +384,9 @@ def download_command(input: str, command_list: Iterator):
 
                 content_output, decrypt_license = service_downloader.parse_offline_content(input)
 
+                if content_output == None or decrypt_license == None:
+                    return None
+
                 yoimi_logger.info("Setting output filename")
                 
                 output_filename, output_path = titlename_manager.create_output_filename(video_info, command_list, season_title, output_titlename)
