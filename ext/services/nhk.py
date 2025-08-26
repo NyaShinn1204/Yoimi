@@ -282,3 +282,10 @@ class ondemand:
                 "cid": cid,
             }
             self.session.post(url, data=payload)
+        
+        def get_subtitle(self, playback_json):
+            params = {
+                "sess": playback_json["usid"],
+                "tid": playback_json["tid"]
+            }
+            self.session.get("https://www.nhk-ondemand.jp/hls/service_hlsCaptionService/index.html", params=params)
