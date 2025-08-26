@@ -14,8 +14,14 @@ support_url:
    WIP
 """
 
+import re
 import uuid
+import pickle
+import base64
 import hashlib
+import requests
+import xmltodict
+import xml.etree.ElementTree as ET
 
 class plus:
     __service_config__ = {
@@ -46,17 +52,36 @@ class ondemand:
             self.config = config
 
             self.user_id = None
+            self.cookie = None
             
             self.default_headers = {
                 "host": "www.nhk-ondemand.jp",
                 "connection": "Keep-Alive",
                 "accept-encoding": "gzip",
-                "user-agent": "okhttp/4.9.0"
+                "user-agent": "okhttp/4.9.0",
+                "no-cookie": "true"
             }
             self.session.headers.update(self.default_headers)
         
         def parse_input(self, url_input):
-            pass
+            match = re.search(r'/goods/([^/]+)/', url_input)
+            if match:
+                content_id = match.group(1)
+
+            status, content_info = self.get_content_infO(content_id)
+
+            episode_count = self.get_episode_count(content_info["siteProgramId"])
+
+            video_info = {
+                "raw": content_info,
+                "content_type": "drama",
+                "episode_count": episode_count,
+                "title_name": content_info["siteProgramName"],
+                "episode_num": "",
+                "episode_name": content_info["subName"],
+            }
+            
+            return video_info
         def parse_input_season(self, url_input):
             pass
         def authorize(self, user_id, password):
@@ -100,6 +125,8 @@ class ondemand:
                     return False, "Authencation failed: Wrong ID or Password", False, None
                 else:
                     return False, f"Authencation failed: {login_response["errorMessage"]}", False, None
+                
+            cookie_text = base64.b64encode(pickle.dumps(self.session.cookies)).decode()
             
             session_json = {
                 "method": "LOGIN",
@@ -109,13 +136,16 @@ class ondemand:
                 "refresh_token": "",
                 "additional_info": {
                     "user_id": user_id,
-                    "client_secret": client_secret
+                    "client_secret": client_secret,
+                    "cookie": cookie_text
                 }
             }
             
             return True, {"id": user_id}, True, session_json
         
         def check_token(self, token):
+            #self.session.cookies.update(pickle.loads(base64.b64decode(self.cookie)))
+            
             cache_login = "https://www.nhk-ondemand.jp/activationcode/login"
             payload = {
                 "clientSecret": token,
@@ -140,3 +170,78 @@ class ondemand:
                 return "single"
             else:
                 return None
+            
+        def get_content_infO(self, content_id):
+            url = f"https://www.nhk-ondemand.jp/goods/{content_id}/"
+            try:
+                headers = {
+                    "host": "www.nhk-ondemand.jp",
+                    "connection": "Keep-Alive",
+                    "accept-encoding": "gzip",
+                    "user-agent": "okhttp/4.9.0",
+                    "cookie": "Domain=www.nhk-ondemand.jp; Path=/; Secure;EnvSwitch=_app"
+                }
+                info_response = self.session.get(url, headers=headers)
+                return True, info_response.json()
+            except:
+                return False, None
+        
+        def get_episode_count(self, program_id):
+            url = "https://www.nhk-ondemand.jp/xml3/goods/"
+            
+            payload = {
+                "G2": "*",
+                "G5": "1,4,5",
+                "G8": program_id, # series id
+                "G53": "11",
+                "G54": "1000" # maybe max count?
+            }
+            try:
+                data = self.session.post(url, data=payload)
+                root = ET.fromstring(data.text)
+                
+                total = root.find("Result").text.strip()
+                return total
+            except:
+                return 0
+            
+        def get_subscribe_id(self):
+            cache_login = "https://www.nhk-ondemand.jp/user/availableList/"
+            headers = {
+                "host": "www.nhk-ondemand.jp",
+                "connection": "Keep-Alive",
+                "accept-encoding": "gzip",
+                "user-agent": "okhttp/4.9.0"
+            }
+            self.session.cookies.update({"EnvSwitch": "_app"})
+            response = self.session.get(cache_login, headers=headers, allow_redirects=False)
+
+            return response.json()[0]["Id"]
+
+        def open_session_get_dl(self, video_info):
+            cmaf_supported = int(video_info["raw"]["opusList"][0]["cmafSupported"])
+            if cmaf_supported == 1:
+                playback_url = "https://www.nhk-ondemand.jp/api/play/v1/play/cmaf"
+            elif cmaf_supported == 0:
+                playback_url = "https://www.nhk-ondemand.jp/api/play/v1/play/hls"
+            
+            subscribe_id = self.get_subscribe_id()
+
+            payload = {
+                "P1": self.session.cookies.get("sessionid"),
+                "P2": subscribe_id,
+                "P3": video_info["raw"]["opusList"][0]["itemKey"]
+            }
+
+            headers = {
+                "content-type": "application/x-www-form-urlencoded",
+                "host": "www.nhk-ondemand.jp",
+                "connection": "Keep-Alive",
+                "accept-encoding": "gzip",
+                "user-agent": "okhttp/4.9.0"
+            }
+
+            playback_response = self.session.post(playback_url, data=payload, headers=headers).text
+            
+            playback_json = xmltodict.parse(playback_response)
+            print(playback_json)

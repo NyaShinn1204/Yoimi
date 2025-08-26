@@ -336,13 +336,19 @@ def download_command(input: str, command_list: Iterator):
                 deliviery_type, manifest_response, manifest_link, manifest_info, license_header = service_downloader.open_session_get_dl(video_info)
                 
                 Tracks = parser_util.global_parser()
-                dl_type = Tracks.determine_mpd_type(manifest_response)
-                transformed_data = Tracks.mpd_parser(manifest_response, debug=enable_verbose)
                 
-                yoimi_logger.debug("Get Manifest Dl Type")
-                yoimi_logger.debug(" + "+dl_type)
-                
-                yoimi_logger.info("Parsing MPD file")
+                if deliviery_type == "mpd":
+                    dl_type = Tracks.determine_mpd_type(manifest_response)
+                    transformed_data = Tracks.mpd_parser(manifest_response, debug=enable_verbose)
+                    
+                    yoimi_logger.debug("Get Manifest Dl Type")
+                    yoimi_logger.debug(" + "+dl_type)
+                    
+                    yoimi_logger.info("Parsing MPD file")
+                elif deliviery_type == "hls":
+                    transformed_data = Tracks.hls_parser(manifest_response, debug=enable_verbose)
+                    
+                    yoimi_logger.info("Parsing HLS file")
                 
                 track_data = Tracks.print_tracks(transformed_data)
                 print(track_data)
