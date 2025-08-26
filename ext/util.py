@@ -70,7 +70,7 @@ def get_parser(url):
         (re.compile(r'^https?://(?:www\.)?aniplus-asia\.com/episode/.+'), None, 'ext.services.aniplus', 'aniplus'),
         (re.compile(r'^https?://(?:video|video-share)\.unext\.jp/.+(SID\d+|ED\d+|LIV\d+)', re.IGNORECASE), None, 'ext.services.u_next', 'U-Next'),
         (re.compile(r'^https?://video\.hnext\.jp/(?:play|title)/(AID\d+|AED\d+)'), None, 'ext.services.h_next', 'H-Next'),
-        (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+).*(content=([^&]+))?'), lambda u: check_dmm_content_type(parse_qs(urlparse(u).query).get("season", [None])[0]) == "VOD_VR", 'ext.services.fanza.vr', 'Fanza-VR'),
+        (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+).*(content=([^&]+))?'), lambda u: check_dmm_content_type(parse_qs(urlparse(u).query).get("season", [None])[0]) == "VOD_VR", 'ext.services.fanza', 'fanza_vr'),
         (re.compile(r'^https?://tv\.dmm\.com/.+season=([^&]+)'), None, 'ext.services.dmm_tv', 'dmm_tv'),
         (re.compile(r'^https?://www\.brainshark\.com/.+pi=([^&]+)'), None, 'ext.services.brainshark', 'brainshark'),
         (re.compile(r'^https?://fod\.fujitv\.co\.jp/title/[0-9a-z]+'), None, 'ext.services.fod_v2', 'fod'),
@@ -80,24 +80,32 @@ def get_parser(url):
         (re.compile(r'^https?://(?:www\.)?telasa\.jp/.+'), None, 'ext.services.telasa', 'Telasa'),
         (re.compile(r'^https?://(?:www\.)?videomarket\.jp/.+'), None, 'ext.services.videomarket', 'VideoMarket'),
         (re.compile(r'^https?://(?:www\.)?hulu\.jp/.+'), None, 'ext.services.hulu_jp', 'Hulu-jp'),
-        (re.compile(r'^https?://www\.dmm\.(?:com|co\.jp)/digital/-/player/=/.+'), None, 'ext.services.fanza.normal', 'Fanza'),
-        (re.compile(r'^https?://tv\.dmm\.com/vod/restrict/.+season=([^&]+)'), lambda u: check_dmm_content_type(re.match(r'.*season=([^&]+)', u).group(1)) == "VOD_VR", 'ext.services.fanza.vr', 'Fanza-VR'),
-        (re.compile(r'^https?://tv\.dmm\.com/vod/restrict/.+season=([^&]+)'), lambda u: check_dmm_content_type(re.match(r'.*season=([^&]+)', u).group(1)) == "VOD_2D", 'ext.services.fanza.normal', 'Fanza'),
+        (re.compile(r'^https?://www\.dmm\.(?:com|co\.jp)/digital/-/player/=/.+'), None, 'ext.services.fanza', 'fanza'),
+        (re.compile(r'^https?://tv\.dmm\.com/vod/restrict/.+season=([^&]+)'), lambda u: check_dmm_content_type(re.match(r'.*season=([^&]+)', u).group(1)) == "VOD_VR", 'ext.services.fanza', 'fanza_vr'),
+        (re.compile(r'^https?://tv\.dmm\.com/vod/restrict/.+season=([^&]+)'), lambda u: check_dmm_content_type(re.match(r'.*season=([^&]+)', u).group(1)) == "VOD_2D", 'ext.services.fanza', 'fanza'),
         (re.compile(r'^https?://(?:www\.)?hiyahtv\.com/.+'), None, 'ext.services.hiyahtv', 'Hi-YAH!'),
         (re.compile(r'^https?://lemino\.docomo\.ne\.jp/.+'), None, 'ext.services.lemino', 'Lemino'),
         (re.compile(r'^https?://tv\.rakuten\.co\.jp/content/\d+/?'), None, 'ext.services.rakutentv_jp', 'RakutenTV-JP'),
+        (re.compile(r'^https?://www\.nhk-ondemand\.jp/(?:goods|program)/([GP]\d{7,}S?[A-Z0-9]*)/?'), None, 'ext.services.nhk', 'nhk_ondemand'),
     ]
 
     for pattern, condition, module_name, label in patterns:
         if pattern.match(url):
             if condition is None or condition(url):
                 module = import_module(module_name)
+                if module_name == 'ext.services.nhk':
+                    if label == 'fanza':
+                        return module.normal, label
+                    elif label == 'fanza_vr':
+                        return module.vr, label
+                    if label == 'nhk_ondemand':
+                        return module.ondemand, label
+                    elif label == 'nhk_plus':
+                        return module.plus, label
                 return module, label
 
-    if "plus.nhk.jp" in url:
-        from ext.services import nhk_plus
-        return nhk_plus, "NHK+"
-    elif "jff.jpf.go.jp" in url:
+
+    if "jff.jpf.go.jp" in url:
         from ext.services import jff_theater
         return jff_theater, "Jff Theater"
     elif "wod.wowow.co.jp" in url:
@@ -257,6 +265,8 @@ def download_command(input: str, command_list: Iterator):
                 if login_status == False:
                     service_logger.error(user_info)
                     return None
+                else:
+                    session_status = True
         if service_config["require_account"]:
             if session_status:
                 pass

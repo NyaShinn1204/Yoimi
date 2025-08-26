@@ -17,7 +17,7 @@ support_url:
 import uuid
 import hashlib
 
-class nhk_plus:
+class plus:
     __service_config__ = {
         "service_name": "NHK+",
         "require_account": True,
@@ -28,7 +28,7 @@ class nhk_plus:
         "cache_session": True,
         "use_tls": False,
     }
-class nhk_ondemand:
+class ondemand:
     __service_config__ = {
         "service_name": "NHK-Ondemand",
         "require_account": True,
@@ -44,6 +44,8 @@ class nhk_ondemand:
             self.session = session
             self.logger = logger
             self.config = config
+
+            self.user_id = None
             
             self.default_headers = {
                 "host": "www.nhk-ondemand.jp",
@@ -58,13 +60,13 @@ class nhk_ondemand:
         def parse_input_season(self, url_input):
             pass
         def authorize(self, user_id, password):
-            tv_device_id = uuid.uuid4()
+            tv_device_id = str(uuid.uuid4())
 
             payload = {
                 "tvTerminalId": tv_device_id
             }
 
-            activation_response = self.session.post("https://www.nhk-ondemand.jp/activationcode/generation", json=payload).json()
+            activation_response = self.session.post("https://www.nhk-ondemand.jp/activationcode/generation", data=payload).json()
             
             code = activation_response["activationCode"]
 
@@ -75,14 +77,14 @@ class nhk_ondemand:
                 "password": password,
                 "userId": user_id
             }
-            self.session.post("https://www.nhk-ondemand.jp/activationcode/authentication", json=payload)
+            self.session.post("https://www.nhk-ondemand.jp/activationcode/authentication", data=payload)
 
             ## activation
             payload = {
                 "tvTerminalId": tv_device_id,
-                "activactionCode": code
+                "activationCode": code
             }
-            activation_response_main = self.session.post("https://www.nhk-ondemand.jp/activationcode/verification", json=payload).json()
+            activation_response_main = self.session.post("https://www.nhk-ondemand.jp/activationcode/verification", data=payload).json()
             client_secret = activation_response_main["clientSecret"]
             user_id = activation_response_main["userId"]
             
@@ -91,10 +93,13 @@ class nhk_ondemand:
                 "clientSecret": client_secret,
                 "userId": user_id
             }
-            login_response = self.session.post("https://www.nhk-ondemand.jp/activationcode/login", json=payload).json()
+            login_response = self.session.post("https://www.nhk-ondemand.jp/activationcode/login", data=payload).json()
 
             if login_response["result"] != "OK":
-                return False, "Authencation failed", False, None
+                if login_response["errorCode"] == "E001":
+                    return False, "Authencation failed: Wrong ID or Password", False, None
+                else:
+                    return False, f"Authencation failed: {login_response["errorMessage"]}", False, None
             
             session_json = {
                 "method": "LOGIN",
@@ -103,8 +108,35 @@ class nhk_ondemand:
                 "access_token": client_secret,
                 "refresh_token": "",
                 "additional_info": {
+                    "user_id": user_id,
                     "client_secret": client_secret
                 }
             }
             
-            return True, {"userid": user_id}, True, session_json
+            return True, {"id": user_id}, True, session_json
+        
+        def check_token(self, token):
+            cache_login = "https://www.nhk-ondemand.jp/activationcode/login"
+            payload = {
+                "clientSecret": token,
+                "userId": self.user_id
+            }
+
+            response = self.session.post(cache_login, data=payload)
+
+            if response.json()["result"] != "OK":
+                return False, None
+            else:
+                return True, {"id": self.user_id}
+        def show_userinfo(self, user_data):
+            profile_id = user_data["id"]
+            self.logger.info("Logged-in Account")
+            self.logger.info(" + id: " + profile_id)
+
+        def judgment_watchtype(self, url):
+            if "/program/" in url:
+                return "season"
+            elif "/goods/" in url:
+                return "single"
+            else:
+                return None

@@ -412,7 +412,7 @@ class downloader:
     def judgment_watchtype(self, url):
         if "/play/" in url:
             return "single"
-        if "/live/" in url:
+        elif "/live/" in url:
             return "single"
         elif "/title/" in url:
             return "season"
