@@ -365,11 +365,13 @@ def download_command(input: str, command_list: Iterator):
                 if "p" in command_list["resolution"]: # select user track
                     select_track = Tracks.select_special_week(command_list["resolution"], transformed_data)
                 
-                yoimi_logger.info("Selected Track:")
-                yoimi_logger.info(f" + Video: [{select_track["video"]["codec"]}] [{select_track["video"]["resolution"]}] | {select_track["video"]["bitrate"]} kbps")
-                yoimi_logger.info(f" + Audio: [{select_track["audio"]["codec"]}] | {select_track["audio"]["bitrate"]} kbps")
-                
-                if service_config["is_drm"]:
+                try: # Audio tracksがない時の対処
+                    yoimi_logger.info("Selected Track:")
+                    yoimi_logger.info(f" + Video: [{select_track["video"]["codec"]}] [{select_track["video"]["resolution"]}] | {select_track["video"]["bitrate"]} kbps")
+                    yoimi_logger.info(f" + Audio: [{select_track["audio"]["codec"]}] | {select_track["audio"]["bitrate"]} kbps")
+                except:
+                    pass
+                if service_config["is_drm"] or service_config["is_drm"] == "both":
                     yoimi_logger.info("Get Video, Audio PSSH")
                     if transformed_data["pssh_list"].get("widevine"):
                         yoimi_logger.info(" + Widevine: "+ transformed_data["pssh_list"]["widevine"][:35]+"...")
@@ -442,7 +444,6 @@ def download_command(input: str, command_list: Iterator):
                     audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
                                     
                     decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
-            
             elif dl_type == "single":
                 yoimi_logger.info("Calculate about Manifest")
                 duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
@@ -496,7 +497,6 @@ def download_command(input: str, command_list: Iterator):
                     audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
                                     
                     decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
-            
             elif dl_type == "offline":
                 yoimi_logger.info("Decrypting Files...")
                 decryptor = main_decrypt(yoimi_logger)
@@ -531,6 +531,7 @@ def download_command(input: str, command_list: Iterator):
             else:
                 yoimi_logger.info('Finished download: {}'.format(output_titlename))
                 
+        
         
         if watchtype == "single":
             single_dl(input)

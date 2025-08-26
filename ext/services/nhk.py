@@ -15,13 +15,14 @@ support_url:
 """
 
 import re
+import os
 import uuid
 import pickle
 import base64
 import hashlib
-import requests
 import xmltodict
 import xml.etree.ElementTree as ET
+from urllib.parse import urlparse
 
 class plus:
     __service_config__ = {
@@ -41,7 +42,7 @@ class ondemand:
         "enable_refresh": False,
         "support_normal": True,
         "support_qr": False,
-        "is_drm": False,
+        "is_drm": "both",
         "cache_session": True,
         "use_tls": False,
     }
@@ -145,6 +146,8 @@ class ondemand:
         
         def check_token(self, token):
             #self.session.cookies.update(pickle.loads(base64.b64decode(self.cookie)))
+
+            self.session.cookies.update({"EnvSwitch": "_app"})
             
             cache_login = "https://www.nhk-ondemand.jp/activationcode/login"
             payload = {
@@ -179,7 +182,6 @@ class ondemand:
                     "connection": "Keep-Alive",
                     "accept-encoding": "gzip",
                     "user-agent": "okhttp/4.9.0",
-                    "cookie": "Domain=www.nhk-ondemand.jp; Path=/; Secure;EnvSwitch=_app"
                 }
                 info_response = self.session.get(url, headers=headers)
                 return True, info_response.json()
@@ -219,6 +221,7 @@ class ondemand:
             return response.json()[0]["Id"]
 
         def open_session_get_dl(self, video_info):
+            global playback_json
             cmaf_supported = int(video_info["raw"]["opusList"][0]["cmafSupported"])
             if cmaf_supported == 1:
                 playback_url = "https://www.nhk-ondemand.jp/api/play/v1/play/cmaf"
@@ -243,5 +246,39 @@ class ondemand:
 
             playback_response = self.session.post(playback_url, data=payload, headers=headers).text
             
-            playback_json = xmltodict.parse(playback_response)
+            playback_json = xmltodict.parse(playback_response)["body"]
+
             print(playback_json)
+            
+            license_list = {"widevine": "https://nod.photron-drm.com/widevine/license", "playready": ""}
+            license_header = {
+                "authorization": "Bearer "+playback_json["token"],
+                "content-type": "application/octet-stream",
+                "accept-encoding": "gzip",
+                "user-agent": "Dalvik/2.1.0 (Linux; U; Android 16; AOSP TV on x86 Build/BT2A.250323.001.A4)",
+                "host": "nod.photron-drm.com",
+                "connection": "Keep-Alive"
+            }
+            license_headers = {"widevine": license_header, "playready": ""}
+
+            return "hls", self.session.get(playback_json["url"]).text, playback_json["url"], license_list, license_headers 
+        
+        def decrypt_done(self):
+            cid = os.path.splitext(os.path.basename(urlparse(url).path))[0]
+
+            url = "https://www.nhk-ondemand.jp/authap/web/service/SetPlayTime"
+            payload = {
+                "svid": playback_json["svud"],
+                "uuid": playback_json["uid"],
+                "cid": cid,
+                "playtime": "0000:01"
+            }
+            self.session.post(url, data=payload)
+
+            url = "https://www.nhk-ondemand.jp/authap/web/service/service_PlayTimeWebService"
+            payload = {
+                "svid": playback_json["svud"],
+                "uuid": playback_json["uid"],
+                "cid": cid,
+            }
+            self.session.post(url, data=payload)

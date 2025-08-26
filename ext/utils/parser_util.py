@@ -442,6 +442,7 @@ class global_parser:
             "width": width,
             "height": height,
             "url": uri,
+            "codec": attributes.get("CODECS", "N/A"),
             "bitrate": int(int(attributes.get("BANDWIDTH", 0)) / 1000),
             "resolution": f"{width}x{height}" if width and height else "N/A",
             "frame_rate": float(attributes.get("FRAME-RATE", 0)) if attributes.get("FRAME-RATE") else None,
