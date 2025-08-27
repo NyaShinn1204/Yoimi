@@ -17,6 +17,7 @@ support_url:
 import re
 import os
 import uuid
+import m3u8
 import pickle
 import base64
 import hashlib
@@ -264,11 +265,11 @@ class ondemand:
             return "hls", self.session.get(playback_json["url"]).text, playback_json["url"], license_list, license_headers 
         
         def decrypt_done(self):
-            cid = os.path.splitext(os.path.basename(urlparse(url).path))[0]
+            cid = os.path.splitext(os.path.basename(urlparse(playback_json["url"]).path))[0]
 
             url = "https://www.nhk-ondemand.jp/authap/web/service/SetPlayTime"
             payload = {
-                "svid": playback_json["svud"],
+                "svid": playback_json["svid"],
                 "uuid": playback_json["uid"],
                 "cid": cid,
                 "playtime": "0000:01"
@@ -277,7 +278,7 @@ class ondemand:
 
             url = "https://www.nhk-ondemand.jp/authap/web/service/service_PlayTimeWebService"
             payload = {
-                "svid": playback_json["svud"],
+                "svid": playback_json["svid"],
                 "uuid": playback_json["uid"],
                 "cid": cid,
             }
@@ -289,3 +290,8 @@ class ondemand:
                 "tid": playback_json["tid"]
             }
             self.session.get("https://www.nhk-ondemand.jp/hls/service_hlsCaptionService/index.html", params=params)
+
+        def create_segment_links(self, select_track, manifest_link, hls_select_info):
+            m3u8_obj = m3u8.loads(hls_select_info)
+            segment_urls = [segment.uri for segment in m3u8_obj.segments]
+            return None, segment_urls

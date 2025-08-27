@@ -1,5 +1,6 @@
 rich
 tqdm
+m3u8
 click
 tls_client
 pywidevine

@@ -332,6 +332,8 @@ def download_command(input: str, command_list: Iterator):
                 output_titlename = titlename_manager.create_titlename_logger(content_type=video_info["content_type"], episode_count=video_info["episode_count"], title_name=video_info["title_name"], episode_num=video_info["episode_num"], episode_name=video_info["episode_name"])
             service_logger.info(" + "+output_titlename)
 
+            hls_mode = False
+            
             if video_info["content_type"] != "offline":
                 deliviery_type, manifest_response, manifest_link, manifest_info, license_header = service_downloader.open_session_get_dl(video_info)
                 
@@ -346,6 +348,9 @@ def download_command(input: str, command_list: Iterator):
                     
                     yoimi_logger.info("Parsing MPD file")
                 elif deliviery_type == "hls":
+                    dl_type = "segment"
+                    hls_mode = True
+                    
                     transformed_data = Tracks.hls_parser(manifest_response, debug=enable_verbose)
                     
                     yoimi_logger.info("Parsing HLS file")
@@ -371,24 +376,35 @@ def download_command(input: str, command_list: Iterator):
                     yoimi_logger.info(f" + Audio: [{select_track["audio"]["codec"]}] | {select_track["audio"]["bitrate"]} kbps")
                 except:
                     pass
+
+                if hls_mode:
+                    hls_select_meta = session.get(select_track["video"]["url"]).text
+
                 if service_config["is_drm"] or service_config["is_drm"] == "both":
-                    yoimi_logger.info("Get Video, Audio PSSH")
-                    if transformed_data["pssh_list"].get("widevine"):
-                        yoimi_logger.info(" + Widevine: "+ transformed_data["pssh_list"]["widevine"][:35]+"...")
-                    if transformed_data["pssh_list"].get("playready"):
-                        yoimi_logger.info(" + Playready: "+ transformed_data["pssh_list"]["playready"][:35]+"...")
-                    
-                    yoimi_logger.info("Decrypting License")
-                    license_return = license_logic.decrypt_license(transformed_data, manifest_info, license_header, session, loaded_config, yoimi_logger, debug=enable_verbose)
-                    if license_return["type"] == "widevine":
-                        yoimi_logger.info(f"Decrypt License (Widevine):")
-                        for license_key in license_return["key"]:
-                            if license_key["type"] == "CONTENT":
-                                yoimi_logger.info(" + "+license_key['kid_hex']+":"+license_key['key_hex']) 
-                    elif license_return["type"] == "playready":
-                        yoimi_logger.info(f"Decrypt License (PlayReady):")
-                        for license_key in license_return["key"]:
-                            yoimi_logger.info(" + "+license_key) 
+                    if transformed_data["pssh_list"] == {}:
+                        if service_config["is_drm"] == "both":
+                            license_return = Tracks.get_hls_key(hls_select_meta)
+                        else:
+                            yoimi_logger.error("PSSH NOT FOUND.")
+                            return
+                    else:
+                        yoimi_logger.info("Get Video, Audio PSSH")
+                        if transformed_data["pssh_list"].get("widevine"):
+                            yoimi_logger.info(" + Widevine: "+ transformed_data["pssh_list"]["widevine"][:35]+"...")
+                        if transformed_data["pssh_list"].get("playready"):
+                            yoimi_logger.info(" + Playready: "+ transformed_data["pssh_list"]["playready"][:35]+"...")
+                        
+                        yoimi_logger.info("Decrypting License")
+                        license_return = license_logic.decrypt_license(transformed_data, manifest_info, license_header, session, loaded_config, yoimi_logger, debug=enable_verbose)
+                        if license_return["type"] == "widevine":
+                            yoimi_logger.info(f"Decrypt License (Widevine):")
+                            for license_key in license_return["key"]:
+                                if license_key["type"] == "CONTENT":
+                                    yoimi_logger.info(" + "+license_key['kid_hex']+":"+license_key['key_hex']) 
+                        elif license_return["type"] == "playready":
+                            yoimi_logger.info(f"Decrypt License (PlayReady):")
+                            for license_key in license_return["key"]:
+                                yoimi_logger.info(" + "+license_key) 
                 
                 service_downloader.decrypt_done()
                 
@@ -418,30 +434,49 @@ def download_command(input: str, command_list: Iterator):
             
             if dl_type == "segment":                
                 yoimi_logger.info("Calculate about Manifest")
-                duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
-                
+                if hls_mode == False:
+                    duration = Tracks.calculate_video_duration(transformed_data["info"]["mediaPresentationDuration"])
+                else:
+                    duration = Tracks.calculate_video_duration_segment(hls_select_meta)
                 yoimi_logger.debug(" + Episode Duration: "+str(int(duration)))
                 
-                have_timeline, timeline_dict = Tracks.is_have_timeline(manifest_response)
-                
-                yoimi_logger.info("Video, Audio Segment Count")
-                video_segment_list = Tracks.calculate_segments(duration, int(select_track["video"]["seg_duration"]), int(select_track["video"]["seg_timescale"]))
-                yoimi_logger.info(" + Video Segments: "+str(int(video_segment_list)))                 
-                audio_segment_list = Tracks.calculate_segments(duration, int(select_track["audio"]["seg_duration"]), int(select_track["audio"]["seg_timescale"]))
-                yoimi_logger.info(" + Audio Segments: "+str(int(audio_segment_list)))
-                                
-                audio_segment_links, video_segment_links = service_downloader.create_segment_links(select_track, manifest_link, video_segment_list, audio_segment_list, timeline_dict)
-                
+                if hls_mode == False:
+                    have_timeline, timeline_dict = Tracks.is_have_timeline(manifest_response)
+                    
+                    yoimi_logger.info("Video, Audio Segment Count")
+                    if transformed_data["video_track"] != []:
+                        video_segment_list = Tracks.calculate_segments(duration, int(select_track["video"]["seg_duration"]), int(select_track["video"]["seg_timescale"]))
+                        yoimi_logger.info(" + Video Segments: "+str(int(video_segment_list)))                 
+                    if transformed_data["audio_track"] != []:
+                        audio_segment_list = Tracks.calculate_segments(duration, int(select_track["audio"]["seg_duration"]), int(select_track["audio"]["seg_timescale"]))
+                        yoimi_logger.info(" + Audio Segments: "+str(int(audio_segment_list)))
+                                    
+                    audio_segment_links, video_segment_links = service_downloader.create_segment_links(select_track, manifest_link, video_segment_list, audio_segment_list, timeline_dict)
+                else:
+                    audio_segment_links, video_segment_links = service_downloader.create_segment_links(select_track, manifest_link, hls_select_meta)
+
+                if service_label == "NHK-Ondemand" and transformed_data["pssh_list"] == {}:
+                    service_logger.error("unfortunately yoimi is not support nhk ondeamnd hls")
+                    return
+
                 yoimi_logger.info("Downloading Segments...")
                 downloader = segment_downloader(yoimi_logger)
-                success, video_output = downloader.download(video_segment_links, "download_encrypt_video.mp4", loaded_config, unixtime, "Yoimi")
-                success, audio_output = downloader.download(audio_segment_links, "download_encrypt_audio.mp4", loaded_config, unixtime, "Yoimi")
+                video_output = ""
+                audio_output = ""
+                video_decrypt_output = ""
+                audio_decrypt_output = ""
+                if transformed_data["video_track"] != {}:
+                    success, video_output = downloader.download(video_segment_links, "download_encrypt_video.mp4", loaded_config, unixtime, "Yoimi")
+                if transformed_data["audio_track"] != {}:
+                    success, audio_output = downloader.download(audio_segment_links, "download_encrypt_audio.mp4", loaded_config, unixtime, "Yoimi")
                 
                 if service_config["is_drm"]:
                     yoimi_logger.info("Decrypting Segments...")
                     decryptor = main_decrypt(yoimi_logger)
-                    video_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_video.mp4")
-                    audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
+                    if transformed_data["video_track"] != []:
+                        video_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_video.mp4")
+                    if transformed_data["audio_track"] != []:
+                        audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
                                     
                     decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
             elif dl_type == "single":

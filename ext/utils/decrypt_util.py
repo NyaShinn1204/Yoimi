@@ -137,7 +137,7 @@ class main_decrypt:
         key = license_keys.get("key")
         iv  = license_keys.get("iv")
     
-        if method not in ("AES128CBC", "AES192CBC", "AES256CBC", "AESCBC"):
+        if method not in ("AES128CBC", "AES192CBC", "AES256CBC", "AESCBC", "AES-128"):
             self.logger.error(f"Unsupported Encryption type: {method}", extra={"service_name": service_name})
             return
     

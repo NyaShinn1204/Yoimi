@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # -*- Nice Parser   -*-
 import re
+import m3u8
+import requests
 import xml.etree.ElementTree as ET
 
 from urllib.parse import urljoin 
@@ -558,19 +560,19 @@ class global_parser:
             return {}
     
     def hls_parser(self, hls_content, hls_url="", debug=False):
-        """HLSコンテンツを解析し、トラック情報を抽出する"""
-
+        """HLSコンテンツを解析し、トラック情報を抽出する（PSSH抽出を強化）"""
+    
         video_tracks = []
         audio_tracks = []
         text_tracks = []
-
+    
         lines = hls_content.splitlines()
         base_url = hls_url  # 初期値としてHLSのURLを設定
-
-        # HLSのEXT-X-MEDIAタグとEXT-X-STREAM-INFタグを解析
-        for line in lines:
-            line = line.strip()
-
+    
+        # HLSのEXT-X-MEDIAタグとEXT-X-STREAM-INFタグを解析（既存処理を維持）
+        for i, raw_line in enumerate(lines):
+            line = raw_line.strip()
+    
             if line.startswith("#EXT-X-MEDIA:"):
                 # 字幕トラックを解析
                 if "TYPE=SUBTITLES" in line:
@@ -579,12 +581,104 @@ class global_parser:
                         text_tracks.append(text_track)
             elif line.startswith("#EXT-X-STREAM-INF:"):
                 # ビデオトラックを解析
+                # _parse_stream_inf_tag 内で次行のURIを参照しているなら i を渡すなど必要に応じ調整してください
                 video_track = self._parse_stream_inf_tag(line, base_url, lines)
                 if video_track:
                     video_tracks.append(video_track)
-
+    
+        pssh_list = {}
+    
+        # Widevine / PlayReady / W3C-CENC UUIDs（ハイフン付き小文字）
+        uuid_map = {
+            "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed": "widevine",
+            "9a04f079-9840-4286-ab92-e65be0885f95": "playready",
+            "1077efec-c0b2-4d02-ace3-3c1e52e2fb4b": "w3c_cenc"
+        }
+    
+        def parse_attrs(line):
+            """属性を辞書にして返す。キーは小文字化。値は引用符を外す。"""
+            attrs = {}
+            # 値にカンマが含まれる場合は引用符で囲まれていることを期待する
+            for m in re.finditer(r'([\w-]+)=(".*?"|[^,]+)', line):
+                k = m.group(1).strip().lower()
+                v = m.group(2).strip()
+                if v.startswith('"') and v.endswith('"'):
+                    v = v[1:-1]
+                attrs[k] = v
+            return attrs
+    
+        def normalize_keyformat(kf):
+            """KEYFORMATの様々な書式を正規化してUUIDやキーワードにする"""
+            if not kf:
+                return ""
+            kf = kf.strip().lower()
+            # urn:uuid:... の場合は uuid 部分だけ取り出す
+            if kf.startswith("urn:uuid:"):
+                return kf.split("urn:uuid:")[-1]
+            # もし uuid がそのまま来る場合はそのまま
+            # キーワード形式（例: com.widevine.alpha）に対しては判定用文字列を返す
+            return kf
+    
+        # HLS内のすべての鍵宣言タグを走査（セッション・セグメント両対応）
+        for raw_line in lines:
+            line = raw_line.strip()
+            if not (line.startswith("#EXT-X-SESSION-KEY") or line.startswith("#EXT-X-KEY")):
+                continue
+    
+            attrs = parse_attrs(line)
+    
+            keyformat_raw = attrs.get("keyformat", "")
+            keyformat = normalize_keyformat(keyformat_raw)
+    
+            uri = attrs.get("uri", "")
+    
+            # URIが data:...;base64, の形式なら抽出を試みる
+            pssh_b64 = None
+            if uri:
+                # data:...;base64,<b64> 形式をサポート（case-insensitive）
+                # 'base64,' で分割することで前置情報が何であっても対応
+                lower_uri = uri.lower()
+                if "base64," in lower_uri:
+                    # splitは小文字で判定したので、実際は元の uri を分割
+                    # base64, の最初の出現で分割
+                    idx = uri.lower().find("base64,")
+                    pssh_b64 = uri[idx + len("base64,"):].strip()
+                else:
+                    # URIが data:... だが base64 でない、あるいは HTTP URL の場合は現時点では取得しない
+                    pssh_b64 = None
+    
+            # 判定：KEYFORMAT が UUID か、キーワードに 'widevine'/'playready'/'cenc' が含まれるか
+            drm_system = None
+            if keyformat:
+                # 1) UUIDマッチ（ハイフンあり）
+                if keyformat in uuid_map:
+                    drm_system = uuid_map[keyformat]
+                else:
+                    # 2) キーワード判定（例: com.widevine.alpha や 'widevine' を含む）
+                    if "widevine" in keyformat:
+                        drm_system = "widevine"
+                    elif "playready" in keyformat or "playready" in keyformat_raw.lower():
+                        drm_system = "playready"
+                    elif "cenc" in keyformat or "w3c" in keyformat:
+                        drm_system = "w3c_cenc"
+    
+            # 最終的に pssh_b64 を取得できていれば登録
+            if drm_system and pssh_b64:
+                if drm_system not in pssh_list:
+                    pssh_list[drm_system] = pssh_b64
+                    if debug:
+                        print(f"Found {drm_system.upper()} PSSH from HLS (keyformat={keyformat_raw}).")
+            else:
+                if debug:
+                    # デバッグ情報：どのような行が解析されたか
+                    print(f"Skipped key line. keyformat='{keyformat_raw}', uri.startswith('data:')={uri.startswith('data:')}, drm_system={drm_system}")
+    
+        if debug:
+            print(f"PSSH List: {pssh_list}")
+    
         return {
             "info": {},  # HLSにはMPDのような詳細なルート情報がないため、空の辞書
+            "pssh_list": pssh_list,
             "video_track": video_tracks,
             "audio_track": audio_tracks,
             "text_track": text_tracks
@@ -797,7 +891,22 @@ class global_parser:
                 output += f"{prefix} SUB | [VTT] | {language} | {name}\n"
     
         return output.strip()
-    
+    def get_hls_key(self, select_m3u8_content):
+        m3u8_obj = m3u8.loads(select_m3u8_content)
+        for key in m3u8_obj.keys:
+            if key is None:
+                continue
+            entry = {
+                "type": "AES",
+                "method": key.method,
+                "key": requests.get(key.uri).content,
+                "iv": key.iv
+            }
+            return entry
+    def calculate_video_duration_segment(self, select_m3u8_content):
+        m3u8_obj = m3u8.loads(select_m3u8_content)
+        total_duration = sum(segment.duration for segment in m3u8_obj.segments)
+        return total_duration
     # SELECT TRACK MISC
     def select_best_tracks(self, tracks_json):
         """利用可能なトラックの中から最もビットレートが高いものを選択"""
