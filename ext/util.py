@@ -17,7 +17,7 @@ from urllib.parse import urlparse, parse_qs
 
 import ext.utils.parser_util as parser_util
 
-from ext.utils.download_util import (aria2c_downloader, segment_downloader, live_downloader)
+from ext.utils.download_util import (aria2c_downloader, segment_downloader, live_downloader, n_m3u8dl_downloader)
 from ext.utils.decrypt_util import main_decrypt
 from ext.utils.mux_util import main_mux
 
@@ -431,6 +431,9 @@ def download_command(input: str, command_list: Iterator):
                 yoimi_logger.info(" + " + str(output_path))
 
                 dl_type = "offline"
+
+            if service_label == "NHK-Ondemand":
+                dl_type = "n_m3u8dl"
             
             if dl_type == "segment":                
                 yoimi_logger.info("Calculate about Manifest")
@@ -455,19 +458,15 @@ def download_command(input: str, command_list: Iterator):
                 else:
                     audio_segment_links, video_segment_links = service_downloader.create_segment_links(select_track, manifest_link, hls_select_meta)
 
-                if service_label == "NHK-Ondemand" and transformed_data["pssh_list"] == {}:
-                    service_logger.error("unfortunately yoimi is not support nhk ondeamnd hls")
-                    return
-
                 yoimi_logger.info("Downloading Segments...")
                 downloader = segment_downloader(yoimi_logger)
                 video_output = ""
                 audio_output = ""
                 video_decrypt_output = ""
                 audio_decrypt_output = ""
-                if transformed_data["video_track"] != {}:
+                if transformed_data["video_track"] != []:
                     success, video_output = downloader.download(video_segment_links, "download_encrypt_video.mp4", loaded_config, unixtime, "Yoimi")
-                if transformed_data["audio_track"] != {}:
+                if transformed_data["audio_track"] != []:
                     success, audio_output = downloader.download(audio_segment_links, "download_encrypt_audio.mp4", loaded_config, unixtime, "Yoimi")
                 
                 if service_config["is_drm"]:
@@ -540,9 +539,25 @@ def download_command(input: str, command_list: Iterator):
                 os.makedirs(os.path.dirname(content_decrypt_output), exist_ok=True)
                        
                 decryptor.decrypt(license_keys=decrypt_license, input_path=[content_output], output_path=[content_decrypt_output], config=loaded_config, service_name="Yoimi")
+            elif dl_type == "n_m3u8dl":
+                service_logger.info("NHK Ondemand have shitting drm. so... just bypass for using n_m3u8dl 😘")
+                yoimi_logger.info("Downloading Files...")
                 
-            
-            
+                video_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_encrypt_video.mp4")
+                audio_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_encrypt_audio.mp4")
+                
+                downloader = n_m3u8dl_downloader(enable_verbose)
+                
+                status, result = downloader.download(select_track["video"]["url"], "download_encrypt_video", loaded_config, unixtime, "N-m3u8DL-RE")
+
+                if service_config["is_drm"]:
+                    yoimi_logger.info("Decrypting Files...")
+                    decryptor = main_decrypt(yoimi_logger)
+                    video_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_video.mp4")
+                    audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
+                                    
+                    decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
+              
             if dl_type != "offline":
                 yoimi_logger.info("Muxing Content")
                 muxer = main_mux(yoimi_logger)

@@ -1,5 +1,6 @@
 import re
 import os
+import sys
 import time
 import logging
 import requests
@@ -10,6 +11,7 @@ from tqdm import tqdm
 from datetime import datetime
 from urllib.parse import urljoin
 from typing import Optional, Tuple, List, Dict, Any
+from tqdm.contrib.logging import logging_redirect_tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -513,6 +515,169 @@ class live_downloader:
             return True
         except Exception:
             return True # ライブ終了時の判別ができていないので仮
+
+class n_m3u8dl_downloader:
+    def __init__(self, enable_debug):
+        self.debug = enable_debug
+    def _get_executable_path(self, config: Dict[str, Any]) -> str:
+        """OSに応じてaria2cの実行可能ファイルパスを取得する。"""
+        if os.name == 'nt':
+            path = os.path.join(config["directories"]["Binaries"], "N_m3u8DL-RE.exe")
+            if not os.path.isfile(path) or not os.access(path, os.X_OK):
+                raise FileNotFoundError(f"N-m3u8DL-RE binary not found or not executable: {path}")
+            return path
+        else:
+            path = os.path.join(config["directories"]["Binaries"], "N_m3u8DL-RE")
+            if not os.path.isfile(path) or not os.access(path, os.X_OK):
+                raise FileNotFoundError(f"N-m3u8DL-RE binary not found or not executable: {path}")
+            return path
+    def _log_line(self, service_name: str, line: str):
+        """指定フォーマットで1行出力する（進捗以外）。"""
+        prefix = (
+            f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} "
+            f"[{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : "
+        )
+        # tqdmと共存するため tqdm.write を使用
+        tqdm.write(prefix + line)
+
+    def download(self, url: str, output_file_name: str, config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool, str]:
+        """
+        指定されたURLからファイルをダウンロードする。
+
+        Args:
+            url (str): ダウンロードするファイルのURL。
+            output_file_name (str): 保存するファイル名。
+            config (Dict): ディレクトリ設定などを含む辞書。
+            unixtime (str): 一時ディレクトリ名として使用するunixtime。
+            service_name (str): ログに表示するサービス名。
+
+        Returns:
+            Tuple[bool, str]: (成功フラグ, 成功時はファイルパス / 失敗時はエラーメッセージ)
+        """
+        try:
+            n_m3u8dl_re_path = self._get_executable_path(config)
+        except FileNotFoundError as e:
+            return False, str(e)
+            
+        output_temp_directory = os.path.join(config["directories"]["Temp"], "content", unixtime)
+        os.makedirs(output_temp_directory, exist_ok=True)
+
+        downlaoder_command = [
+            n_m3u8dl_re_path,
+            url,
+            "--tmp-dir", output_temp_directory,
+            "--save-name", output_file_name,
+            "--download-retry-count", "4",
+            "--binary-merge",
+            #"--skip-merge",
+            "--http-request-timeout", "30",
+            "-H", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36",
+            "--disable-update-check",
+            "-M", "format=mp4"
+        ]
+
+        #if self.debug:
+        #    downlaoder_command.extend(["-M", "keep=true"])
+#
+        #print(downlaoder_command)
+
+
+        ratio_re = re.compile(r"(?P<cur>\d+)\s*/\s*(?P<tot>\d+)")
+        segs_re = re.compile(r"Segments\s*\|\s*(?P<tot>\d+)")
+        progress_line_hint = re.compile(r"Vid\s+Kbps.*\d+/\d+")
+
+        pbar = None
+        last_n = 0
+        total_from_segments = None
+        done_flag = False
+
+        try:
+            process = subprocess.Popen(
+                downlaoder_command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                bufsize=1,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                cwd=output_temp_directory
+            )
+        except Exception as e:
+            return False, f"Failed to start process: {e}"
+        
+        output_desc = f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : "
+
+        try:
+            assert process.stdout is not None
+            for raw_line in iter(process.stdout.readline, ""):
+                line = raw_line.rstrip("\r\n")
+                if not line:
+                    continue
+
+                # total 推定 (Segments行)
+                if total_from_segments is None:
+                    sm = segs_re.search(line)
+                    if sm:
+                        try:
+                            total_from_segments = int(sm.group("tot"))
+                            if pbar is None:
+                                pbar = tqdm(
+                                    total=total_from_segments,
+                                    desc=output_desc,
+                                    leave=True,
+                                    dynamic_ncols=True,
+                                    mininterval=0.3,
+                                    disable=not sys.stderr.isatty(),
+                                )
+                        except ValueError:
+                            pass
+
+                # 進捗更新 (65/75 のような行)
+                m = ratio_re.search(line)
+                if m:
+                    cur = int(m.group("cur"))
+                    tot = int(m.group("tot"))
+                    if pbar is None:
+                        pbar = tqdm(
+                            total=tot,
+                            desc=output_desc,
+                            leave=True,
+                            dynamic_ncols=True,
+                            mininterval=0.3,
+                            disable=not sys.stderr.isatty(),
+                        )
+                    elif pbar.total != tot:
+                        pbar.total = tot
+
+                    if cur >= last_n:
+                        pbar.n = cur
+                        pbar.refresh()
+                        last_n = cur
+
+                # Done検出
+                if "Done" in line:
+                    done_flag = True
+                    if pbar is not None:
+                        pbar.n = pbar.total
+                        pbar.refresh()
+
+                # 進捗行以外だけ自前ログに流す
+                #if not progress_line_hint.search(line):
+                #    self._log_line(service_name, line)
+
+            process.wait()
+        finally:
+            if pbar is not None:
+                pbar.close()
+
+        if process.returncode != 0:
+            return False, f"Downloader exited with code {process.returncode}"
+
+        if done_flag:
+            return True, output_temp_directory
+        else:
+            return False, "Download did not complete (no 'Done' detected)."                
+
 ########## TEST SCRIPT HERE ##########
 
 if __name__ == '__main__':
