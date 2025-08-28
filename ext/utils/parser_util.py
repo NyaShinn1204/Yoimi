@@ -961,46 +961,56 @@ class global_parser:
                 highest_audio = audio_tracks[0] if audio_tracks else None
         return {"video": highest_video, "audio": highest_audio}
     def select_special_week(self, user_value, tracks_json):
-        """user_valueの解像度に近いvideo_trackを選ぶ"""
+        """
+        user_valueの解像度に近いvideo_trackと、最も高いaudio_trackを選び、
+        {"video": {...}, "audio": {...}} の形で返す
+        """
+    
         def extract_height(resolution: str) -> int:
             """解像度文字列から高さ（vertical resolution）を抽出"""
             match = re.match(r"\d+x(\d+)", resolution)
             return int(match.group(1)) if match else -1
-        
+    
         def parse_user_height(user_value: str) -> int:
             """user_valueから数値（解像度の高さ）を抽出"""
             match = re.search(r"\d{3,4}", user_value)
             return int(match.group(0)) if match else -1
-        
+    
         if not tracks_json or not isinstance(tracks_json, dict):
-            return None
+            return {"video": None, "audio": None}
     
         video_tracks = tracks_json.get("video_track", [])
-        if not video_tracks:
-            return None
+        audio_tracks = tracks_json.get("audio_track", [])
     
+        # ---- video 選択 ----
         user_height = parse_user_height(user_value)
-        if user_height <= 0:
-            return None
+        select_video = None
     
-        # 解像度ごとの高さを取り出して比較
-        matched_track = None
-        closest_track = None
-        closest_diff = float('inf')
+        if video_tracks and user_height > 0:
+            matched_track = None
+            closest_track = None
+            closest_diff = float('inf')
     
-        for track in video_tracks:
-            resolution = track.get("resolution", "")
-            height = extract_height(resolution)
-            if height <= 0:
-                continue
+            for track in video_tracks:
+                resolution = track.get("resolution", "")
+                height = extract_height(resolution)
+                if height <= 0:
+                    continue
     
-            if height == user_height:
-                matched_track = track
-                break
-            else:
-                diff = abs(height - user_height)
-                if diff <= 100 and diff < closest_diff:
-                    closest_diff = diff
-                    closest_track = track
+                if height == user_height:
+                    matched_track = track
+                    break
+                else:
+                    diff = abs(height - user_height)
+                    if diff <= 100 and diff < closest_diff:
+                        closest_diff = diff
+                        closest_track = track
     
-        return matched_track or closest_track
+            select_video = matched_track or closest_track
+    
+        # ---- audio 選択（ビットレート最大を選ぶ）----
+        highest_audio = None
+        if audio_tracks:
+            highest_audio = max(audio_tracks, key=lambda a: a.get("bitrate", 0))
+
+        return {"video": select_video, "audio": highest_audio}

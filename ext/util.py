@@ -365,10 +365,14 @@ def download_command(input: str, command_list: Iterator):
                 
                 if command_list["resolution"] == "best":
                     select_track = Tracks.select_best_tracks(transformed_data)
+                    n_m3u8dl_re_command = ["-sv", "best"]
                 if command_list["resolution"] == "worst":
                     select_track = Tracks.select_worst_tracks(transformed_data)
+                    n_m3u8dl_re_command = ["-sv", "worst"]
                 if "p" in command_list["resolution"]: # select user track
                     select_track = Tracks.select_special_week(command_list["resolution"], transformed_data)
+                    video_selected = select_track["video"]["resolution"]
+                    n_m3u8dl_re_command = ["-sv", f"{video_selected}"]
                 
                 try: # Audio tracksがない時の対処
                     yoimi_logger.info("Selected Track:")
@@ -381,13 +385,7 @@ def download_command(input: str, command_list: Iterator):
                     hls_select_meta = session.get(select_track["video"]["url"]).text
 
                 if service_config["is_drm"] or service_config["is_drm"] == "both":
-                    if transformed_data["pssh_list"] == {}:
-                        if service_config["is_drm"] == "both":
-                            license_return = Tracks.get_hls_key(hls_select_meta)
-                        else:
-                            yoimi_logger.error("PSSH NOT FOUND.")
-                            return
-                    else:
+                    if transformed_data["pssh_list"] != {}:
                         yoimi_logger.info("Get Video, Audio PSSH")
                         if transformed_data["pssh_list"].get("widevine"):
                             yoimi_logger.info(" + Widevine: "+ transformed_data["pssh_list"]["widevine"][:35]+"...")
