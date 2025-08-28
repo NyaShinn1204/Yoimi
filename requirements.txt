@@ -1,3 +1,4 @@
+jwt
 rich
 tqdm
 m3u8

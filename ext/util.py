@@ -378,6 +378,9 @@ def download_command(input: str, command_list: Iterator):
                     select_track = Tracks.select_special_week(command_list["resolution"], transformed_data)
                     video_selected = select_track["video"]["resolution"]
                     n_m3u8dl_re_command = ["-sv", f"res={video_selected}"]
+
+                if dl_type == "segment":
+                    manifest_link = select_track["video"]["url"]
                 
                 try: # Audio tracksがない時の対処
                     yoimi_logger.info("Selected Track:")
@@ -555,17 +558,23 @@ def download_command(input: str, command_list: Iterator):
                 
                 downloader = n_m3u8dl_downloader(enable_verbose)
                 
-                status, result = downloader.download(manifest_link, "download_encrypt_content", loaded_config, unixtime, "N-m3u8DL-RE", n_m3u8dl_re_command)
+                if deliviery_type == "hls" and transformed_data["pssh_list"] == {}:
+                    output_download = "download_decrypt_content"
+                else:
+                    output_download = "download_encrypt_content"
 
-                if service_config["is_drm"]:
-                    yoimi_logger.info("Decrypting Files...")
-                    decryptor = main_decrypt(yoimi_logger)
+                status, result = downloader.download(manifest_link, output_download, loaded_config, unixtime, "N-m3u8DL-RE", n_m3u8dl_re_command)
 
+                if service_config["is_drm"] or service_config["is_drm"] == "both":
                     decrypt_content = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_content.mp4")
-                                    
-                    decryptor.decrypt(license_keys=license_return, input_path=[os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_encrypt_content.mp4")], output_path=[decrypt_content], config=loaded_config, service_name="Yoimi")
-                video_decrypt_output = decrypt_content
-                audio_decrypt_output = ""
+                    if transformed_data["pssh_list"] != {}:
+                        yoimi_logger.info("Decrypting Files...")
+                        decryptor = main_decrypt(yoimi_logger)
+                                            
+                        decryptor.decrypt(license_keys=license_return, input_path=[os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_encrypt_content.mp4")], output_path=[decrypt_content], config=loaded_config, service_name="Yoimi")
+                        
+                    video_decrypt_output = decrypt_content
+                    audio_decrypt_output = ""
             if dl_type != "offline":
                 yoimi_logger.info("Muxing Content")
                 muxer = main_mux(yoimi_logger)
