@@ -553,10 +553,10 @@ def download_command(input: str, command_list: Iterator):
                 if service_config["is_drm"]:
                     yoimi_logger.info("Decrypting Files...")
                     decryptor = main_decrypt(yoimi_logger)
-                    video_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_video.mp4")
-                    audio_decrypt_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_audio.mp4")
+
+                    decrypt_content = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_content.mp4")
                                     
-                    decryptor.decrypt(license_keys=license_return, input_path=[video_output, audio_output], output_path=[video_decrypt_output, audio_decrypt_output], config=loaded_config, service_name="Yoimi")
+                    decryptor.decrypt(license_keys=license_return, input_path=[result], output_path=[decrypt_content], config=loaded_config, service_name="Yoimi")
               
             if dl_type != "offline":
                 yoimi_logger.info("Muxing Content")

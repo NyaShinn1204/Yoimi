@@ -661,10 +661,10 @@ class n_m3u8dl_downloader:
                         pbar.n = pbar.total
                         pbar.refresh()
 
-                # 進捗行以外だけ自前ログに流す
-                #if not progress_line_hint.search(line):
-                #    self._log_line(service_name, line)
 
+                # 進捗行以外だけ自前ログに流す
+                if not progress_line_hint.search(line):
+                    self._log_line(service_name, line)
             process.wait()
         finally:
             if pbar is not None:
