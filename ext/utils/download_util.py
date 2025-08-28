@@ -597,7 +597,7 @@ class n_m3u8dl_downloader:
         downlaoder_command = [
             n_m3u8dl_re_path,
             url,
-            "--tmp-dir", output_temp_directory,
+            "--tmp-dir", "./",
             "--save-name", output_file_name,
             "--download-retry-count", "4",
             "--binary-merge",
