@@ -212,7 +212,6 @@ class segment_downloader:
         """
         
         output_temp_directory = os.path.join(config["directories"]["Temp"], "content", unixtime)
-        os.makedirs(output_temp_directory, exist_ok=True)
         
         stop_flag = threading.Event()
 
@@ -488,7 +487,6 @@ class live_downloader:
     def download(self, url: str, res_info: Dict[str, Any], config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool]:
         try:
             output_temp_directory = os.path.join(config["directories"]["Temp"], "content", unixtime)
-            os.makedirs(output_temp_directory, exist_ok=True)
             
             while True:
                 ### define output 
@@ -595,7 +593,6 @@ class n_m3u8dl_downloader:
             return False, str(e)
             
         output_temp_directory = os.path.join(config["directories"]["Temp"], "content", unixtime)
-        os.makedirs(output_temp_directory, exist_ok=True)
 
         downlaoder_command = [
             n_m3u8dl_re_path,

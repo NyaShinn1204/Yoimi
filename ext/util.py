@@ -308,6 +308,7 @@ def download_command(input: str, command_list: Iterator):
             service_logger.info("Fetching 1 Episode")
             
             unixtime = str(int(datetime.now().timestamp()))
+            os.makedirs(os.path.join(loaded_config["directories"]["Temp"], "content", unixtime), exist_ok=True)
             
             if video_info == None:
                 video_info = service_downloader.parse_input(input)
@@ -342,6 +343,12 @@ def download_command(input: str, command_list: Iterator):
             if video_info["content_type"] != "offline":
                 deliviery_type, manifest_response, manifest_link, manifest_info, license_header = service_downloader.open_session_get_dl(video_info)
                 
+                _, ext_name = os.path.splitext(manifest_link)
+                manifest_output = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "manifest_response"+ext_name)
+                manfiest_filename = os.path.basename(manifest_output)
+                with open(manifest_output, "w") as manfiest_file:
+                    manfiest_file.write(manifest_response)
+
                 Tracks = parser_util.global_parser()
                 
                 if deliviery_type == "mpd":
@@ -370,14 +377,14 @@ def download_command(input: str, command_list: Iterator):
                 
                 if command_list["resolution"] == "best":
                     select_track = Tracks.select_best_tracks(transformed_data)
-                    n_m3u8dl_re_command = ["-sv", "best"]
+                    n_m3u8dl_re_command = ["-sv", "best", "-sa", "best"]
                 if command_list["resolution"] == "worst":
                     select_track = Tracks.select_worst_tracks(transformed_data)
-                    n_m3u8dl_re_command = ["-sv", "worst"]
+                    n_m3u8dl_re_command = ["-sv", "worst", "-sa", "worst"]
                 if "p" in command_list["resolution"]: # select user track
                     select_track = Tracks.select_special_week(command_list["resolution"], transformed_data)
                     video_selected = select_track["video"]["resolution"]
-                    n_m3u8dl_re_command = ["-sv", f"res={video_selected}"]
+                    n_m3u8dl_re_command = ["-sv", f"res={video_selected}", "-sa", "best"]
 
                 if dl_type == "segment":
                     manifest_link = select_track["video"]["url"]
@@ -563,7 +570,7 @@ def download_command(input: str, command_list: Iterator):
                 else:
                     output_download = "download_encrypt_content"
 
-                status, result = downloader.download(manifest_link, output_download, loaded_config, unixtime, "N-m3u8DL-RE", n_m3u8dl_re_command)
+                status, result = downloader.download(manfiest_filename, output_download, loaded_config, unixtime, "N-m3u8DL-RE", n_m3u8dl_re_command)
 
                 if service_config["is_drm"] or service_config["is_drm"] == "both":
                     decrypt_content = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_content.mp4")
