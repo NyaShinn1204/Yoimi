@@ -550,6 +550,7 @@ class n_m3u8dl_downloader:
             r"|past\s+duration"
             r"|DTS|PTS\s+.*out\s+of\s+order"
             r"|corrupt\s+.*frame"
+            r"|Last\s+message\s+repeated"
             r")\b",
             re.IGNORECASE
         )
