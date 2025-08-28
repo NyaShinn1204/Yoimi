@@ -540,7 +540,41 @@ class n_m3u8dl_downloader:
         # tqdmと共存するため tqdm.write を使用
         tqdm.write(prefix + line)
 
-    def download(self, url: str, output_file_name: str, config: Dict[str, Any], unixtime: str, service_name: str = "") -> Tuple[bool, str]:
+    def _should_suppress_warn(self, line: str) -> bool:
+        # FFMPEG SHIT NOISE WARN
+        codec_warn_prefix_re = re.compile(r"\bWARN\s*:\s*\[[^\]]+\s@\s[^\]]+\]", re.IGNORECASE)
+        codec_warn_keywords_re = re.compile(
+            r"\b("
+            r"non[-\s]existing\s+PPS"     # non-existing PPS ...
+            r"|invalid\s+NAL"
+            r"|past\s+duration"
+            r"|DTS|PTS\s+.*out\s+of\s+order"
+            r"|corrupt\s+.*frame"
+            r")\b",
+            re.IGNORECASE
+        )
+        
+        # IF YOU WANT SHOW WARN
+        allowed_warn_keywords = (
+            "Writing meta json",
+            "Type:",          # e.g. "Type: cenc"
+            "PSSH",           # DRM
+            "KID:",           # DRM
+            "Reading media info",
+        )
+        if "WARN :" not in line:
+            return False
+        for kw in allowed_warn_keywords:
+            if kw in line:
+                return False
+        if codec_warn_prefix_re.search(line):
+            return True
+        if codec_warn_keywords_re.search(line):
+            return True
+        return False
+    
+
+    def download(self, url: str, output_file_name: str, config: Dict[str, Any], unixtime: str, service_name: str = "", extend_command = []) -> Tuple[bool, str]:
         """
         指定されたURLからファイルをダウンロードする。
 
@@ -569,20 +603,16 @@ class n_m3u8dl_downloader:
             "--save-name", output_file_name,
             "--download-retry-count", "4",
             "--binary-merge",
-            #"--skip-merge",
             "--http-request-timeout", "30",
             "-H", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36",
             "--disable-update-check",
-            "-M", "format=mp4"
+            "--log-level", "INFO",
+            "-M", "format=mp4",
         ]
 
-        #if self.debug:
-        #    downlaoder_command.extend(["-M", "keep=true"])
-#
-        #print(downlaoder_command)
+        downlaoder_command.extend(extend_command)
 
-
-        ratio_re = re.compile(r"(?P<cur>\d+)\s*/\s*(?P<tot>\d+)")
+        ratio_re = re.compile(r"\b(?P<cur>\d+)\s*/\s*(?P<tot>\d+)\b")
         segs_re = re.compile(r"Segments\s*\|\s*(?P<tot>\d+)")
         progress_line_hint = re.compile(r"Vid\s+Kbps.*\d+/\d+")
 
@@ -613,8 +643,10 @@ class n_m3u8dl_downloader:
                 line = raw_line.rstrip("\r\n")
                 if not line:
                     continue
-
-                # total 推定 (Segments行)
+            
+                progressed = False  # ← フラグを導入
+            
+                # Segments 行で total 推定
                 if total_from_segments is None:
                     sm = segs_re.search(line)
                     if sm:
@@ -631,8 +663,8 @@ class n_m3u8dl_downloader:
                                 )
                         except ValueError:
                             pass
-
-                # 進捗更新 (65/75 のような行)
+            
+                # 進捗更新 (例: "117/569 ...")
                 m = ratio_re.search(line)
                 if m:
                     cur = int(m.group("cur"))
@@ -648,22 +680,23 @@ class n_m3u8dl_downloader:
                         )
                     elif pbar.total != tot:
                         pbar.total = tot
-
+            
                     if cur >= last_n:
                         pbar.n = cur
                         pbar.refresh()
                         last_n = cur
-
-                # Done検出
+                    progressed = True   # ← 進捗行なのでログには出さない
+            
+                # Done 検出
                 if "Done" in line:
                     done_flag = True
                     if pbar is not None:
                         pbar.n = pbar.total
                         pbar.refresh()
-
-
-                # 進捗行以外だけ自前ログに流す
-                if not progress_line_hint.search(line):
+                    progressed = True
+            
+                # 進捗以外の行はフォーマット付きで出力
+                if not progressed and not self._should_suppress_warn(line):
                     self._log_line(service_name, line)
             process.wait()
         finally:

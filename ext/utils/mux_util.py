@@ -16,11 +16,16 @@ class main_mux:
         
     def mux_content(self, video_input: os.PathLike, audio_input: os.PathLike, output_path: os.PathLike, duration: int, service_name: str = ""):
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        compile_command = [
-            "ffmpeg",
-            "-i", video_input,
-            "-i", audio_input,
+
+        compile_command = ["ffmpeg"]
+
+        if video_input and str(video_input).strip():
+            compile_command.extend(["-i", video_input])
+
+        if audio_input and str(audio_input).strip():
+            compile_command.extend(["-i", audio_input])
+
+        compile_command.extend([
             "-c:v", "copy", 
             "-c:a", "copy", 
             "-b:a", "192k", 
@@ -29,7 +34,7 @@ class main_mux:
             "-progress", "pipe:1",
             "-nostats",
             output_path,
-        ]
+        ])
     
         try:
             with tqdm(total=100, desc=f"{COLOR_GREEN}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{COLOR_RESET} [{COLOR_GRAY}INFO{COLOR_RESET}] {COLOR_BLUE}{service_name}{COLOR_RESET} : ", unit="%") as pbar:
@@ -60,4 +65,4 @@ class main_mux:
         except subprocess.CalledProcessError as e:
             self.logger.error(f"ffmpeg failed with return code {e.returncode}")
             self.logger.error(f"ffmpeg output:\n{e.output}")
-            raise Exception(f"Failde to muxing")
+            raise Exception("Failed to muxing")

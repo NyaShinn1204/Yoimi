@@ -112,40 +112,26 @@ class other_util:
                     yaml.dump(config, f)
         return result
     
-    def decryptor_check(config):
+    def dependence_check(config):
         binary_folder = config["directories"]["Binaries"]
-        
-        if os.name == "nt":
+    
+        if os.name == "nt":  # Windows
             path_shaka_packager = os.path.join(binary_folder, "shaka_packager_win.exe")
             path_mp4_decryptor = os.path.join(binary_folder, "mp4decrypt.exe")
-        else:
+            path_aria2c = os.path.join(binary_folder, "aria2c.exe")
+            path_n_m3u8dl = os.path.join(binary_folder, "N_m3u8dl-RE.exe")
+        else:  # Linux / Unix
             path_shaka_packager = os.path.join(binary_folder, "shaka_packager_linux")
             path_mp4_decryptor = os.path.join(binary_folder, "mp4decrypt")
-            
-        if os.path.isfile(path_shaka_packager) and not os.path.isfile(path_mp4_decryptor):
-            return {
-                "shaka_path": path_shaka_packager,
-                "mp4_path": None
-            }
-            
-        if os.path.isfile(path_mp4_decryptor) and not os.path.isfile(path_shaka_packager):
-            return {
-                "shaka_path": None,
-                "mp4_path": path_mp4_decryptor
-            }
-            
-        if os.path.isfile(path_shaka_packager) and os.path.isfile(path_mp4_decryptor):
-            return {
-                "shaka_path": path_shaka_packager,
-                "mp4_path": path_mp4_decryptor
-            }
-            
-        if not os.path.isfile(path_shaka_packager) and not os.path.isfile(path_mp4_decryptor):
-            return {
-                "shaka_path": None,
-                "mp4_path": None
-            }
-            
+            path_aria2c = os.path.join(binary_folder, "aria2c")
+            path_n_m3u8dl = os.path.join(binary_folder, "N_m3u8dl-RE")
+    
+        return {
+            "shaka_path": path_shaka_packager if os.path.isfile(path_shaka_packager) else None,
+            "mp4_path": path_mp4_decryptor if os.path.isfile(path_mp4_decryptor) else None,
+            "aria2c_path": path_aria2c if os.path.isfile(path_aria2c) else None,
+            "n_m3u8dl_path": path_n_m3u8dl if os.path.isfile(path_n_m3u8dl) else None,
+        }
     def bypass_recapcha_v3(anchor_url):
         session = requests.Session()
         session.headers.update({
