@@ -605,7 +605,7 @@ class n_m3u8dl_downloader:
             "-H", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36",
             "--disable-update-check",
             "--log-level", "INFO",
-            "-M", "format=mp4",
+            #"-M", "format=mp4",
         ]
 
         downlaoder_command.extend(extend_command)

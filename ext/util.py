@@ -573,15 +573,61 @@ def download_command(input: str, command_list: Iterator):
                 status, result = downloader.download(manfiest_filename, output_download, loaded_config, unixtime, "N-m3u8DL-RE", n_m3u8dl_re_command)
 
                 if service_config["is_drm"] or service_config["is_drm"] == "both":
-                    decrypt_content = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_decrypt_content.mp4")
-                    if transformed_data["pssh_list"] != {}:
+                    temp_folder_path = os.path.join(loaded_config["directories"]["Temp"], "content", unixtime)
+                    dl_item_list = [f for f in os.listdir(temp_folder_path) if f.endswith((".mp4", ".m4a"))]
+                
+                    print(dl_item_list)
+                
+                    # 入出力パス配列を用意
+                    input_paths: list[str] = []
+                    output_paths: list[str] = []
+                
+                    # 便宜的に後段で参照できるように decrypt 後の想定出力パスを保持
+                    video_decrypt_output = ""
+                    audio_decrypt_output = ""
+                
+                    # 見つかったファイルを所定名にリネームし、対応する decrypt 出力パスを設定
+                    for fname in dl_item_list:
+                        src = os.path.join(temp_folder_path, fname)
+                        if fname.endswith(".mp4"):
+                            enc_dst = os.path.join(temp_folder_path, "download_encrypt_video.mp4")
+                            dec_dst = os.path.join(temp_folder_path, "download_decrypt_video.mp4")
+                
+                            # 既に同名が存在する場合に備えて上書き（不要なら try/except で os.rename のみでも可）
+                            if src != enc_dst:
+                                if os.path.exists(enc_dst):
+                                    os.remove(enc_dst)
+                                os.rename(src, enc_dst)
+                
+                            input_paths.append(enc_dst)
+                            output_paths.append(dec_dst)
+                            video_decrypt_output = dec_dst
+                
+                        elif fname.endswith(".m4a"):
+                            enc_dst = os.path.join(temp_folder_path, "download_encrypt_audio.m4a")
+                            dec_dst = os.path.join(temp_folder_path, "download_decrypt_audio.m4a")
+                
+                            if src != enc_dst:
+                                if os.path.exists(enc_dst):
+                                    os.remove(enc_dst)
+                                os.rename(src, enc_dst)
+                
+                            input_paths.append(enc_dst)
+                            output_paths.append(dec_dst)
+                            audio_decrypt_output = dec_dst
+                
+                    if transformed_data.get("pssh_list"):
                         yoimi_logger.info("Decrypting Files...")
                         decryptor = main_decrypt(yoimi_logger)
-                                            
-                        decryptor.decrypt(license_keys=license_return, input_path=[os.path.join(loaded_config["directories"]["Temp"], "content", unixtime, "download_encrypt_content.mp4")], output_path=[decrypt_content], config=loaded_config, service_name="Yoimi")
-                        
-                    video_decrypt_output = decrypt_content
-                    audio_decrypt_output = ""
+                
+                        # ここで input/output をまとめて渡す
+                        decryptor.decrypt(
+                            license_keys=license_return,
+                            input_path=input_paths,
+                            output_path=output_paths,
+                            config=loaded_config,
+                            service_name="Yoimi"
+                        )
             if dl_type != "offline":
                 yoimi_logger.info("Muxing Content")
                 muxer = main_mux(yoimi_logger)
