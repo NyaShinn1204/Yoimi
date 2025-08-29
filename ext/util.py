@@ -1,8 +1,6 @@
 import re
 import os
 import cv2
-import json
-import time
 import shutil
 import logging
 import colorama
@@ -17,13 +15,13 @@ from urllib.parse import urlparse, parse_qs
 
 import ext.utils.parser_util as parser_util
 
-from ext.utils.download_util import (aria2c_downloader, segment_downloader, live_downloader, n_m3u8dl_downloader)
+from ext.utils.download_util import (live_downloader, n_m3u8dl_downloader)
 from ext.utils.decrypt_util import main_decrypt
 from ext.utils.mux_util import main_mux
 
 from ext.utils.license_util import license_logic
 from ext.utils.session_util import session_logic
-from ext.utils.titlename_util import (titlename_logic)
+from ext.utils.titlename_util import titlename_logic
 from ext.utils.zzz_other_util import other_util
 
 colorama.init()

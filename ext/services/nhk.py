@@ -36,6 +36,14 @@ class plus:
         "cache_session": True,
         "use_tls": False,
     }
+
+    def parse_input(self, url_input):
+        pass
+    def parse_input_season(self, url):
+        pass
+
+    def authorize(self, user_id, pasword):
+        pass
 class ondemand:
     __service_config__ = {
         "service_name": "NHK-Ondemand",
