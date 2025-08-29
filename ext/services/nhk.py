@@ -65,11 +65,13 @@ class ondemand:
             }
             self.session.headers.update(self.default_headers)
         
-        def parse_input(self, url_input):
-            match = re.search(r'/goods/([^/]+)/', url_input)
-            if match:
-                content_id = match.group(1)
-
+        def parse_input(self, url_input, id = None):
+            if id == None:
+                match = re.search(r'/goods/([^/]+)/', url_input)
+                if match:
+                    content_id = match.group(1)
+            else:
+                content_id = id
             status, content_info = self.get_content_infO(content_id)
 
             episode_count = self.get_episode_count(content_info["siteProgramId"])
@@ -85,7 +87,35 @@ class ondemand:
             
             return video_info
         def parse_input_season(self, url_input):
-            pass
+            match = re.search(r'/program/([^/]+)/', url_input)
+            if match:
+                program_id = match.group(1)
+
+            # status, content_info = self.get_content_infO(program_id)
+
+            episode_lsit = self.get_episode_list(program_id)
+
+            program_info = self.get_sesaon_info(program_id)
+
+            temp_list = []
+            
+            for single in episode_lsit:
+                self.logger.info(" + "+program_info["Title"]["#text"]+"_"+single["Subtitle"]["#text"])
+                temp_json = {}
+                temp_json["raw"] = single
+                temp_json["episode_name"] = single["Subtitle"]["#text"]
+                temp_json["episode_num"] = ""
+                temp_json["id_in_schema"] = single["Id"]
+                temp_list.append(temp_json)
+
+            video_info = {
+                "raw": program_info,
+                "episode_list": {
+                    "metas": temp_list
+                }
+            }
+
+            return None, program_info["Title"]["#text"], video_info
         def authorize(self, user_id, password):
             tv_device_id = str(uuid.uuid4())
 
@@ -201,13 +231,44 @@ class ondemand:
             }
             try:
                 data = self.session.post(url, data=payload)
-                root = ET.fromstring(data.text)
-                
-                total = root.find("Result").text.strip()
-                return total
+                root = xmltodict.parse(data.text)
+                return root["PackageList"]["Result"]
+            except:
+                return 0
+
+        def get_episode_list(self, program_id):
+            url = "https://www.nhk-ondemand.jp/xml3/goods/"
+            
+            payload = {
+                "G2": "*",
+                "G5": "1,4,5",
+                "G8": program_id, # series id
+                "G53": "11",
+                "G54": "1000" # maybe max count?
+            }
+            try:
+                data = self.session.post(url, data=payload)
+                episode_list = xmltodict.parse(data.text)["PackageList"]["Package"]
+
+                return episode_list
             except:
                 return 0
             
+        def get_sesaon_info(self, program_id):
+            url = "https://www.nhk-ondemand.jp/xml2/siteProgram/"
+
+            payload = {
+                "P8": program_id,
+                "P5": "1,4,5"
+            }
+
+            try:
+                data = self.session.post(url, data=payload)
+                program_info = xmltodict.parse(data.text)
+                return program_info["GroupList"]["Group"]
+            except:
+                return None
+
         def get_subscribe_id(self):
             cache_login = "https://www.nhk-ondemand.jp/user/availableList/"
             headers = {
@@ -249,7 +310,7 @@ class ondemand:
             
             playback_json = xmltodict.parse(playback_response)["body"]
 
-            print(playback_json)
+            #print(playback_json)
             
             license_list = {"widevine": "https://nod.photron-drm.com/widevine/license", "playready": ""}
             license_header = {
